@@ -39,9 +39,9 @@ class VpnEngine {
 
     try {
       await _openVpn!.initialize(
-        groupIdentifier: Platform.isIOS ? 'group.com.yencodetech.vpn' : null,
+        groupIdentifier: Platform.isIOS ? 'group.com.yencode.ghostroute' : null,
         providerBundleIdentifier: Platform.isIOS
-            ? 'com.yencodetech.vpn.VPNExtension'
+            ? 'com.yencode.ghostroute.VPNExtension'
             : null,
         localizedDescription: Platform.isIOS ? 'Tron VPN' : null,
       );

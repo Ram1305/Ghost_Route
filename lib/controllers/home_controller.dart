@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-// TODO: Restore ads - import '../helpers/ad_helper.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';

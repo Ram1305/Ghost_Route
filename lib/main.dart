@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 import 'theme/nexus_theme.dart';
-// TODO: Restore ads - import 'helpers/ad_helper.dart';
 import 'helpers/config.dart';
 import 'helpers/my_dialogs.dart';
 import 'helpers/pref.dart';
@@ -21,9 +19,16 @@ Future<void> main() async {
   //enter full-screen
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
-  // Firebase initialization (Analytics required by Remote Config for A/B testing)
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
+  // iOS may auto-configure from GoogleService-Info.plist before Dart sees any apps.
+  if (Firebase.apps.isEmpty) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } on FirebaseException catch (e) {
+      if (e.code != 'duplicate-app') rethrow;
+    }
+  }
 
   // Remote config for ads (required before AdHelper when ads are restored)
   await Config.initConfig();
@@ -33,9 +38,6 @@ Future<void> main() async {
   // VPN engine init is deferred until first connect on both platforms so the
   // Activity (Android) is ready for VpnService.prepare() and permission dialog.
   // Early init on Android caused IPC/context issues and VPN not working.
-
-  // TODO: Restore ads
-  // await AdHelper.initAds();
 
   //for setting orientation to portrait only
   await SystemChrome.setPreferredOrientations(

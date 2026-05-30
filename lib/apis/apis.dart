@@ -46,6 +46,7 @@ class APIs {
       log('\ngetVPNServersE: $e');
       return vpnList; // Return partial list but do not save to Pref
     }
+    vpnList.removeWhere((v) => v.openVPNConfigDataBase64.trim().isEmpty);
     vpnList.shuffle();
 
     if (vpnList.isNotEmpty) Pref.vpnList = vpnList;
