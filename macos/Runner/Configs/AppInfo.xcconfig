@@ -5,7 +5,7 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = yencode_vpn
+PRODUCT_NAME = ghost_route
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.yencodetech.vpn

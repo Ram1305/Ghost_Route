@@ -154,7 +154,7 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'YENCODE VPN · SECURE ACCESS',
+                      'GHOST ROUTE · SECURE ACCESS',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12,
                         color: NexusTheme.text2,

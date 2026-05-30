@@ -368,7 +368,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Get Yencode VPN for faster speeds and more features',
+                    'Get Ghost Route for faster speeds and more features',
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       color: NexusTheme.text2,

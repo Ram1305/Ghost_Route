@@ -1,7 +1,7 @@
 {
-  "name": "yencode-vpn-backend",
+  "name": "ghost-route-backend",
   "version": "1.0.0",
-  "description": "Express.js + MongoDB backend for Yencode VPN",
+  "description": "Express.js + MongoDB backend for Ghost Route",
   "main": "server.js",
   "type": "module",
   "scripts": {

@@ -58,11 +58,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Yencode VPN',
+      title: 'Ghost Route',
       scaffoldMessengerKey: MyDialogs.rootScaffoldMessengerKey,
       home: const SplashScreen(),
 
-      // Yencode VPN dark theme
+      // Ghost Route dark theme
       theme: NexusTheme.darkTheme,
       themeMode: ThemeMode.dark,
 

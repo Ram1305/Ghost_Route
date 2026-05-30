@@ -38,7 +38,7 @@ class VpnEngine {
         providerBundleIdentifier: Platform.isIOS
             ? 'com.yencodetech.vpn.VPNExtension'
             : null,
-        localizedDescription: Platform.isIOS ? 'Yencode VPN' : null,
+        localizedDescription: Platform.isIOS ? 'Ghost Route' : null,
       );
       _initialized = true;
     } catch (e) {

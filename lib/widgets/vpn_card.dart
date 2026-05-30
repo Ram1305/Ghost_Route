@@ -9,7 +9,7 @@ import '../models/vpn.dart';
 import '../services/vpn_engine.dart';
 import '../theme/nexus_theme.dart';
 
-/// Yencode VPN server card
+/// Ghost Route server card
 class VpnCard extends StatelessWidget {
   final Vpn vpn;
   final bool selected;

@@ -18,7 +18,7 @@ function readOvpnBase64(relativePath) {
 
 const defaultServers = [
   {
-    hostname: 'jp-yencode-01',
+    hostname: 'jp-ghostroute-01',
     ip: '0.0.0.0',
     ping: '45',
     speed: 100000000,
@@ -30,7 +30,7 @@ const defaultServers = [
     sortOrder: 0,
   },
   {
-    hostname: 'th-yencode-01',
+    hostname: 'th-ghostroute-01',
     ip: '0.0.0.0',
     ping: '62',
     speed: 80000000,

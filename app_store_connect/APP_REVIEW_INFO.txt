@@ -1,4 +1,4 @@
-App Store Connect – Resubmission Checklist (Yencode VPN)
+App Store Connect – Resubmission Checklist (Ghost Route)
 ============================================================
 
 ORGANIZATION ACCOUNT (Guideline 5.4)
@@ -9,10 +9,10 @@ ORGANIZATION ACCOUNT (Guideline 5.4)
 
 APP METADATA (Guideline 4.1)
 ----------------------------
-- App name: Yencode VPN
+- App name: Ghost Route
 - Remove all "Tron VPN" / "Tron" references from subtitle, description, keywords, screenshots
-- Privacy policy URL: host web/privacy-policy.html (updated for Yencode VPN)
-- Support URL: your Yencode Technologies support page
+- Privacy policy URL: host web/privacy-policy.html (updated for Ghost Route)
+- Support URL: your support page
 
 APP REVIEW INFORMATION (Guideline 2.1)
 --------------------------------------
@@ -37,10 +37,10 @@ Notes for reviewer:
 REVIEW REPLY TEMPLATE
 ---------------------
 We addressed all issues:
-(1) Rebranded to Yencode VPN and removed third-party "Tron VPN" naming.
+(1) Rebranded to Ghost Route and removed third-party "Tron VPN" naming.
 (2) Resubmitted from our Organization Apple Developer account.
 (3) Fixed login infinite loading by moving auth to HTTPS with request timeouts; demo credentials provided above.
-(4) Replaced public VPNGate server list with Yencode-managed servers via our backend API.
+(4) Replaced public VPNGate server list with our managed server infrastructure and removed template branding.
 
 BUILD COMMAND (iOS release)
 ---------------------------

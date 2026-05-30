@@ -10,7 +10,7 @@ function getMongoUri() {
   }
   const host = process.env.MONGODB_HOST || 'localhost';
   const port = process.env.MONGODB_PORT || '27017';
-  const database = process.env.MONGODB_DATABASE || 'yencode_vpn';
+  const database = process.env.MONGODB_DATABASE || 'ghost_route';
   const user = process.env.MONGODB_USER;
   const password = process.env.MONGODB_PASSWORD;
   const auth = user && password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}@` : '';

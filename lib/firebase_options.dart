@@ -4,7 +4,7 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Default [FirebaseOptions] for Yencode VPN.
+/// Default [FirebaseOptions] for Ghost Route.
 /// Replace with a production Firebase project via: flutterfire configure
 ///
 /// Example:

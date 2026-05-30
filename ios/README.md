@@ -1,1 +1,1 @@
-# Yencode VPN
+# Ghost Route

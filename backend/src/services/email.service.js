@@ -46,7 +46,7 @@ export async function sendMail({ to, subject, html, text }) {
 const OTP_VALID_MINUTES = 10;
 
 export async function sendOtpEmail(to, code) {
-  const subject = 'Your Yencode VPN verification code';
+  const subject = 'Your Ghost Route verification code';
   const text = `Your verification code is: ${code}. It is valid for ${OTP_VALID_MINUTES} minutes.`;
   const html = `
     <p>Your verification code is: <strong>${code}</strong>.</p>
@@ -57,11 +57,11 @@ export async function sendOtpEmail(to, code) {
 }
 
 export async function sendWelcomeEmail(to, username) {
-  const subject = 'Welcome to Yencode VPN';
+  const subject = 'Welcome to Ghost Route';
   const name = username || 'there';
-  const text = `Hi ${name}, welcome to Yencode VPN. Your account has been created successfully. You can now sign in with your email and password.`;
+  const text = `Hi ${name}, welcome to Ghost Route. Your account has been created successfully. You can now sign in with your email and password.`;
   const html = `
-    <h2>Welcome to Yencode VPN</h2>
+    <h2>Welcome to Ghost Route</h2>
     <p>Hi ${name},</p>
     <p>Your account has been created successfully. You can now sign in with your email and password.</p>
     <p>Thank you for joining us!</p>
@@ -70,11 +70,11 @@ export async function sendWelcomeEmail(to, username) {
 }
 
 export async function sendInvoiceEmail(to, { orderId, paymentId, planName, amount, currency, date }) {
-  const subject = 'Your Yencode VPN invoice';
+  const subject = 'Your Ghost Route invoice';
   const dateStr = date ? new Date(date).toLocaleString() : new Date().toLocaleString();
   const text = `Invoice – Order: ${orderId || 'N/A'}, Plan: ${planName || 'N/A'}, Amount: ${amount} ${currency || 'INR'}, Date: ${dateStr}.`;
   const html = `
-    <h2>Yencode VPN – Payment receipt</h2>
+    <h2>Ghost Route – Payment receipt</h2>
     <p>Thank you for your purchase.</p>
     <table style="border-collapse: collapse;">
       <tr><td><strong>Order ID</strong></td><td>${orderId || 'N/A'}</td></tr>
@@ -88,11 +88,11 @@ export async function sendInvoiceEmail(to, { orderId, paymentId, planName, amoun
 }
 
 export async function sendPasswordResetConfirmation(to) {
-  const subject = 'Your Yencode VPN password was changed';
-  const text = 'Your Yencode VPN account password has been changed successfully. If you did not make this change, please contact support.';
+  const subject = 'Your Ghost Route password was changed';
+  const text = 'Your Ghost Route account password has been changed successfully. If you did not make this change, please contact support.';
   const html = `
     <h2>Password changed</h2>
-    <p>Your Yencode VPN account password has been changed successfully.</p>
+    <p>Your Ghost Route account password has been changed successfully.</p>
     <p>If you did not make this change, please contact support.</p>
   `;
   await sendMail({ to, subject, html, text });

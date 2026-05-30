@@ -72,7 +72,7 @@ class PremiumScreen extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            'Yencode VPN',
+            'Ghost Route',
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.w700,

@@ -1,11 +1,11 @@
 {
-    "name": "Yencode VPN",
-    "short_name": "Yencode VPN",
+    "name": "Ghost Route",
+    "short_name": "Ghost Route",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Secure VPN by Yencode Technologies.",
+    "description": "Secure VPN by Ghost Route.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

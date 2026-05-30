@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Yencode VPN design system - dark theme
+/// Ghost Route design system - dark theme
 class NexusTheme {
   NexusTheme._();
 

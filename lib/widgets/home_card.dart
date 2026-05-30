@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../main.dart';
 import '../theme/nexus_theme.dart';
 
-/// Yencode VPN card for status display
+/// Ghost Route card for status display
 class HomeCard extends StatelessWidget {
   final String title, subtitle;
   final Widget icon;

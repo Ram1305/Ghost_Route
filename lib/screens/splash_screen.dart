@@ -10,7 +10,7 @@ import '../widgets/canvas_background.dart';
 import 'home_screen.dart';
 import 'premium_screen.dart';
 
-/// Yencode VPN splash with shield ripple animation
+/// Ghost Route splash with shield ripple animation
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -132,7 +132,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ).createShader(bounds),
                           blendMode: BlendMode.srcIn,
                           child: Text(
-                            'Yencode VPN',
+                            'Ghost Route',
                             style: GoogleFonts.outfit(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
@@ -143,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'BY YENCODE TECHNOLOGIES',
+                          'SECURE · PRIVATE ACCESS',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 12,
                             color: NexusTheme.text2,

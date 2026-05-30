@@ -149,7 +149,7 @@ class HomeScreen extends StatelessWidget {
                 ).createShader(bounds),
                 blendMode: BlendMode.srcIn,
                 child: Text(
-                  'Yencode VPN',
+                  'Ghost Route',
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
