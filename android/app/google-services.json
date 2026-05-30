@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "89314856398",
-    "project_id": "adtest-76f2f",
-    "storage_bucket": "adtest-76f2f.firebasestorage.app"
+    "project_number": "977641016485",
+    "project_id": "ghostroute-7d157",
+    "storage_bucket": "ghostroute-7d157.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:89314856398:android:155fad8b6665dd7257af9f",
+        "mobilesdk_app_id": "1:977641016485:android:f3090ee215d70af436514c",
         "android_client_info": {
           "package_name": "com.yencode.ghostroute"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA0S-6smQTLNDLRdIGBvLtv2ZAo8dKHezo"
+          "current_key": "AIzaSyBS8DjtMjaDXSsuNqUqBH4Oz4rQr-qtNl0"
         }
       ],
       "services": {

@@ -42,49 +42,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyA0S-6smQTLNDLRdIGBvLtv2ZAo8dKHezo',
-    appId: '1:89314856398:android:155fad8b6665dd7257af9f',
-    messagingSenderId: '89314856398',
-    projectId: 'adtest-76f2f',
-    storageBucket: 'adtest-76f2f.firebasestorage.app',
+    apiKey: 'AIzaSyBS8DjtMjaDXSsuNqUqBH4Oz4rQr-qtNl0',
+    appId: '1:977641016485:android:f3090ee215d70af436514c',
+    messagingSenderId: '977641016485',
+    projectId: 'ghostroute-7d157',
+    storageBucket: 'ghostroute-7d157.firebasestorage.app',
   );
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyC-BX-tBZi6cSgNMrnh3M8vlzHJar-Ql8M',
-    appId: '1:89314856398:web:42f0eee108d12f9757af9f',
-    messagingSenderId: '89314856398',
-    projectId: 'adtest-76f2f',
-    authDomain: 'adtest-76f2f.firebaseapp.com',
-    storageBucket: 'adtest-76f2f.firebasestorage.app',
-    measurementId: 'G-0T2XQWLC2Z',
+    apiKey: 'AIzaSyCKI55KUfGB0pnt9InuoJ5lLFVPHJ2oKno',
+    appId: '1:977641016485:web:d47806c3a6597f0c36514c',
+    messagingSenderId: '977641016485',
+    projectId: 'ghostroute-7d157',
+    authDomain: 'ghostroute-7d157.firebaseapp.com',
+    storageBucket: 'ghostroute-7d157.firebasestorage.app',
+    measurementId: 'G-KLCKCM3N3D',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCvEf-lENbCJ33IQBLsYVDXF1D_dMPIor8',
-    appId: '1:89314856398:ios:d4124822986dd4b557af9f',
-    messagingSenderId: '89314856398',
-    projectId: 'adtest-76f2f',
-    storageBucket: 'adtest-76f2f.firebasestorage.app',
+    apiKey: 'AIzaSyDT1vcrKM50-iSOKBAUgXrCsEm2K09y3ic',
+    appId: '1:977641016485:ios:36e83ffbf9d5c4a736514c',
+    messagingSenderId: '977641016485',
+    projectId: 'ghostroute-7d157',
+    storageBucket: 'ghostroute-7d157.firebasestorage.app',
     iosBundleId: 'com.yencode.ghostroute',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCvEf-lENbCJ33IQBLsYVDXF1D_dMPIor8',
-    appId: '1:89314856398:ios:d4124822986dd4b557af9f',
-    messagingSenderId: '89314856398',
-    projectId: 'adtest-76f2f',
-    storageBucket: 'adtest-76f2f.firebasestorage.app',
+    apiKey: 'AIzaSyDT1vcrKM50-iSOKBAUgXrCsEm2K09y3ic',
+    appId: '1:977641016485:ios:36e83ffbf9d5c4a736514c',
+    messagingSenderId: '977641016485',
+    projectId: 'ghostroute-7d157',
+    storageBucket: 'ghostroute-7d157.firebasestorage.app',
     iosBundleId: 'com.yencode.ghostroute',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyC-BX-tBZi6cSgNMrnh3M8vlzHJar-Ql8M',
-    appId: '1:89314856398:web:62efb4ae646f1d6757af9f',
-    messagingSenderId: '89314856398',
-    projectId: 'adtest-76f2f',
-    authDomain: 'adtest-76f2f.firebaseapp.com',
-    storageBucket: 'adtest-76f2f.firebasestorage.app',
-    measurementId: 'G-N3Q12BTY74',
+    apiKey: 'AIzaSyCKI55KUfGB0pnt9InuoJ5lLFVPHJ2oKno',
+    appId: '1:977641016485:web:fc1534afa3e6ad6d36514c',
+    messagingSenderId: '977641016485',
+    projectId: 'ghostroute-7d157',
+    authDomain: 'ghostroute-7d157.firebaseapp.com',
+    storageBucket: 'ghostroute-7d157.firebasestorage.app',
+    measurementId: 'G-C1WFY8Z14V',
   );
 
 }
