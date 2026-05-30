@@ -15,7 +15,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Get.put(AuthController());
+    final auth = Get.find<AuthController>();
     final user = auth.currentUser.value ?? Pref.currentUser;
 
     if (user == null) {
@@ -368,7 +368,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Get Ghost Route for faster speeds and more features',
+                    'Get Tron VPN for faster speeds and more features',
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       color: NexusTheme.text2,
@@ -471,7 +471,7 @@ class ProfileScreen extends StatelessWidget {
       height: 52,
       child: OutlinedButton(
         onPressed: () {
-          Get.put(AuthController()).logout();
+          Get.find<AuthController>().logout();
           Get.off(() => const ProfileScreen());
         },
         style: OutlinedButton.styleFrom(

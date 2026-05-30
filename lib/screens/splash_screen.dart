@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/route_manager.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../controllers/auth_controller.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
 import '../theme/nexus_theme.dart';
@@ -10,7 +11,7 @@ import '../widgets/canvas_background.dart';
 import 'home_screen.dart';
 import 'premium_screen.dart';
 
-/// Ghost Route splash with shield ripple animation
+/// Tron VPN-style splash with shield ripple animation
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -59,10 +60,17 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) _fadeController.forward();
     });
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 1500), () async {
       if (!mounted) return;
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      // Keep AuthController for the whole app so Profile/Payment can Get.find it
+      Get.put(AuthController(), permanent: true);
       if (Pref.isLoggedIn) {
+        // Sync subscription from backend so "already purchased" is always correct
+        try {
+          await Get.find<AuthController>().refreshCurrentUserFromBackend();
+        } catch (_) {}
+        if (!mounted) return;
         Get.off(() => HomeScreen());
       } else {
         Get.off(() => const PremiumScreen());
@@ -132,7 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ).createShader(bounds),
                           blendMode: BlendMode.srcIn,
                           child: Text(
-                            'Ghost Route',
+                            'Tron VPN',
                             style: GoogleFonts.outfit(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
@@ -143,7 +151,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'SECURE · PRIVATE ACCESS',
+                          'MILITARY GRADE',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 12,
                             color: NexusTheme.text2,

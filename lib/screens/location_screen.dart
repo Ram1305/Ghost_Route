@@ -9,14 +9,25 @@ import '../main.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/vpn_card.dart';
 
-class LocationScreen extends StatelessWidget {
-  LocationScreen({super.key});
+class LocationScreen extends StatefulWidget {
+  const LocationScreen({super.key});
 
-  final _controller = LocationController();
+  @override
+  State<LocationScreen> createState() => _LocationScreenState();
+}
+
+class _LocationScreenState extends State<LocationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Always fetch fresh server list when opening "View All" so all servers show
+    final controller = Get.put(LocationController());
+    controller.getVpnData();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_controller.vpnList.isEmpty) _controller.getVpnData();
+    final _controller = Get.find<LocationController>();
 
     return Obx(
       () => Scaffold(
@@ -53,8 +64,10 @@ class LocationScreen extends StatelessWidget {
     );
   }
 
-  Widget _vpnData() => ListView.builder(
-        itemCount: _controller.vpnList.length,
+  Widget _vpnData() {
+    final locController = Get.find<LocationController>();
+    return ListView.builder(
+        itemCount: locController.vpnList.length,
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.only(
           top: mq.height * .015,
@@ -64,7 +77,7 @@ class LocationScreen extends StatelessWidget {
         ),
         itemBuilder: (ctx, i) {
           final controller = Get.find<HomeController>();
-          final vpn = _controller.vpnList[i];
+          final vpn = locController.vpnList[i];
           return VpnCard(
             vpn: vpn,
             selected:
@@ -73,6 +86,7 @@ class LocationScreen extends StatelessWidget {
           );
         },
       );
+  }
 
   Widget _loadingWidget() => SizedBox(
         width: double.infinity,

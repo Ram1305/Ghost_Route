@@ -5,14 +5,24 @@ import '../helpers/pref.dart';
 import '../models/vpn.dart';
 
 class LocationController extends GetxController {
-  List<Vpn> vpnList = Pref.vpnList;
+  final RxList<Vpn> vpnList = <Vpn>[].obs;
 
   final RxBool isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    vpnList.assignAll(Pref.vpnList);
+  }
 
   Future<void> getVpnData() async {
     isLoading.value = true;
     vpnList.clear();
-    vpnList = await APIs.getVPNServers();
-    isLoading.value = false;
+    try {
+      final list = await APIs.getVPNServers();
+      vpnList.assignAll(list);
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

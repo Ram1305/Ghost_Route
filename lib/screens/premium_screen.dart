@@ -72,7 +72,7 @@ class PremiumScreen extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            'Ghost Route',
+            'Tron VPN',
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.w700,

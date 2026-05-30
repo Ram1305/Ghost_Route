@@ -149,7 +149,7 @@ class HomeScreen extends StatelessWidget {
                 ).createShader(bounds),
                 blendMode: BlendMode.srcIn,
                 child: Text(
-                  'Ghost Route',
+                  'Tron VPN',
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -254,7 +254,10 @@ class HomeScreen extends StatelessWidget {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => _controller.connectToVpn(),
+            onTap: () {
+              debugPrint('[TronVPN] Connect button (power orb) tapped');
+              _controller.connectToVpn();
+            },
             child: Obx(() {
               final connecting =
                   _controller.vpnState.value == VpnEngine.vpnConnecting;
@@ -263,7 +266,10 @@ class HomeScreen extends StatelessWidget {
               return PowerOrb(
                 isConnected: connected,
                 isConnecting: connecting,
-                onTap: () => _controller.connectToVpn(),
+                onTap: () {
+                  debugPrint('[TronVPN] Connect button (power orb) tapped');
+                  _controller.connectToVpn();
+                },
               );
             }),
           ),

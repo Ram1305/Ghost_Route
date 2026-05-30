@@ -9,7 +9,7 @@ import '../models/vpn.dart';
 import '../services/vpn_engine.dart';
 import '../theme/nexus_theme.dart';
 
-/// Ghost Route server card
+/// Tron VPN-style server card
 class VpnCard extends StatelessWidget {
   final Vpn vpn;
   final bool selected;
@@ -33,11 +33,22 @@ class VpnCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: () {
+            final isSameServer = selected;
+            if (isSameServer) {
+              debugPrint(
+                  '[TronVPN] VpnCard: Same server already selected, going back');
+              Get.back();
+              return;
+            }
+            debugPrint(
+                '[TronVPN] VpnCard: Selected ${vpn.countryLong} (${vpn.hostname}), saving and connecting');
             controller.vpn.value = vpn;
             Pref.vpn = vpn;
             Get.back();
 
             if (controller.vpnState.value == VpnEngine.vpnConnected) {
+              debugPrint(
+                  '[TronVPN] VpnCard: Was connected, stopping then will reconnect in 2s');
               VpnEngine.stopVpn();
               Future.delayed(
                   const Duration(seconds: 2), () => controller.connectToVpn());

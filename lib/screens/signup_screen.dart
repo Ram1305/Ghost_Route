@@ -26,7 +26,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   Plan? _plan;
   List<Plan>? _plans;
-  final _auth = Get.put(AuthController());
+  final _auth = Get.find<AuthController>();
 
   final _username = TextEditingController();
   final _email = TextEditingController();
@@ -104,26 +104,23 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
     setState(() => _loading = true);
-    try {
-      final premiumPlan = PremiumPlan.values[_plan!.index.clamp(0, PremiumPlan.values.length - 1)];
-      final ok = await _auth.signUp(
-        username: _username.text,
-        email: _email.text,
-        phone: _phone.text,
-        password: _password.text,
-        confirmPassword: _confirmPassword.text,
-        otpVerified: _otpVerified,
-        selectedPlan: premiumPlan,
-      );
-      if (!mounted) return;
-      if (ok) {
-        if (!Get.isRegistered<PaymentController>()) {
-          Get.put(PaymentController());
-        }
-        Get.find<PaymentController>().openCheckout(_plan!, fromSignup: true);
+    final premiumPlan = PremiumPlan.values[_plan!.index.clamp(0, PremiumPlan.values.length - 1)];
+    final ok = await _auth.signUp(
+      username: _username.text,
+      email: _email.text,
+      phone: _phone.text,
+      password: _password.text,
+      confirmPassword: _confirmPassword.text,
+      otpVerified: _otpVerified,
+      selectedPlan: premiumPlan,
+    );
+    setState(() => _loading = false);
+    if (ok) {
+      if (!Get.isRegistered<PaymentController>()) {
+        Get.put(PaymentController());
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      // Navigate to payment: success → payment success screen then home; failure → login
+      Get.find<PaymentController>().openCheckout(_plan!, fromSignup: true);
     }
   }
 

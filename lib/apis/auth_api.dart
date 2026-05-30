@@ -1,9 +1,10 @@
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
+
 import '../config/app_config.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
-import 'http_client.dart';
 
 /// Auth API – OTP, register, login, forgot password (backend).
 class AuthApi {
@@ -11,22 +12,22 @@ class AuthApi {
 
   static Future<bool> sendOtp(String email, String purpose) async {
     try {
-      final res = await ApiHttp.post(
+      final res = await http.post(
         Uri.parse('$_base/api/auth/send-otp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email.trim().toLowerCase(), 'purpose': purpose}),
       );
       if (res.statusCode == 200) return true;
-      final data = ApiHttp.decodeJsonMap(res);
-      throw ApiException(data['error'] as String? ?? 'Failed to send OTP');
+      final data = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(data?['error'] as String? ?? 'Failed to send OTP');
     } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+      rethrow;
     }
   }
 
   static Future<bool> verifyOtp(String email, String code, String purpose) async {
     try {
-      final res = await ApiHttp.post(
+      final res = await http.post(
         Uri.parse('$_base/api/auth/verify-otp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -36,10 +37,10 @@ class AuthApi {
         }),
       );
       if (res.statusCode == 200) return true;
-      final data = ApiHttp.decodeJsonMap(res);
-      throw ApiException(data['error'] as String? ?? 'Invalid or expired OTP');
+      final data = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(data?['error'] as String? ?? 'Invalid or expired OTP');
     } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+      rethrow;
     }
   }
 
@@ -49,7 +50,7 @@ class AuthApi {
     List<Subscription> history = [];
     if (historyRaw is List) {
       for (final e in historyRaw) {
-        if (e is Map) history.add(Subscription.fromJson(Map<String, dynamic>.from(e)));
+        if (e is Map) history.add(Subscription.fromJson(Map<String, dynamic>.from(e as Map)));
       }
     }
     final activePlanRaw = json['activePlan'];
@@ -78,64 +79,56 @@ class AuthApi {
     required String username,
     String phone = '',
   }) async {
-    try {
-      final res = await ApiHttp.post(
-        Uri.parse('$_base/api/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email.trim().toLowerCase(),
-          'password': password,
-          'username': username.trim(),
-          'phone': phone.trim(),
-        }),
-      );
-      final data = ApiHttp.decodeJsonMap(res);
-      if (res.statusCode != 201) {
-        throw ApiException(data['error'] as String? ?? 'Registration failed');
-      }
-      final userJson = data['user'] as Map<String, dynamic>? ?? data;
-      final backendUserId = data['backendUserId'] as String?;
-      return _userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
-    } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+    final res = await http.post(
+      Uri.parse('$_base/api/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+        'username': username.trim(),
+        'phone': phone.trim(),
+      }),
+    );
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 201) {
+      throw Exception(data['error'] as String? ?? 'Registration failed');
     }
+    final userJson = data['user'] as Map<String, dynamic>? ?? data;
+    final backendUserId = data['backendUserId'] as String?;
+    return _userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
   }
 
   /// Login. Returns user with backendUserId.
   static Future<User> login(String email, String password) async {
-    try {
-      final res = await ApiHttp.post(
-        Uri.parse('$_base/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email.trim().toLowerCase(),
-          'password': password,
-        }),
-      );
-      final data = ApiHttp.decodeJsonMap(res);
-      if (res.statusCode != 200) {
-        throw ApiException(data['error'] as String? ?? 'Login failed');
-      }
-      final userJson = data['user'] as Map<String, dynamic>? ?? data;
-      final backendUserId = data['backendUserId'] as String?;
-      return _userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
-    } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+    final res = await http.post(
+      Uri.parse('$_base/api/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      }),
+    );
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200) {
+      throw Exception(data['error'] as String? ?? 'Login failed');
     }
+    final userJson = data['user'] as Map<String, dynamic>? ?? data;
+    final backendUserId = data['backendUserId'] as String?;
+    return _userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
   }
 
   static Future<bool> forgotPasswordSendOtp(String email) async {
     try {
-      final res = await ApiHttp.post(
+      final res = await http.post(
         Uri.parse('$_base/api/auth/forgot-password/send-otp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email.trim().toLowerCase()}),
       );
       if (res.statusCode == 200) return true;
-      final data = ApiHttp.decodeJsonMap(res);
-      throw ApiException(data['error'] as String? ?? 'Failed to send OTP');
+      final data = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(data?['error'] as String? ?? 'Failed to send OTP');
     } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+      rethrow;
     }
   }
 
@@ -144,21 +137,17 @@ class AuthApi {
     required String code,
     required String newPassword,
   }) async {
-    try {
-      final res = await ApiHttp.post(
-        Uri.parse('$_base/api/auth/forgot-password/verify-and-reset'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email.trim().toLowerCase(),
-          'code': code.trim(),
-          'newPassword': newPassword,
-        }),
-      );
-      if (res.statusCode == 200) return true;
-      final data = ApiHttp.decodeJsonMap(res);
-      throw ApiException(data['error'] as String? ?? 'Failed to reset password');
-    } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
-    }
+    final res = await http.post(
+      Uri.parse('$_base/api/auth/forgot-password/verify-and-reset'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'code': code.trim(),
+        'newPassword': newPassword,
+      }),
+    );
+    if (res.statusCode == 200) return true;
+    final data = jsonDecode(res.body) as Map<String, dynamic>?;
+    throw Exception(data?['error'] as String? ?? 'Failed to reset password');
   }
 }

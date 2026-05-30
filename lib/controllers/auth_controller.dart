@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 
 import '../apis/auth_api.dart';
-import '../apis/http_client.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/subscription.dart';
@@ -9,9 +8,6 @@ import '../models/user.dart';
 
 class AuthController extends GetxController {
   final Rx<User?> currentUser = (Pref.currentUser).obs;
-
-  String _apiErrorMessage(Object e) =>
-      e is ApiException ? e.message : e.toString().replaceFirst('Exception: ', '');
 
   @override
   void onInit() {
@@ -34,7 +30,7 @@ class AuthController extends GetxController {
       MyDialogs.success(msg: 'OTP sent to $email');
       return true;
     } catch (e) {
-      MyDialogs.error(msg: _apiErrorMessage(e));
+      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
       return false;
     }
   }
@@ -51,7 +47,7 @@ class AuthController extends GetxController {
       MyDialogs.error(msg: 'Invalid or expired OTP');
       return false;
     } catch (e) {
-      MyDialogs.error(msg: _apiErrorMessage(e));
+      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
       return false;
     }
   }
@@ -117,7 +113,31 @@ class AuthController extends GetxController {
       MyDialogs.success(msg: 'Account created');
       return true;
     } catch (e) {
-      MyDialogs.error(msg: _apiErrorMessage(e));
+      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
+      return false;
+    }
+  }
+
+  /// Refreshes current user from backend (subscription, activePlan, subscriptionExpiresAt).
+  /// Call on app start when user is logged in so "already purchased" is always in sync.
+  Future<bool> refreshCurrentUserFromBackend() async {
+    final u = Pref.currentUser;
+    if (u == null || u.email.isEmpty || u.password.isEmpty) return false;
+    try {
+      final user = await AuthApi.login(u.email, u.password);
+      final toStore = user.copyWith(password: u.password);
+      final users = Pref.users;
+      final idx = users.indexWhere((e) => e.email.toLowerCase() == user.email.toLowerCase());
+      if (idx >= 0) {
+        users[idx] = toStore;
+      } else {
+        users.add(toStore);
+      }
+      Pref.users = users;
+      Pref.currentUser = toStore;
+      currentUser.value = toStore;
+      return true;
+    } catch (_) {
       return false;
     }
   }
@@ -148,7 +168,7 @@ class AuthController extends GetxController {
       MyDialogs.success(msg: 'Logged in');
       return true;
     } catch (e) {
-      MyDialogs.error(msg: _apiErrorMessage(e));
+      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
       return false;
     }
   }
@@ -226,7 +246,7 @@ class AuthController extends GetxController {
       MyDialogs.success(msg: 'Password changed');
       return true;
     } catch (e) {
-      MyDialogs.error(msg: _apiErrorMessage(e));
+      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
       return false;
     }
   }

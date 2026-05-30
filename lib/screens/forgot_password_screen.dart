@@ -19,7 +19,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _otp = TextEditingController();
   final _newPassword = TextEditingController();
   final _confirmPassword = TextEditingController();
-  final _auth = Get.put(AuthController());
+  final _auth = Get.find<AuthController>();
 
   bool _otpSent = false;
   bool _otpVerified = false;
@@ -47,17 +47,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _changePassword() async {
     if (_loading) return;
     setState(() => _loading = true);
-    try {
-      final ok = await _auth.resetPassword(
-        email: _email.text,
-        otp: _otp.text,
-        newPassword: _newPassword.text,
-        confirmPassword: _confirmPassword.text,
-      );
-      if (!mounted) return;
-      if (ok) Get.off(() => const LoginScreen());
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    final ok = await _auth.resetPassword(
+      email: _email.text,
+      otp: _otp.text,
+      newPassword: _newPassword.text,
+      confirmPassword: _confirmPassword.text,
+    );
+    setState(() => _loading = false);
+    if (ok) {
+      Get.off(() => const LoginScreen());
     }
   }
 

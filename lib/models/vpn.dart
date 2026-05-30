@@ -19,15 +19,21 @@ class Vpn {
       required this.openVPNConfigDataBase64});
 
   Vpn.fromJson(Map<String, dynamic> json) {
-    hostname = json['HostName'] ?? '';
-    ip = json['IP'] ?? '';
-    ping = json['Ping'].toString();
-    speed = json['Speed'] ?? 0;
-    countryLong = json['CountryLong'] ?? '';
-    countryShort = json['CountryShort'] ?? '';
-    numVpnSessions = json['NumVpnSessions'] ?? 0;
+    hostname = (json['HostName'] ?? '').toString();
+    ip = (json['IP'] ?? '').toString();
+    ping = (json['Ping'] ?? '').toString();
+    speed = _parseInt(json['Speed'], 0);
+    countryLong = (json['CountryLong'] ?? '').toString();
+    countryShort = (json['CountryShort'] ?? '').toString();
+    numVpnSessions = _parseInt(json['NumVpnSessions'], 0);
 
-    openVPNConfigDataBase64 = json['OpenVPN_ConfigData_Base64'] ?? '';
+    openVPNConfigDataBase64 = (json['OpenVPN_ConfigData_Base64'] ?? '').toString();
+  }
+
+  static int _parseInt(dynamic value, int defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    return int.tryParse(value.toString()) ?? defaultValue;
   }
 
   Map<String, dynamic> toJson() {

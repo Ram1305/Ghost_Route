@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Ghost Route design system - dark theme
+/// Tron VPN design system - dark theme
 class NexusTheme {
   NexusTheme._();
 

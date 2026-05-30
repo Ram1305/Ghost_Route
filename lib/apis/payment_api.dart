@@ -1,8 +1,9 @@
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
+
 import '../config/app_config.dart';
 import '../models/plan.dart';
-import 'http_client.dart';
 
 /// Payment API – create order, verify, and get plans via backend (Razorpay).
 class PaymentApi {
@@ -10,17 +11,13 @@ class PaymentApi {
 
   /// Fetch all plans from backend. Returns list sorted by index (0–5).
   static Future<List<Plan>> getPlans() async {
-    try {
-      final res = await ApiHttp.get(Uri.parse('$_base/api/payments/plans'));
-      if (res.statusCode != 200) {
-        final err = ApiHttp.decodeJsonMap(res);
-        throw ApiException(err['error'] as String? ?? 'Failed to load plans');
-      }
-      final list = jsonDecode(res.body) as List<dynamic>;
-      return list.map((e) => Plan.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+    final res = await http.get(Uri.parse('$_base/api/payments/plans'));
+    if (res.statusCode != 200) {
+      final err = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(err?['error'] ?? 'Failed to load plans');
     }
+    final list = jsonDecode(res.body) as List<dynamic>;
+    return list.map((e) => Plan.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   /// Create a Razorpay order. [amount] in smallest unit (paise for INR, cents for USD).
@@ -31,7 +28,7 @@ class PaymentApi {
     Map<String, String>? notes,
   }) async {
     try {
-      final res = await ApiHttp.post(
+      final res = await http.post(
         Uri.parse('$_base/api/payments/create-order'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -42,10 +39,10 @@ class PaymentApi {
         }),
       );
       if (res.statusCode != 201) {
-        final err = ApiHttp.decodeJsonMap(res);
-        throw ApiException(err['error'] as String? ?? 'Failed to create order');
+        final err = jsonDecode(res.body);
+        throw Exception(err['error'] ?? 'Failed to create order');
       }
-      final data = ApiHttp.decodeJsonMap(res);
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
       return CreateOrderResponse(
         orderId: data['orderId'] as String,
         amount: (data['amount'] as num).toInt(),
@@ -53,7 +50,7 @@ class PaymentApi {
         keyId: data['keyId'] as String,
       );
     } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+      rethrow;
     }
   }
 
@@ -64,7 +61,7 @@ class PaymentApi {
     required String razorpaySignature,
   }) async {
     try {
-      final res = await ApiHttp.post(
+      final res = await http.post(
         Uri.parse('$_base/api/payments/verify'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -73,9 +70,9 @@ class PaymentApi {
           'razorpay_signature': razorpaySignature,
         }),
       );
-      final data = ApiHttp.decodeJsonMap(res);
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
       if (res.statusCode != 200) {
-        throw ApiException(data['error'] as String? ?? 'Verification failed');
+        throw Exception(data['error'] ?? 'Verification failed');
       }
       return VerifyPaymentResponse(
         verified: data['verified'] as bool? ?? false,
@@ -83,7 +80,7 @@ class PaymentApi {
         paymentId: data['paymentId'] as String?,
       );
     } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+      rethrow;
     }
   }
 
@@ -96,7 +93,7 @@ class PaymentApi {
     String? paymentId,
   }) async {
     try {
-      final res = await ApiHttp.post(
+      final res = await http.post(
         Uri.parse('$_base/api/payments/activate-subscription'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -106,9 +103,9 @@ class PaymentApi {
           if (paymentId != null) 'paymentId': paymentId,
         }),
       );
-      final data = ApiHttp.decodeJsonMap(res);
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
       if (res.statusCode != 200) {
-        throw ApiException(data['error'] as String? ?? 'Failed to activate subscription');
+        throw Exception(data['error'] ?? 'Failed to activate subscription');
       }
       final expiresAtRaw = data['subscriptionExpiresAt'];
       final DateTime? subscriptionExpiresAt = expiresAtRaw is String
@@ -119,7 +116,7 @@ class PaymentApi {
         subscriptionExpiresAt: subscriptionExpiresAt,
       );
     } catch (e) {
-      ApiHttp.rethrowAsApiException(e);
+      rethrow;
     }
   }
 }

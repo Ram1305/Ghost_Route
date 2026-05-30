@@ -55,7 +55,7 @@ class PaymentController extends GetxController {
       final order = await PaymentApi.createOrder(
         amount: plan.amount,
         currency: plan.currency,
-        receipt: 'ghostroute_${plan.name}_${DateTime.now().millisecondsSinceEpoch}',
+        receipt: 'tronvpn_${plan.name}_${DateTime.now().millisecondsSinceEpoch}',
         notes: {'plan': plan.name},
       );
       if (order == null) {
@@ -72,7 +72,7 @@ class PaymentController extends GetxController {
         'key': order.keyId,
         'amount': order.amount,
         'currency': order.currency,
-        'name': 'Ghost Route',
+        'name': 'Tron VPN',
         'order_id': order.orderId,
         'description': '${plan.intervalLabel} · ${plan.price}',
       };

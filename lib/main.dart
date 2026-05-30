@@ -1,15 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
-import 'services/vpn_engine.dart';
 import 'theme/nexus_theme.dart';
 // TODO: Restore ads - import 'helpers/ad_helper.dart';
-// TODO: Restore ads - import 'helpers/config.dart';
+import 'helpers/config.dart';
 import 'helpers/my_dialogs.dart';
 import 'helpers/pref.dart';
 import 'screens/splash_screen.dart';
@@ -23,24 +21,18 @@ Future<void> main() async {
   //enter full-screen
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
-  //firebase initialization
+  // Firebase initialization (Analytics required by Remote Config for A/B testing)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
 
-  // TODO: Restore ads - initializing remote config
-  // await Config.initConfig();
+  // Remote config for ads (required before AdHelper when ads are restored)
+  await Config.initConfig();
 
   await Pref.initializeHive();
 
-  // Initialize VPN engine on Android only at startup. On iOS, init is deferred
-  // until first connect — avoids crash when init fails (simulator or permissions)
-  // as the plugin may call stopVPN internally on failure.
-  if (Platform.isAndroid) {
-    try {
-      await VpnEngine.initialize();
-    } catch (e) {
-      debugPrint('VPN init skipped: $e');
-    }
-  }
+  // VPN engine init is deferred until first connect on both platforms so the
+  // Activity (Android) is ready for VpnService.prepare() and permission dialog.
+  // Early init on Android caused IPC/context issues and VPN not working.
 
   // TODO: Restore ads
   // await AdHelper.initAds();
@@ -58,11 +50,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Ghost Route',
+      title: 'Tron VPN',
       scaffoldMessengerKey: MyDialogs.rootScaffoldMessengerKey,
       home: const SplashScreen(),
 
-      // Ghost Route dark theme
+      // Tron VPN dark theme
       theme: NexusTheme.darkTheme,
       themeMode: ThemeMode.dark,
 

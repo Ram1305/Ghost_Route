@@ -21,16 +21,49 @@ class HomeController extends GetxController {
   final showSecuredOverlay = false.obs;
 
   StreamSubscription<String>? _vpnStageSubscription;
+  Timer? _connectTimeout;
+  bool _userCancelledConnect = false;
+  /// True once we've seen a non-disconnected stage this connect attempt (avoids false "connection failed" on plugin cleanup).
+  bool _sawConnectingStageThisAttempt = false;
+
+  /// Max time to wait for "connected" before showing timeout error.
+  static const Duration _connectTimeoutDuration = Duration(seconds: 60);
 
   @override
   void onInit() {
     super.onInit();
     _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen((event) {
+      _connectTimeout?.cancel();
+      _connectTimeout = null;
+      final wasConnecting = _isConnectingState(vpnState.value);
+      if (event != VpnEngine.vpnDisconnected) {
+        _sawConnectingStageThisAttempt = true;
+      }
       vpnState.value = event;
       if (event == VpnEngine.vpnConnected) {
         showSecuredOverlay.value = true;
       }
+      if (event == VpnEngine.vpnDisconnected && wasConnecting && !_userCancelledConnect && _sawConnectingStageThisAttempt) {
+        // Connection failed (native reported disconnect after we actually started connecting).
+        _connectTimeout?.cancel();
+        _connectTimeout = null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          MyDialogs.info(
+            msg:
+                'Connection failed. Check your network and credentials, then try another location.',
+          );
+        });
+      }
+      if (event == VpnEngine.vpnDisconnected) {
+        _sawConnectingStageThisAttempt = false;
+      }
+      _userCancelledConnect = false;
     });
+  }
+
+  bool _isConnectingState(String state) {
+    return state != VpnEngine.vpnConnected &&
+        state != VpnEngine.vpnDisconnected;
   }
 
   void dismissSecuredOverlay() {
@@ -39,22 +72,44 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
+    _connectTimeout?.cancel();
     _vpnStageSubscription?.cancel();
     super.onClose();
   }
 
+  void _startConnectTimeout() {
+    _connectTimeout?.cancel();
+    _connectTimeout = Timer(_connectTimeoutDuration, () {
+      if (!_isConnectingState(vpnState.value)) return;
+      _connectTimeout = null;
+      vpnState.value = VpnEngine.vpnDisconnected;
+      VpnEngine.stopVpn();
+      MyDialogs.info(
+          msg:
+              'Connection timed out. Please try again or choose another location.');
+    });
+  }
+
   void connectToVpn() async {
+    debugPrint('[TronVPN] connectToVpn() called. state=${vpnState.value}');
     if (!VpnEngine.isVpnSupported) {
+      debugPrint('[TronVPN] connectToVpn: VPN not supported on this device');
       MyDialogs.info(msg: 'VPN is not supported on this device.');
       return;
     }
     if (vpn.value.openVPNConfigDataBase64.isEmpty) {
+      debugPrint(
+          '[TronVPN] connectToVpn: No config - openVPNConfigDataBase64 is empty. Select a location first.');
       MyDialogs.info(msg: 'Select a Location by clicking \'Change Location\'');
       return;
     }
 
     if (vpnState.value == VpnEngine.vpnDisconnected) {
+      debugPrint(
+          '[TronVPN] connectToVpn: Starting connect to ${vpn.value.countryLong} (${vpn.value.hostname})');
+      _sawConnectingStageThisAttempt = false;
       vpnState.value = VpnEngine.vpnConnecting;
+      _startConnectTimeout();
 
       try {
         final data =
@@ -65,16 +120,30 @@ class HomeController extends GetxController {
             username: 'vpn',
             password: 'vpn',
             config: config);
-
+        debugPrint('[TronVPN] connectToVpn: Calling VpnEngine.startVpn()');
         await VpnEngine.startVpn(vpnConfig);
+        debugPrint('[TronVPN] connectToVpn: VpnEngine.startVpn() returned');
       } catch (e) {
+        _connectTimeout?.cancel();
+        _connectTimeout = null;
+        debugPrint('[TronVPN] connectToVpn: Error: $e');
         vpnState.value = VpnEngine.vpnDisconnected;
         final message = VpnEngine.getFriendlyError(e);
         final clean = message.replaceFirst(RegExp(r'^Exception: '), '');
         MyDialogs.error(msg: 'Failed to connect: $clean');
       }
-    } else {
+    } else if (vpnState.value == VpnEngine.vpnConnected) {
+      debugPrint('[TronVPN] connectToVpn: Disconnecting (stopVpn)');
       await VpnEngine.stopVpn();
+    } else {
+      // Intermediate state (e.g. connecting, authenticating): tap cancels the connection.
+      debugPrint(
+          '[TronVPN] connectToVpn: Cancelling connection (state "${vpnState.value}")');
+      _userCancelledConnect = true;
+      _connectTimeout?.cancel();
+      _connectTimeout = null;
+      await VpnEngine.stopVpn();
+      vpnState.value = VpnEngine.vpnDisconnected;
     }
   }
 

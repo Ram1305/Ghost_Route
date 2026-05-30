@@ -154,7 +154,7 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'GHOST ROUTE · SECURE ACCESS',
+                      'TRON VPN · MILITARY GRADE',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12,
                         color: NexusTheme.text2,

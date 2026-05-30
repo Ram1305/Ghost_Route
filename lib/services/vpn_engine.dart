@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:openvpn_flutter/openvpn_flutter.dart';
 
@@ -28,17 +29,21 @@ class VpnEngine {
         _statusController.add(_mapVpnStatus(status));
       },
       onVpnStageChanged: (stage, rawStage) {
-        _stageController.add(_mapStageToString(stage));
+        final stageStr = _mapStageToString(stage);
+        if (kDebugMode) {
+          debugPrint('[TronVPN] VPN stage: $stageStr (raw: ${stage.name})');
+        }
+        _stageController.add(stageStr);
       },
     );
 
     try {
       await _openVpn!.initialize(
-        groupIdentifier: Platform.isIOS ? 'group.com.yencode.ghostroute' : null,
+        groupIdentifier: Platform.isIOS ? 'group.com.yencodetech.vpn' : null,
         providerBundleIdentifier: Platform.isIOS
-            ? 'com.yencode.ghostroute.VPNExtension'
+            ? 'com.yencodetech.vpn.VPNExtension'
             : null,
-        localizedDescription: Platform.isIOS ? 'Ghost Route' : null,
+        localizedDescription: Platform.isIOS ? 'Tron VPN' : null,
       );
       _initialized = true;
     } catch (e) {
@@ -159,9 +164,8 @@ class VpnEngine {
       case VPNStage.disconnected:
         return vpnDisconnected;
       case VPNStage.connecting:
-        return vpnConnecting;
       case VPNStage.prepare:
-        return vpnPrepare;
+        return vpnConnecting;
       case VPNStage.authenticating:
       case VPNStage.authentication:
         return vpnAuthenticating;
@@ -170,12 +174,22 @@ class VpnEngine {
       case VPNStage.denied:
         return vpnDenied;
       case VPNStage.disconnecting:
-        return vpnDisconnected;
       case VPNStage.error:
       case VPNStage.exiting:
         return vpnDisconnected;
       default:
-        return stage.name.replaceAll('_', ' ').toLowerCase();
+        // Unknown = native reported failure (often after get_config: wrong credentials, server drop, or config issue).
+        if (stage.name == 'unknown') {
+          if (kDebugMode) {
+            debugPrint(
+              '[TronVPN] VPN stage unknown (connection failed). '
+              'Check credentials (username/password), server, and network.',
+            );
+          }
+          return vpnDisconnected;
+        }
+        // Any other in-progress stage (get_config, assign_ip, resolve, tcp_connect, etc.) show as connecting.
+        return vpnConnecting;
     }
   }
 

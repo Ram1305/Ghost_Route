@@ -18,7 +18,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _auth = Get.put(AuthController());
+  final _auth = Get.find<AuthController>();
   bool _loading = false;
 
   @override
@@ -31,12 +31,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_loading) return;
     setState(() => _loading = true);
-    try {
-      final ok = await _auth.login(_email.text, _password.text);
-      if (!mounted) return;
-      if (ok) Get.offAll(() => HomeScreen());
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    final ok = await _auth.login(_email.text, _password.text);
+    setState(() => _loading = false);
+    if (ok) {
+      Get.offAll(() => HomeScreen());
     }
   }
 
