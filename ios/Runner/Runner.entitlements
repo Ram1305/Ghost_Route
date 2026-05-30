@@ -8,7 +8,7 @@
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.yencodetech.vpn</string>
+		<string>group.com.yencode.ghostroute</string>
 	</array>
 </dict>
 </plist>

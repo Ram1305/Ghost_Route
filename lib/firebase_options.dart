@@ -65,7 +65,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '89314856398',
     projectId: 'adtest-76f2f',
     storageBucket: 'adtest-76f2f.firebasestorage.app',
-    iosBundleId: 'com.yencodetech.vpn',
+    iosBundleId: 'com.yencode.ghostroute',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -74,7 +74,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '89314856398',
     projectId: 'adtest-76f2f',
     storageBucket: 'adtest-76f2f.firebasestorage.app',
-    iosBundleId: 'com.yencodetech.vpn',
+    iosBundleId: 'com.yencode.ghostroute',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

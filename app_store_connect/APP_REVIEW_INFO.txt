@@ -42,6 +42,10 @@ We addressed all issues:
 (3) Fixed login infinite loading by moving auth to HTTPS with request timeouts; demo credentials provided above.
 (4) Replaced public VPNGate server list with our managed server infrastructure and removed template branding.
 
+BUNDLE ID
+---------
+com.yencode.ghostroute (see app_store_connect/BUNDLE_ID_MIGRATION.md for Apple Developer setup)
+
 BUILD COMMAND (iOS release)
 ---------------------------
 flutter build ios --release --dart-define=API_BASE_URL=https://ghostroute.octosofttechnologies.in
