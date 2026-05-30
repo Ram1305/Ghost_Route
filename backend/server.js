@@ -3,11 +3,13 @@ import cron from 'node-cron';
 import app from './src/app.js';
 import { connectDB } from './src/config/db.js';
 import { expireSubscriptions } from './src/jobs/expireSubscriptions.js';
+import { ensurePlansSeeded } from './src/services/plansSeed.service.js';
 
 const PORT = Number(process.env.PORT) || 2626;
 
 async function start() {
   await connectDB();
+  await ensurePlansSeeded();
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

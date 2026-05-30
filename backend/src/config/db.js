@@ -1,4 +1,10 @@
+import dns from 'dns';
 import mongoose from 'mongoose';
+
+// Some routers refuse SRV queries; Atlas mongodb+srv:// needs them.
+if (!process.env.MONGODB_URI?.startsWith('mongodb://')) {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+}
 
 /**
  * Build MongoDB URI from .env.

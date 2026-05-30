@@ -28,10 +28,10 @@ Login path for reviewers:
   4. Enter credentials above
 
 Backend health check:
-  GET https://api.yencodetech.com/api/health
+  GET https://ghostroute.octosofttechnologies.in/api/health
 
 Notes for reviewer:
-  - Auth requires HTTPS backend (api.yencodetech.com)
+  - Auth requires HTTPS backend (ghostroute.octosofttechnologies.in)
   - Demo account has an active premium subscription for testing
 
 REVIEW REPLY TEMPLATE
@@ -44,7 +44,7 @@ We addressed all issues:
 
 BUILD COMMAND (iOS release)
 ---------------------------
-flutter build ios --release --dart-define=API_BASE_URL=https://api.yencodetech.com
+flutter build ios --release --dart-define=API_BASE_URL=https://ghostroute.octosofttechnologies.in
 
 BACKEND DEPLOY (before submit)
 ------------------------------
