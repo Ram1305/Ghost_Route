@@ -1,0 +1,57 @@
+App Store Connect – Resubmission Checklist (Yencode VPN)
+============================================================
+
+ORGANIZATION ACCOUNT (Guideline 5.4)
+------------------------------------
+- Submit or transfer this app under your Apple Developer Organization account
+- Transfer guide: https://developer.apple.com/help/app-store-connect/transfer-an-app/overview-of-app-transfer
+- Reply to App Review noting the Organization account name and D-U-N-S number
+
+APP METADATA (Guideline 4.1)
+----------------------------
+- App name: Yencode VPN
+- Remove all "Tron VPN" / "Tron" references from subtitle, description, keywords, screenshots
+- Privacy policy URL: host web/privacy-policy.html (updated for Yencode VPN)
+- Support URL: your Yencode Technologies support page
+
+APP REVIEW INFORMATION (Guideline 2.1)
+--------------------------------------
+Demo login credentials (seed on backend with: npm run seed:review):
+
+  Email:    review@yencodetech.com
+  Password: YencodeReview2026!
+
+Login path for reviewers:
+  1. Launch app → Splash screen
+  2. Premium screen appears
+  3. Tap "Already have account? Login"
+  4. Enter credentials above
+
+Backend health check:
+  GET https://api.yencodetech.com/api/health
+
+Notes for reviewer:
+  - Auth requires HTTPS backend (api.yencodetech.com)
+  - Demo account has an active premium subscription for testing
+
+REVIEW REPLY TEMPLATE
+---------------------
+We addressed all issues:
+(1) Rebranded to Yencode VPN and removed third-party "Tron VPN" naming.
+(2) Resubmitted from our Organization Apple Developer account.
+(3) Fixed login infinite loading by moving auth to HTTPS with request timeouts; demo credentials provided above.
+(4) Replaced public VPNGate server list with Yencode-managed servers via our backend API.
+
+BUILD COMMAND (iOS release)
+---------------------------
+flutter build ios --release --dart-define=API_BASE_URL=https://api.yencodetech.com
+
+BACKEND DEPLOY (before submit)
+------------------------------
+cd backend
+cp .env.example .env   # configure MongoDB, email, Razorpay
+npm install
+npm run seed:all
+npm start
+
+Deploy behind HTTPS using backend/deploy/nginx.conf.example

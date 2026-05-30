@@ -1,0 +1,545 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../controllers/auth_controller.dart';
+import '../helpers/pref.dart';
+import '../models/subscription.dart';
+import '../theme/nexus_theme.dart';
+import '../widgets/canvas_background.dart';
+import 'login_screen.dart';
+import 'premium_screen.dart';
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Get.put(AuthController());
+    final user = auth.currentUser.value ?? Pref.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: NexusTheme.bg,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.5,
+                child: const CanvasBackground(opacity: 0.5),
+              ),
+            ),
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildAppBar(context, isLoggedIn: false),
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.person_rounded,
+                              size: 64,
+                              color: NexusTheme.text3,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Not logged in',
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: NexusTheme.text2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Log in to see your profile and subscription history.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.outfit(
+                                fontSize: 14,
+                                color: NexusTheme.text3,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton(
+                                onPressed: () => Get.to(() => const LoginScreen()),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: NexusTheme.teal,
+                                  foregroundColor: Colors.black87,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Login',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Obx(() {
+      final currentUser = auth.currentUser.value ?? user;
+      final subscriptionHistory = currentUser.subscriptionHistory;
+      final currentActivePlan = currentUser.activePlan ??
+          (subscriptionHistory.isNotEmpty ? subscriptionHistory.last.plan : null);
+      final currentPlanLabel = currentActivePlan != null
+          ? Subscription(plan: currentActivePlan, date: DateTime.now()).planLabel
+          : null;
+
+      // Effective expiry: from API or computed from last subscription (local)
+      DateTime? effectiveExpiresAt = currentUser.subscriptionExpiresAt;
+      if (effectiveExpiresAt == null &&
+          subscriptionHistory.isNotEmpty &&
+          currentActivePlan != null) {
+        final last = subscriptionHistory.last;
+        effectiveExpiresAt =
+            last.date.add(Duration(days: last.plan.daysInPlan));
+      }
+      final now = DateTime.now();
+      final isExpired = effectiveExpiresAt != null &&
+          effectiveExpiresAt.isBefore(now);
+      final int? daysLeft = effectiveExpiresAt != null && !isExpired
+          ? effectiveExpiresAt.difference(now).inDays
+          : null;
+
+      return Scaffold(
+        backgroundColor: NexusTheme.bg,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.5,
+                child: const CanvasBackground(opacity: 0.5),
+              ),
+            ),
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildAppBar(context, isLoggedIn: true),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 22),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 20),
+                          _buildSectionTitle('Profile details'),
+                          const SizedBox(height: 12),
+                          _buildDetailCard(
+                            Icons.person_rounded,
+                            'Username',
+                            currentUser.username,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildDetailCard(
+                            Icons.email_rounded,
+                            'Email',
+                            currentUser.email,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildDetailCard(
+                            Icons.phone_rounded,
+                            'Mobile',
+                            currentUser.phone,
+                          ),
+                          const SizedBox(height: 28),
+                          _buildSectionTitle('Plan'),
+                          const SizedBox(height: 12),
+                          if (isExpired) ...[
+                            _buildExpiredCard(context),
+                            const SizedBox(height: 10),
+                          ],
+                          if (currentPlanLabel != null && !isExpired)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _buildDetailCard(
+                                Icons.workspace_premium_rounded,
+                                'Current plan',
+                                daysLeft != null
+                                    ? '$currentPlanLabel · $daysLeft days left'
+                                    : currentPlanLabel,
+                              ),
+                            ),
+                          if (!isExpired) _buildUpgradePlanCard(context),
+                          if (isExpired) _buildRenewButton(context),
+                          const SizedBox(height: 28),
+                          _buildSectionTitle('Subscription plan history'),
+                          const SizedBox(height: 12),
+                          if (subscriptionHistory.isEmpty)
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: NexusTheme.surface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: NexusTheme.border),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'No subscription history yet.',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 14,
+                                    color: NexusTheme.text2,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            ...subscriptionHistory.reversed.map((s) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _buildSubscriptionTile(s),
+                              );
+                            }),
+                          const SizedBox(height: 24),
+                          _buildLogoutButton(),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildAppBar(BuildContext context, {required bool isLoggedIn}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Get.back(),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+            color: NexusTheme.text2,
+          ),
+          const Spacer(),
+          Text(
+            'Account',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: NexusTheme.text,
+            ),
+          ),
+          const Spacer(),
+          const SizedBox(width: 48),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title.toUpperCase(),
+      style: GoogleFonts.jetBrainsMono(
+        fontSize: 11,
+        letterSpacing: 2,
+        color: NexusTheme.text3,
+      ),
+    );
+  }
+
+  Widget _buildDetailCard(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NexusTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: NexusTheme.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: NexusTheme.teal.withOpacity(0.15),
+            ),
+            child: Icon(icon, size: 20, color: NexusTheme.teal),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                    color: NexusTheme.text3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: NexusTheme.text,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpgradePlanCard(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const PremiumScreen(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: NexusTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: NexusTheme.border),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              NexusTheme.teal.withOpacity(0.08),
+              NexusTheme.gold.withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: NexusTheme.gold.withOpacity(0.2),
+              ),
+              child: const Icon(Icons.workspace_premium_rounded, size: 20, color: NexusTheme.gold),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Upgrade plan',
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: NexusTheme.text,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Get Yencode VPN for faster speeds and more features',
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      color: NexusTheme.text2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: NexusTheme.text3),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpiredCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NexusTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: NexusTheme.red.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: NexusTheme.red.withOpacity(0.15),
+            ),
+            child: const Icon(Icons.event_busy_rounded, size: 20, color: NexusTheme.red),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your subscription expired. Renew now.',
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: NexusTheme.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Choose a plan to continue using premium features',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    color: NexusTheme.text2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRenewButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const PremiumScreen(),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: NexusTheme.teal,
+            foregroundColor: Colors.black87,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          child: Text(
+            'Renew subscription',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: () {
+          Get.put(AuthController()).logout();
+          Get.off(() => const ProfileScreen());
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: NexusTheme.red,
+          side: BorderSide(color: NexusTheme.red.withOpacity(0.6)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          'Logout',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionTile(Subscription s) {
+    final planLabel = s.planLabel;
+    final d = s.date;
+    final dateStr = '${d.day}/${d.month}/${d.year}';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NexusTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: NexusTheme.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: NexusTheme.gold.withOpacity(0.2),
+            ),
+            child: const Icon(Icons.star_rounded, size: 20, color: NexusTheme.gold),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  planLabel,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: NexusTheme.text,
+                  ),
+                ),
+                if (dateStr.isNotEmpty)
+                  Text(
+                    dateStr,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      color: NexusTheme.text2,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

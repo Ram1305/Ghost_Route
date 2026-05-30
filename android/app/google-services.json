@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "89314856398",
+    "project_id": "adtest-76f2f",
+    "storage_bucket": "adtest-76f2f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89314856398:android:155fad8b6665dd7257af9f",
+        "android_client_info": {
+          "package_name": "com.yencodetech.vpn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0S-6smQTLNDLRdIGBvLtv2ZAo8dKHezo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

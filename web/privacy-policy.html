@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Yencode VPN Privacy Policy - How we protect and handle your data. Developed by Yencode Technologies.">
+  <title>Privacy Policy | Yencode VPN by Yencode Technologies</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #1a2234;
+      --accent: #00d4aa;
+      --accent-dim: #00a884;
+      --accent-glow: rgba(0, 212, 170, 0.15);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #2d3a4f;
+      --gradient-start: #00d4aa;
+      --gradient-end: #0891b2;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    .bg-pattern {
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-glow), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 50%, rgba(8, 145, 178, 0.08), transparent),
+        radial-gradient(ellipse 40% 60% at 0% 80%, rgba(0, 212, 170, 0.06), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(45, 58, 79, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45, 58, 79, 0.15) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 3rem 0 3.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .logo-text {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 0.35rem 0.85rem;
+      border-radius: 100px;
+      margin-top: 0.5rem;
+      border: 1px solid rgba(0, 212, 170, 0.3);
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .last-updated {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Content */
+    main {
+      padding-top: 2.5rem;
+    }
+
+    .intro {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      padding: 1.5rem 1.75rem;
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 2.25rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2::before {
+      content: '';
+      width: 4px;
+      height: 1.2em;
+      background: linear-gradient(180deg, var(--gradient-start), var(--gradient-end));
+      border-radius: 2px;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    ul {
+      margin: 0.75rem 0 1.25rem 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    .highlight-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin: 1.25rem 0;
+      border-left: 4px solid var(--accent);
+    }
+
+    .highlight-box p {
+      margin-bottom: 0;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 3.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .company {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .tagline {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .contact-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .contact-link:hover {
+      color: var(--accent-dim);
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1.25rem 1rem 3rem;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
+      header {
+        padding: 2rem 0 2.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-pattern"></div>
+  <div class="grid-overlay"></div>
+
+  <div class="container">
+    <header>
+      <div class="logo-wrap">
+        <div class="logo-icon">🔒</div>
+        <span class="logo-text">Yencode VPN</span>
+      </div>
+      <span class="badge">Privacy Policy</span>
+      <h1>Your Privacy Matters</h1>
+      <p class="last-updated">Last updated: February 26, 2025</p>
+    </header>
+
+    <main>
+      <div class="intro">
+        At <strong>Yencode VPN</strong>, developed by <strong>Yencode Technologies</strong>, we are committed to protecting your privacy. This policy explains how we collect, use, and safeguard your information when you use our VPN service and related applications.
+      </div>
+
+      <h2>Information We Collect</h2>
+      <p>We minimize data collection to provide and improve our service:</p>
+      <ul>
+        <li><strong>Account information:</strong> Email address and credentials you provide when creating an account.</li>
+        <li><strong>Usage data:</strong> Connection timestamps, server choices, and app usage to improve performance and reliability. We do not log your browsing activity or traffic content.</li>
+        <li><strong>Device information:</strong> Device type, OS version, and app version for compatibility and support.</li>
+        <li><strong>Payment information:</strong> Processed by secure third-party providers; we do not store full payment card details.</li>
+      </ul>
+
+      <div class="highlight-box">
+        <p><strong>No-logs policy:</strong> We do not log, store, or share your internet traffic, DNS queries, or personally identifiable activity while connected to Yencode VPN.</p>
+      </div>
+
+      <h2>How We Use Your Information</h2>
+      <p>We use collected information to:</p>
+      <ul>
+        <li>Provide, maintain, and improve the Yencode VPN service.</li>
+        <li>Authenticate your account and process subscriptions.</li>
+        <li>Send important service updates and security notices.</li>
+        <li>Respond to support requests and troubleshoot issues.</li>
+        <li>Analyze anonymized, aggregated data to enhance performance and user experience.</li>
+      </ul>
+
+      <h2>Data Sharing and Disclosure</h2>
+      <p>We do not sell your personal data. We may share information only in these limited circumstances:</p>
+      <ul>
+        <li>With trusted service providers (e.g., payment processors, infrastructure) under strict confidentiality.</li>
+        <li>When required by law or to protect our rights, safety, or the safety of others.</li>
+        <li>In connection with a merger, acquisition, or sale of assets, with notice and continued privacy commitments.</li>
+      </ul>
+
+      <h2>Data Security</h2>
+      <p>We use industry-standard security measures to protect your data, including encryption in transit and at rest, secure authentication, and regular security assessments. Our infrastructure is designed to prevent unauthorized access and data breaches.</p>
+
+      <h2>Your Rights and Choices</h2>
+      <p>Depending on your location, you may have the right to:</p>
+      <ul>
+        <li>Access, correct, or delete your personal data.</li>
+        <li>Export your data in a portable format.</li>
+        <li>Opt out of marketing communications.</li>
+        <li>Withdraw consent where processing is consent-based.</li>
+      </ul>
+      <p>To exercise these rights, contact us using the details below. We will respond within a reasonable time as required by applicable law.</p>
+
+      <h2>Data Retention</h2>
+      <p>We retain your information only as long as necessary to provide the service, comply with legal obligations, and resolve disputes. Account and usage data may be retained for the duration of your account and a limited period thereafter as described in our terms.</p>
+
+      <h2>Children's Privacy</h2>
+      <p>Yencode VPN is not intended for users under the age of 13 (or equivalent minimum age in your jurisdiction). We do not knowingly collect personal information from children. If you believe we have collected such information, please contact us so we can delete it.</p>
+
+      <h2>International Transfers</h2>
+      <p>Your data may be processed in countries other than your own. We ensure appropriate safeguards (such as standard contractual clauses or adequacy decisions) are in place to protect your information in line with this policy.</p>
+
+      <h2>Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. We will notify you of material changes via the app, email, or a prominent notice on our website. Your continued use of Yencode VPN after changes constitutes acceptance of the updated policy. We encourage you to review this page periodically.</p>
+
+      <h2>Contact Us</h2>
+      <p>For privacy-related questions, requests, or complaints, contact Yencode Technologies:</p>
+      <ul>
+        <li>Email: yencodetechnologies@gmail.com</li>
+        <li>Website: www.yencodetechnologies.com</li>
+      </ul>
+      <p>We will work with you to resolve any concerns in line with applicable data protection laws.</p>
+    </main>
+
+    <footer>
+      <p class="company">Yencode Technologies</p>
+      <p class="tagline">Developed with care for your privacy and security</p>
+      <a href="mailto:privacy@yencodetechnologies.com" class="contact-link">Contact us</a>
+    </footer>
+  </div>
+</body>
+</html>
