@@ -30,7 +30,7 @@ Bundle ID / package: `com.yencode.ghostroute`
 ```env
 GOOGLE_PLAY_PACKAGE_NAME=com.yencode.ghostroute
 GOOGLE_PLAY_SERVICE_ACCOUNT_PATH=/path/to/play-service-account.json
-APPLE_SHARED_SECRET=your_app_specific_shared_secret
+APPLE_SHARED_SECRET=75ba09e1cebb4b60b56c59f3aac53eff
 APPLE_BUNDLE_ID=com.yencode.ghostroute
 IAP_STRICT_VERIFY=true
 ```
