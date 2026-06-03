@@ -1,6 +1,20 @@
 import fs from 'fs';
-import { google } from 'googleapis';
 import { PLAN_INDEX_BY_PRODUCT_ID } from '../config/iapProducts.js';
+
+/** Loaded on demand so the server can start if googleapis is not installed yet. */
+async function loadGoogleApis() {
+  try {
+    const mod = await import('googleapis');
+    return mod.google;
+  } catch (e) {
+    if (e?.code === 'ERR_MODULE_NOT_FOUND') {
+      throw new Error(
+        'Missing package "googleapis". On the server run: cd backend && npm install',
+      );
+    }
+    throw e;
+  }
+}
 
 const STRICT = process.env.IAP_STRICT_VERIFY !== 'false';
 
@@ -45,6 +59,7 @@ async function verifyGoogleSubscription({ packageName, productId, purchaseToken 
   if (!keyPath || !fs.existsSync(keyPath)) {
     return { valid: false, skipped: true, error: 'Google Play service account not configured' };
   }
+  const google = await loadGoogleApis();
   const auth = new google.auth.GoogleAuth({
     keyFile: keyPath,
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
