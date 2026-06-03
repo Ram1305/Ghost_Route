@@ -569,6 +569,15 @@ class _PlanSheetState extends State<PlanSheet> {
     );
   }
 
+  String _priceLabel(Plan plan) {
+    if (Get.isRegistered<PaymentController>()) {
+      final store =
+          Get.find<PaymentController>().storePriceLabelForPlanIndex(plan.index);
+      if (store != null && store.isNotEmpty) return store;
+    }
+    return plan.displayPrice;
+  }
+
   Widget _buildPlanTile(BuildContext context, Plan plan, Color tierColor) {
     final isSelected = _selected.index == plan.index;
     return Padding(
@@ -679,7 +688,7 @@ class _PlanSheetState extends State<PlanSheet> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      plan.price,
+                      _priceLabel(plan),
                       style: GoogleFonts.outfit(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,

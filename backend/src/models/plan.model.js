@@ -12,8 +12,8 @@ const planSchema = new mongoose.Schema(
     tier: { type: String, required: true, enum: ['platinum', 'platinumPlus'] },
     interval: { type: String, required: true, enum: ['weekly', 'monthly', 'yearly'] },
     durationDays: { type: Number, required: true },
-    amount: { type: Number, required: true }, // in paise (smallest unit)
-    currency: { type: String, default: 'INR' },
+    amount: { type: Number, required: true }, // in cents (USD smallest unit)
+    currency: { type: String, default: 'USD' },
     devices: { type: Number, required: true },
     displayName: { type: String, required: true },
     intervalLabel: { type: String, required: true },

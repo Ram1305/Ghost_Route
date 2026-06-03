@@ -20,10 +20,10 @@ class PaymentApi {
     return list.map((e) => Plan.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  /// Create a Razorpay order. [amount] in smallest unit (paise for INR, cents for USD).
+  /// Create a Razorpay order. [amount] in smallest unit (USD cents).
   static Future<CreateOrderResponse?> createOrder({
     required int amount,
-    String currency = 'INR',
+    String currency = 'USD',
     String? receipt,
     Map<String, String>? notes,
   }) async {

@@ -72,7 +72,7 @@ export async function sendWelcomeEmail(to, username) {
 export async function sendInvoiceEmail(to, { orderId, paymentId, planName, amount, currency, date }) {
   const subject = 'Your Ghost Route invoice';
   const dateStr = date ? new Date(date).toLocaleString() : new Date().toLocaleString();
-  const text = `Invoice – Order: ${orderId || 'N/A'}, Plan: ${planName || 'N/A'}, Amount: ${amount} ${currency || 'INR'}, Date: ${dateStr}.`;
+  const text = `Invoice – Order: ${orderId || 'N/A'}, Plan: ${planName || 'N/A'}, Amount: ${amount} ${currency || 'USD'}, Date: ${dateStr}.`;
   const html = `
     <h2>Ghost Route – Payment receipt</h2>
     <p>Thank you for your purchase.</p>
@@ -80,7 +80,7 @@ export async function sendInvoiceEmail(to, { orderId, paymentId, planName, amoun
       <tr><td><strong>Order ID</strong></td><td>${orderId || 'N/A'}</td></tr>
       <tr><td><strong>Payment ID</strong></td><td>${paymentId || 'N/A'}</td></tr>
       <tr><td><strong>Plan</strong></td><td>${planName || 'N/A'}</td></tr>
-      <tr><td><strong>Amount</strong></td><td>${amount} ${currency || 'INR'}</td></tr>
+      <tr><td><strong>Amount</strong></td><td>${amount} ${currency || 'USD'}</td></tr>
       <tr><td><strong>Date</strong></td><td>${dateStr}</td></tr>
     </table>
   `;

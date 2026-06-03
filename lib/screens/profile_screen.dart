@@ -650,7 +650,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSubscriptionTile(Subscription s) {
-    final planLabel = s.planLabel;
+    final planLabel = '${s.planLabel} · ${s.plan.price}';
     final d = s.date;
     final dateStr = '${d.day}/${d.month}/${d.year}';
     return Container(

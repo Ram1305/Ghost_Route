@@ -82,7 +82,7 @@ extension PremiumPlanX on PremiumPlan {
     }
   }
 
-  /// Amount in smallest unit for payment (paise for INR, cents for USD).
+  /// Amount in smallest unit for payment (USD cents).
   int get amountInSmallestUnit {
     switch (this) {
       case PremiumPlan.platinumWeekly:
@@ -100,8 +100,8 @@ extension PremiumPlanX on PremiumPlan {
     }
   }
 
-  /// Currency code for payment (e.g. INR, USD).
-  String get currencyCode => 'INR';
+  /// Currency code for payment.
+  String get currencyCode => 'USD';
 
   /// Price string (e.g. "\$4.99").
   String get price {

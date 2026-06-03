@@ -1,3 +1,5 @@
+import '../helpers/currency_helper.dart';
+
 /// Plan from backend API (GET /api/payments/plans). Used for display and payment.
 class Plan {
   final int index;
@@ -33,23 +35,37 @@ class Plan {
   });
 
   factory Plan.fromJson(Map<String, dynamic> json) {
+    final amount = (json['amount'] as num?)?.toInt() ?? 0;
+    var currency = (json['currency'] as String? ?? 'USD').toUpperCase();
+    var price = json['price'] as String? ?? '';
+    if (currency == 'INR' || price.startsWith('₹') || price.contains('₹')) {
+      currency = 'USD';
+      price = CurrencyHelper.formatUsdFromCents(amount);
+    }
     return Plan(
       index: (json['index'] as num).toInt(),
       name: json['name'] as String? ?? '',
       tier: json['tier'] as String? ?? 'platinum',
       interval: json['interval'] as String? ?? 'monthly',
       durationDays: (json['durationDays'] as num?)?.toInt() ?? 30,
-      amount: (json['amount'] as num?)?.toInt() ?? 0,
-      currency: json['currency'] as String? ?? 'INR',
+      amount: amount,
+      currency: currency,
       devices: (json['devices'] as num?)?.toInt() ?? 5,
       displayName: json['displayName'] as String? ?? '',
       intervalLabel: json['intervalLabel'] as String? ?? 'Monthly',
       period: json['period'] as String? ?? 'per month',
-      price: json['price'] as String? ?? '',
+      price: price,
       description: json['description'] as String? ?? '',
       badge: json['badge'] as String?,
     );
   }
+
+  /// Price for UI (always USD, e.g. `$4.99`).
+  String get displayPrice => CurrencyHelper.displayPrice(
+        price: price,
+        currency: currency,
+        amount: amount,
+      );
 
   bool get isPlatinum => tier == 'platinum';
   bool get isPlatinumPlus => tier == 'platinumPlus';

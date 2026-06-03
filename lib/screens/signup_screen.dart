@@ -286,7 +286,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 2),
                   Text(
                     plan != null
-                        ? '${plan.price} ${plan.period} · ${plan.description}'
+                        ? '${plan.displayPrice} ${plan.period} · ${plan.description}'
                         : 'Tap to select a plan',
                     style: GoogleFonts.outfit(
                       fontSize: 12,

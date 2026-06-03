@@ -20,14 +20,14 @@ export function getPlanDurationDays(planIndex) {
 
 /** Plan index (0-5) → { name, amount, currency } for invoice email. */
 export const planInvoiceInfo = {
-  0: { name: 'Platinum Weekly (3 devices)', amount: '₹4.99', currency: 'INR' },
-  1: { name: 'Platinum Monthly (5 devices)', amount: '₹9.99', currency: 'INR' },
-  2: { name: 'Platinum Yearly (5 devices)', amount: '₹39.99', currency: 'INR' },
-  3: { name: 'Platinum+ Weekly (5 devices)', amount: '₹6.99', currency: 'INR' },
-  4: { name: 'Platinum+ Monthly (10 devices)', amount: '₹14.99', currency: 'INR' },
-  5: { name: 'Platinum+ Yearly (10 devices)', amount: '₹59.99', currency: 'INR' },
+  0: { name: 'Platinum Weekly (3 devices)', amount: '$4.99', currency: 'USD' },
+  1: { name: 'Platinum Monthly (5 devices)', amount: '$9.99', currency: 'USD' },
+  2: { name: 'Platinum Yearly (5 devices)', amount: '$39.99', currency: 'USD' },
+  3: { name: 'Platinum+ Weekly (5 devices)', amount: '$6.99', currency: 'USD' },
+  4: { name: 'Platinum+ Monthly (10 devices)', amount: '$14.99', currency: 'USD' },
+  5: { name: 'Platinum+ Yearly (10 devices)', amount: '$59.99', currency: 'USD' },
 };
 
 export function getPlanInvoiceInfo(planIndex) {
-  return planInvoiceInfo[planIndex] || { name: `Plan ${planIndex}`, amount: 'N/A', currency: 'INR' };
+  return planInvoiceInfo[planIndex] || { name: `Plan ${planIndex}`, amount: 'N/A', currency: 'USD' };
 }

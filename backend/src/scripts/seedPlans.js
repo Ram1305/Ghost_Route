@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import connectDB from '../config/db.js';
-import { upsertDefaultPlans } from '../services/plansSeed.service.js';
+import { resetAndSeedDefaultPlans } from '../services/plansSeed.service.js';
 import { defaultPlans } from '../config/defaultPlans.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -13,7 +13,7 @@ dotenv.config({ path: join(__dirname, '../../../.env') });
 async function seedPlans() {
   try {
     await connectDB();
-    await upsertDefaultPlans();
+    await resetAndSeedDefaultPlans();
     for (const plan of defaultPlans) {
       console.log(`Plan ${plan.index} (${plan.name}) upserted`);
     }

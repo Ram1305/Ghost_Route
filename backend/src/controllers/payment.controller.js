@@ -5,7 +5,7 @@ import Plan from '../models/plan.model.js';
 import * as emailService from '../services/email.service.js';
 
 /**
- * Create a Razorpay order. Amount in paise (e.g. 50000 = ₹500).
+ * Create a Razorpay order. Amount in smallest unit (e.g. 499 = $4.99 USD).
  * Returns orderId and keyId so the client can open Checkout.
  */
 export async function createOrder(req, res) {
@@ -14,15 +14,15 @@ export async function createOrder(req, res) {
       return res.status(503).json({ error: 'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env' });
     }
 
-    const { amount, currency = 'INR', receipt, notes } = req.body;
-    const amountPaise = Number(amount);
+    const { amount, currency = 'USD', receipt, notes } = req.body;
+    const amountCents = Number(amount);
 
-    if (!amountPaise || amountPaise < 100) {
-      return res.status(400).json({ error: 'Amount is required and must be at least 100 paise (₹1)' });
+    if (!amountCents || amountCents < 100) {
+      return res.status(400).json({ error: 'Amount is required and must be at least 100 cents ($1.00)' });
     }
 
     const options = {
-      amount: amountPaise,
+      amount: amountCents,
       currency: currency.toUpperCase(),
       receipt: receipt || `rcpt_${Date.now()}`,
       ...(notes && { notes }),

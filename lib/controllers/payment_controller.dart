@@ -58,6 +58,14 @@ class PaymentController extends GetxController {
     }
   }
 
+  /// App Store / Play localized price string for UI (e.g. `$4.99`).
+  String? storePriceLabelForPlanIndex(int planIndex) {
+    final product = _iap.productForPlanIndex(planIndex, _storeProducts);
+    final label = product?.price;
+    if (label == null || label.isEmpty) return null;
+    return label;
+  }
+
   /// Start in-app subscription purchase for [plan].
   Future<void> openCheckout(Plan plan, {bool fromSignup = false}) async {
     if (!isPaymentSupported) {
