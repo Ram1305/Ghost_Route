@@ -17,10 +17,14 @@ class LocationController extends GetxController {
 
   Future<void> getVpnData() async {
     isLoading.value = true;
-    vpnList.clear();
+    final cached = List<Vpn>.from(vpnList);
     try {
       final list = await APIs.getVPNServers();
-      vpnList.assignAll(list);
+      if (list.isNotEmpty) {
+        vpnList.assignAll(list);
+      } else if (cached.isNotEmpty) {
+        vpnList.assignAll(cached);
+      }
     } finally {
       isLoading.value = false;
     }

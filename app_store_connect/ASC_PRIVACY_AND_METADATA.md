@@ -25,6 +25,8 @@ Add near the top of the **Description**:
 
 Audit subtitle, screenshots, and promotional text for “premium included” without “subscription required.”
 
+**Privacy Policy URL (App Information):** https://ghostroutes.netlify.app/
+
 ---
 
 ## Guideline 2.1 — VPN questions (reply in App Store Connect)

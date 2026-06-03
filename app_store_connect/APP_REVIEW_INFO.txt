@@ -11,7 +11,7 @@ APP METADATA (Guideline 2.3.2)
 ------------------------------
 See ASC_PRIVACY_AND_METADATA.md for description text requiring subscription.
 - App name: Ghost Route
-- Privacy policy URL: HTTPS URL hosting web/privacy-policy.html
+- Privacy policy URL: https://ghostroutes.netlify.app/
 - Support URL: your support page
 
 APP REVIEW INFORMATION (Guideline 2.1)

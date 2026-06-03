@@ -22,6 +22,9 @@ dependencies:
   # For API Call
   http: ^1.3.0
 
+  # VPN Gate server list (CSV)
+  csv: ^6.0.0
+
   # In-App Purchase (App Store & Google Play)
   in_app_purchase: ^3.2.0
 

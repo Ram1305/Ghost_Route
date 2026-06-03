@@ -10,17 +10,19 @@ class AppConfig {
     defaultValue: 'https://ghostroute.octosofttechnologies.in',
   );
 
-  /// Managed VPN server list (Ghost Route backend).
+  /// VPN Gate public API (CSV list of servers — large list).
+  static const String vpnGateApiUrl = 'http://www.vpngate.net/api/iphone/';
+
+  /// Managed VPN server list (Ghost Route backend; merged with VPN Gate).
   static String get serversApiUrl => '$apiBaseUrl/api/servers';
 
   /// IP geolocation API (free tier; use with User-Agent).
   static const String ipApiUrl = 'http://ip-api.com/json/';
 
-  /// Public privacy policy (host web/privacy-policy.html at this URL).
-  static const String privacyPolicyUrl =
-      'https://ghostroute.octosofttechnologies.in/privacy-policy.html';
+  /// Public privacy policy (deploy web/privacy-policy.html to Netlify).
+  static const String privacyPolicyUrl = 'https://ghostroutes.netlify.app/';
 
-  /// User-Agent for public HTTP requests (some APIs require it).
+  /// User-Agent for public HTTP requests (VPN Gate requires a desktop-style UA).
   static const String userAgent =
-      'GhostRoute/1.0 (compatible; +https://ghostroute.octosofttechnologies.in)';
+      'GhostRoute/1.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 }
