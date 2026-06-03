@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema(
     subscriptionHistory: { type: [subscriptionSchema], default: [] },
     activePlan: { type: Number, default: null }, // PremiumPlan index or null
     subscriptionExpiresAt: { type: Date, default: null },
+    subscriptionPlatform: { type: String, enum: ['ios', 'android', null], default: null },
+    subscriptionProductId: { type: String, default: null },
+    appleOriginalTransactionId: { type: String, default: null },
+    googlePurchaseToken: { type: String, default: null },
   },
   { timestamps: true }
 );

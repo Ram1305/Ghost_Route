@@ -1,61 +1,64 @@
 App Store Connect – Resubmission Checklist (Ghost Route)
 ============================================================
 
-ORGANIZATION ACCOUNT (Guideline 5.4)
-------------------------------------
-- Submit or transfer this app under your Apple Developer Organization account
-- Transfer guide: https://developer.apple.com/help/app-store-connect/transfer-an-app/overview-of-app-transfer
-- Reply to App Review noting the Organization account name and D-U-N-S number
+APP PRIVACY (Guideline 5.1.2(i))
+--------------------------------
+See app_store_connect/ASC_PRIVACY_AND_METADATA.md
+- Set "Used for tracking" = NO for all data types
+- Email = App Functionality / Account Management only
 
-APP METADATA (Guideline 4.1)
-----------------------------
+APP METADATA (Guideline 2.3.2)
+------------------------------
+See ASC_PRIVACY_AND_METADATA.md for description text requiring subscription.
 - App name: Ghost Route
-- Remove all "Tron VPN" / "Tron" references from subtitle, description, keywords, screenshots
-- Privacy policy URL: host web/privacy-policy.html (updated for Ghost Route)
+- Privacy policy URL: HTTPS URL hosting web/privacy-policy.html
 - Support URL: your support page
 
 APP REVIEW INFORMATION (Guideline 2.1)
 --------------------------------------
-Demo login credentials (seed on backend with: npm run seed:review):
+Demo login (seed: npm run seed:review):
 
   Email:    review@yencodetech.com
   Password: YencodeReview2026!
 
-Login path for reviewers:
-  1. Launch app → Splash screen
-  2. Premium screen appears
-  3. Tap "Already have account? Login"
-  4. Enter credentials above
+Login path:
+  1. Launch app → Splash
+  2. Premium → "Already have account? Login"
+  3. Enter credentials → Home
 
-Backend health check:
+Account deletion (Guideline 5.1.1):
+  Profile → Delete account → enter password → confirm → Login screen
+  Record on a physical device; attach video URL in Review Notes (see ASC_PRIVACY_AND_METADATA.md)
+
+In-App Purchase (Guideline 3.1.1):
+  Premium → Choose plan → App Store / Play billing sheet
+  Restore purchases: Premium screen or Profile
+  Product IDs: app_store_connect/STORE_PRODUCTS.md
+  Demo account has premium without purchase for VPN testing
+
+VPN servers:
+  App loads managed list from GET https://ghostroute.octosofttechnologies.in/api/servers
+
+Backend health:
   GET https://ghostroute.octosofttechnologies.in/api/health
 
-Notes for reviewer:
-  - Auth requires HTTPS backend (ghostroute.octosofttechnologies.in)
-  - Demo account has an active premium subscription for testing
-
-REVIEW REPLY TEMPLATE
----------------------
-We addressed all issues:
-(1) Rebranded to Ghost Route and removed third-party "Tron VPN" naming.
-(2) Resubmitted from our Organization Apple Developer account.
-(3) Fixed login infinite loading by moving auth to HTTPS with request timeouts; demo credentials provided above.
-(4) Replaced public VPNGate server list with our managed server infrastructure and removed template branding.
+REVIEW NOTES (paste)
+--------------------
+- App Privacy corrected: we do not track users; no ATT prompt.
+- Subscriptions use Apple IAP / Google Play Billing only (no external payment).
+- Phone number is optional at signup.
+- Account deletion: Profile → Delete account.
+- VPN data collection answers: see ASC_PRIVACY_AND_METADATA.md section 2.1.
 
 BUNDLE ID
 ---------
-com.yencode.ghostroute (see app_store_connect/BUNDLE_ID_MIGRATION.md for Apple Developer setup)
+com.yencode.ghostroute
 
-BUILD COMMAND (iOS release)
----------------------------
+BUILD (iOS release)
+-------------------
 flutter build ios --release --dart-define=API_BASE_URL=https://ghostroute.octosofttechnologies.in
 
-BACKEND DEPLOY (before submit)
-------------------------------
-cd backend
-cp .env.example .env   # configure MongoDB, email, Razorpay
-npm install
-npm run seed:all
-npm start
-
-Deploy behind HTTPS using backend/deploy/nginx.conf.example
+BACKEND DEPLOY
+--------------
+cd backend && npm install && npm run seed:all && npm start
+Configure IAP env vars (see STORE_PRODUCTS.md) and MongoDB, email.

@@ -148,3 +148,27 @@ export async function forgotPasswordVerifyAndReset(req, res) {
     res.status(500).json({ error: err.message || 'Failed to reset password' });
   }
 }
+
+/** Self-service account deletion (re-authenticate with email + password). */
+export async function deleteAccount(req, res) {
+  try {
+    const { email, password } = req.body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    await User.findByIdAndDelete(user._id);
+    res.status(204).send();
+  } catch (err) {
+    console.error('Delete account error:', err);
+    res.status(500).json({ error: err.message || 'Failed to delete account' });
+  }
+}

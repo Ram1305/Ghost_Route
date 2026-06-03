@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_config.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../models/subscription.dart';
 import '../theme/nexus_theme.dart';
@@ -161,11 +164,15 @@ class ProfileScreen extends StatelessWidget {
                             currentUser.email,
                           ),
                           const SizedBox(height: 10),
-                          _buildDetailCard(
-                            Icons.phone_rounded,
-                            'Mobile',
-                            currentUser.phone,
-                          ),
+                          if (currentUser.phone.trim().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _buildDetailCard(
+                                Icons.phone_rounded,
+                                'Mobile',
+                                currentUser.phone,
+                              ),
+                            ),
                           const SizedBox(height: 28),
                           _buildSectionTitle('Plan'),
                           const SizedBox(height: 12),
@@ -215,7 +222,13 @@ class ProfileScreen extends StatelessWidget {
                               );
                             }),
                           const SizedBox(height: 24),
+                          _buildRestorePurchasesButton(),
+                          const SizedBox(height: 10),
+                          _buildPrivacyPolicyButton(),
+                          const SizedBox(height: 10),
                           _buildLogoutButton(),
+                          const SizedBox(height: 10),
+                          _buildDeleteAccountButton(context, currentUser.email),
                           const SizedBox(height: 40),
                         ],
                       ),
@@ -368,7 +381,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Get Tron VPN for faster speeds and more features',
+                    'Subscribe for faster speeds and more premium locations',
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       color: NexusTheme.text2,
@@ -463,6 +476,150 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildRestorePurchasesButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: () async {
+          if (!Get.isRegistered<PaymentController>()) {
+            Get.put(PaymentController());
+          }
+          await Get.find<PaymentController>().restorePurchases();
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: NexusTheme.teal,
+          side: BorderSide(color: NexusTheme.teal.withOpacity(0.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          'Restore purchases',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyPolicyButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: () async {
+          final uri = Uri.parse(AppConfig.privacyPolicyUrl);
+          if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+            Get.snackbar('Error', 'Could not open privacy policy');
+          }
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: NexusTheme.text2,
+          side: BorderSide(color: NexusTheme.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          'Privacy policy',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteAccountButton(BuildContext context, String email) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: () => _confirmDeleteAccount(context, email),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: NexusTheme.red,
+          side: BorderSide(color: NexusTheme.red.withOpacity(0.6)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          'Delete account',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context, String email) async {
+    final passwordController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: NexusTheme.surface,
+        title: Text(
+          'Delete account?',
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w700,
+            color: NexusTheme.text,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This permanently deletes your account and subscription data for $email. This cannot be undone.',
+              style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              style: GoogleFonts.outfit(color: NexusTheme.text),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                labelStyle: GoogleFonts.outfit(color: NexusTheme.text3),
+                filled: true,
+                fillColor: NexusTheme.bg,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: GoogleFonts.outfit(color: NexusTheme.text2)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete', style: GoogleFonts.outfit(color: NexusTheme.red, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) {
+      passwordController.dispose();
+      return;
+    }
+    final password = passwordController.text;
+    passwordController.dispose();
+    final ok = await Get.find<AuthController>().deleteAccount(password: password);
+    if (ok && context.mounted) {
+      Get.offAll(() => const LoginScreen());
+    }
   }
 
   Widget _buildLogoutButton() {

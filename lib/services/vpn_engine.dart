@@ -43,7 +43,7 @@ class VpnEngine {
         providerBundleIdentifier: Platform.isIOS
             ? 'com.yencode.ghostroute.VPNExtension'
             : null,
-        localizedDescription: Platform.isIOS ? 'Tron VPN' : null,
+        localizedDescription: Platform.isIOS ? 'Ghost Route' : null,
       );
       _initialized = true;
     } catch (e) {

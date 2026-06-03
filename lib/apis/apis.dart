@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:csv/csv.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart';
 
@@ -12,40 +11,38 @@ import '../models/ip_details.dart';
 import '../models/vpn.dart';
 
 class APIs {
+  /// Loads VPN servers from Ghost Route managed backend API.
   static Future<List<Vpn>> getVPNServers() async {
     final List<Vpn> vpnList = [];
 
     try {
       final res = await get(
-        Uri.parse(AppConfig.vpnGateApiUrl),
-        headers: {'User-Agent': AppConfig.userAgent},
+        Uri.parse(AppConfig.serversApiUrl),
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': AppConfig.userAgent,
+        },
       );
       if (res.statusCode != 200) {
-        throw Exception('VPN Gate API returned ${res.statusCode}');
+        throw Exception('Server API returned ${res.statusCode}');
       }
-      final parts = res.body.split('#');
-      if (parts.length < 2) {
-        throw Exception('VPN Gate API response missing CSV data');
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) {
+        throw Exception('Server API returned invalid JSON');
       }
-      final csvString = parts[1].replaceAll('*', '');
-
-      List<List<dynamic>> list = const CsvToListConverter().convert(csvString);
-
-      final header = list[0];
-
-      for (int i = 1; i < list.length - 1; ++i) {
-        Map<String, dynamic> tempJson = {};
-
-        for (int j = 0; j < header.length; ++j) {
-          tempJson.addAll({header[j].toString(): list[i][j]});
+      for (final item in decoded) {
+        if (item is Map<String, dynamic>) {
+          vpnList.add(Vpn.fromJson(item));
+        } else if (item is Map) {
+          vpnList.add(Vpn.fromJson(Map<String, dynamic>.from(item)));
         }
-        vpnList.add(Vpn.fromJson(tempJson));
       }
     } catch (e) {
       MyDialogs.error(msg: e.toString());
       log('\ngetVPNServersE: $e');
-      return vpnList; // Return partial list but do not save to Pref
+      return vpnList;
     }
+
     vpnList.removeWhere((v) => v.openVPNConfigDataBase64.trim().isEmpty);
     vpnList.shuffle();
 
@@ -64,7 +61,6 @@ class APIs {
         throw Exception('IP API returned ${res.statusCode}');
       }
       final data = jsonDecode(res.body) as Map<String, dynamic>;
-      log(data.toString());
       ipData.value = IPDetails.fromJson(data);
     } catch (e) {
       MyDialogs.error(msg: e.toString());
@@ -72,20 +68,3 @@ class APIs {
     }
   }
 }
-
-// Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36
-
-// For Understanding Purpose
-
-//*** CSV Data ***
-// Name,    Country,  Ping
-// Test1,   JP,       12
-// Test2,   US,       112
-// Test3,   IN,       7
-
-//*** List Data ***
-// [ [Name, Country, Ping], [Test1, JP, 12], [Test2, US, 112], [Test3, IN, 7] ]
-
-//*** Json Data ***
-// {"Name": "Test1", "Country": "JP", "Ping": 12}
-

@@ -74,10 +74,6 @@ class AuthController extends GetxController {
       MyDialogs.error(msg: 'Verify email OTP first');
       return false;
     }
-    if (phone.trim().isEmpty) {
-      MyDialogs.error(msg: 'Enter mobile number');
-      return false;
-    }
     if (password.isEmpty) {
       MyDialogs.error(msg: 'Enter password');
       return false;
@@ -244,6 +240,32 @@ class AuthController extends GetxController {
         }
       }
       MyDialogs.success(msg: 'Password changed');
+      return true;
+    } catch (e) {
+      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
+      return false;
+    }
+  }
+
+  /// Permanently deletes account on server and clears local session.
+  Future<bool> deleteAccount({required String password}) async {
+    final u = Pref.currentUser;
+    if (u == null || u.email.isEmpty) {
+      MyDialogs.error(msg: 'Not logged in');
+      return false;
+    }
+    if (password.isEmpty) {
+      MyDialogs.error(msg: 'Enter your password to confirm');
+      return false;
+    }
+    try {
+      await AuthApi.deleteAccount(email: u.email, password: password);
+      final email = u.email.toLowerCase();
+      final users = Pref.users.where((e) => e.email.toLowerCase() != email).toList();
+      Pref.users = users;
+      Pref.currentUser = null;
+      currentUser.value = null;
+      MyDialogs.success(msg: 'Account deleted');
       return true;
     } catch (e) {
       MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));

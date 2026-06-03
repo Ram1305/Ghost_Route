@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/plan.dart';
 
-/// Payment API – create order, verify, and get plans via backend (Razorpay).
+/// Payment API – plans and store (App Store / Google Play) verification.
 class PaymentApi {
   static String get _base => AppConfig.apiBaseUrl;
 
@@ -84,8 +84,46 @@ class PaymentApi {
     }
   }
 
-  /// Activate subscription on backend after successful payment.
-  /// Call when user has backendUserId (e.g. logged in via API).
+  /// Verify App Store / Play purchase and activate subscription on backend.
+  static Future<StoreVerifyResponse?> verifyStorePurchase({
+    required String userId,
+    required String platform,
+    required String productId,
+    String? purchaseToken,
+    String? receiptData,
+    String? transactionId,
+  }) async {
+    if (userId.isEmpty) {
+      throw Exception('Sign in required before purchasing');
+    }
+    final res = await http.post(
+      Uri.parse('$_base/api/payments/store/verify'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'platform': platform,
+        'productId': productId,
+        if (purchaseToken != null && purchaseToken.isNotEmpty)
+          'purchaseToken': purchaseToken,
+        if (receiptData != null && receiptData.isNotEmpty) 'receiptData': receiptData,
+        if (transactionId != null) 'transactionId': transactionId,
+      }),
+    );
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Store verification failed');
+    }
+    final expiresAtRaw = data['subscriptionExpiresAt'];
+    final DateTime? subscriptionExpiresAt =
+        expiresAtRaw is String ? DateTime.tryParse(expiresAtRaw) : null;
+    return StoreVerifyResponse(
+      verified: data['verified'] as bool? ?? true,
+      activePlan: data['activePlan'] as int?,
+      subscriptionExpiresAt: subscriptionExpiresAt,
+    );
+  }
+
+  /// Activate subscription on backend after successful payment (legacy).
   static Future<ActivateSubscriptionResponse?> activateSubscription({
     required String userId,
     required int plan,
@@ -119,6 +157,18 @@ class PaymentApi {
       rethrow;
     }
   }
+}
+
+class StoreVerifyResponse {
+  final bool verified;
+  final int? activePlan;
+  final DateTime? subscriptionExpiresAt;
+
+  StoreVerifyResponse({
+    required this.verified,
+    this.activePlan,
+    this.subscriptionExpiresAt,
+  });
 }
 
 class ActivateSubscriptionResponse {

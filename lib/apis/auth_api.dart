@@ -150,4 +150,22 @@ class AuthApi {
     final data = jsonDecode(res.body) as Map<String, dynamic>?;
     throw Exception(data?['error'] as String? ?? 'Failed to reset password');
   }
+
+  /// Permanently deletes the account on the backend.
+  static Future<void> deleteAccount({
+    required String email,
+    required String password,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$_base/api/auth/delete-account'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      }),
+    );
+    if (res.statusCode == 204) return;
+    final data = jsonDecode(res.body) as Map<String, dynamic>?;
+    throw Exception(data?['error'] as String? ?? 'Failed to delete account');
+  }
 }

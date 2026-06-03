@@ -7,6 +7,6 @@ router.get('/', userController.getAllUsers);
 router.get('/:id', userController.getUserById);
 router.post('/', userController.createUser);
 router.put('/:id', userController.updateUser);
-router.delete('/:id', userController.deleteUser);
+// Account deletion is only via POST /api/auth/delete-account (self-service).
 
 export default router;

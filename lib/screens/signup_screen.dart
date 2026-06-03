@@ -10,6 +10,7 @@ import '../models/plan.dart';
 import '../models/subscription.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
+import 'home_screen.dart';
 import 'login_screen.dart';
 import 'premium_screen.dart';
 
@@ -115,12 +116,42 @@ class _SignupScreenState extends State<SignupScreen> {
       selectedPlan: premiumPlan,
     );
     setState(() => _loading = false);
-    if (ok) {
+    if (!ok) return;
+    if (!mounted) return;
+    final subscribe = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: NexusTheme.surface,
+        title: Text(
+          'Subscribe now?',
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w700,
+            color: NexusTheme.text,
+          ),
+        ),
+        content: Text(
+          'Your account was created. You can subscribe now or continue and subscribe later from Premium.',
+          style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Later', style: GoogleFonts.outfit(color: NexusTheme.text2)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Subscribe', style: GoogleFonts.outfit(color: NexusTheme.teal, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (subscribe == true && _plan != null) {
       if (!Get.isRegistered<PaymentController>()) {
         Get.put(PaymentController());
       }
-      // Navigate to payment: success → payment success screen then home; failure → login
-      Get.find<PaymentController>().openCheckout(_plan!, fromSignup: true);
+      await Get.find<PaymentController>().openCheckout(_plan!, fromSignup: true);
+    } else {
+      Get.offAll(() => HomeScreen());
     }
   }
 
@@ -162,7 +193,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         const SizedBox(height: 14),
                         _buildTextField(
                           controller: _phone,
-                          label: 'Mobile number',
+                          label: 'Mobile number (optional)',
                           hint: 'Enter mobile number',
                           icon: Icons.phone_rounded,
                           keyboardType: TextInputType.phone,

@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../apis/payment_api.dart';
-import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
@@ -45,6 +44,10 @@ class PremiumScreen extends StatelessWidget {
                         _buildBenefits(context),
                         const SizedBox(height: 36),
                         _buildCta(context),
+                        const SizedBox(height: 12),
+                        _buildSubscriptionDisclosure(context),
+                        const SizedBox(height: 12),
+                        _buildRestorePurchases(context),
                         const SizedBox(height: 16),
                         _buildAlreadyHaveAccount(context),
                         const SizedBox(height: 40),
@@ -72,7 +75,7 @@ class PremiumScreen extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            'Tron VPN',
+            'Ghost Route',
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -278,6 +281,40 @@ class PremiumScreen extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionDisclosure(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        'Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Payment is charged to your App Store or Google Play account. Manage or cancel in your device subscription settings.',
+        textAlign: TextAlign.center,
+        style: GoogleFonts.outfit(
+          fontSize: 11,
+          height: 1.45,
+          color: NexusTheme.text3,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRestorePurchases(BuildContext context) {
+    return TextButton(
+      onPressed: () async {
+        if (!Get.isRegistered<PaymentController>()) {
+          Get.put(PaymentController());
+        }
+        await Get.find<PaymentController>().restorePurchases();
+      },
+      child: Text(
+        'Restore purchases',
+        style: GoogleFonts.outfit(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: NexusTheme.teal,
         ),
       ),
     );

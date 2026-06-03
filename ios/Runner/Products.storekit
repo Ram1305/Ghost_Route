@@ -1,0 +1,127 @@
+{
+  "identifier" : "GhostRouteSubscriptions",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "0",
+    "_developerTeamID" : "REPLACE_WITH_TEAM_ID",
+    "_lastSynchronizedDate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "platinum",
+      "localizations" : [],
+      "name" : "Platinum",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "platinum_weekly",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Platinum weekly",
+              "displayName" : "Platinum Weekly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.yencode.ghostroute.platinum.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Platinum Weekly",
+          "subscriptionGroupID" : "platinum",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "displayPrice" : "9.99",
+          "internalID" : "platinum_monthly",
+          "localizations" : [
+            {
+              "description" : "Platinum monthly",
+              "displayName" : "Platinum Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.yencode.ghostroute.platinum.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Platinum Monthly",
+          "subscriptionGroupID" : "platinum",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "displayPrice" : "39.99",
+          "internalID" : "platinum_yearly",
+          "localizations" : [
+            {
+              "description" : "Platinum yearly",
+              "displayName" : "Platinum Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.yencode.ghostroute.platinum.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Platinum Yearly",
+          "subscriptionGroupID" : "platinum",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    },
+    {
+      "id" : "platinum_plus",
+      "name" : "Platinum+",
+      "subscriptions" : [
+        {
+          "displayPrice" : "6.99",
+          "internalID" : "platinumplus_weekly",
+          "localizations" : [
+            {
+              "description" : "Platinum+ weekly",
+              "displayName" : "Platinum+ Weekly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.yencode.ghostroute.platinumplus.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Platinum+ Weekly",
+          "subscriptionGroupID" : "platinum_plus",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "displayPrice" : "14.99",
+          "internalID" : "platinumplus_monthly",
+          "localizations" : [
+            {
+              "description" : "Platinum+ monthly",
+              "displayName" : "Platinum+ Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.yencode.ghostroute.platinumplus.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Platinum+ Monthly",
+          "subscriptionGroupID" : "platinum_plus",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "displayPrice" : "59.99",
+          "internalID" : "platinumplus_yearly",
+          "localizations" : [
+            {
+              "description" : "Platinum+ yearly",
+              "displayName" : "Platinum+ Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.yencode.ghostroute.platinumplus.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Platinum+ Yearly",
+          "subscriptionGroupID" : "platinum_plus",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : { "major" : 3, "minor" : 0 }
+}

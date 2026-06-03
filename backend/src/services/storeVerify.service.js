@@ -1,0 +1,113 @@
+import fs from 'fs';
+import { google } from 'googleapis';
+import { PLAN_INDEX_BY_PRODUCT_ID } from '../config/iapProducts.js';
+
+const STRICT = process.env.IAP_STRICT_VERIFY !== 'false';
+
+export function resolvePlanIndex(productId) {
+  const idx = PLAN_INDEX_BY_PRODUCT_ID[String(productId || '').trim()];
+  return idx === undefined ? null : idx;
+}
+
+async function verifyAppleReceipt(receiptData, sharedSecret) {
+  const body = {
+    'receipt-data': receiptData,
+    password: sharedSecret,
+    'exclude-old-transactions': true,
+  };
+  const urls = [
+    'https://buy.itunes.apple.com/verifyReceipt',
+    'https://sandbox.itunes.apple.com/verifyReceipt',
+  ];
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.status === 0) return { valid: true, environment: url.includes('sandbox') ? 'sandbox' : 'production', data };
+      if (data.status === 21007 && url.includes('buy.itunes')) {
+        continue;
+      }
+      lastError = `Apple status ${data.status}`;
+    } catch (e) {
+      lastError = e.message;
+    }
+  }
+  return { valid: false, error: lastError || 'Apple verification failed' };
+}
+
+async function verifyGoogleSubscription({ packageName, productId, purchaseToken }) {
+  const keyPath = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH;
+  if (!keyPath || !fs.existsSync(keyPath)) {
+    return { valid: false, skipped: true, error: 'Google Play service account not configured' };
+  }
+  const auth = new google.auth.GoogleAuth({
+    keyFile: keyPath,
+    scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+  });
+  const androidPublisher = google.androidpublisher({ version: 'v3', auth });
+  const res = await androidPublisher.purchases.subscriptions.get({
+    packageName,
+    subscriptionId: productId,
+    token: purchaseToken,
+  });
+  const paymentState = res.data.paymentState;
+  const valid = paymentState === 1 || paymentState === 2;
+  return { valid, data: res.data };
+}
+
+/**
+ * Verify store purchase. When IAP_STRICT_VERIFY=false and store credentials are missing,
+ * accepts known product IDs only (development — not for production).
+ */
+export async function verifyStorePurchase({
+  platform,
+  productId,
+  purchaseToken,
+  receiptData,
+}) {
+  const planIndex = resolvePlanIndex(productId);
+  if (planIndex === null) {
+    return { valid: false, planIndex: null, error: 'Unknown product ID' };
+  }
+
+  if (platform === 'ios') {
+    const secret = process.env.APPLE_SHARED_SECRET;
+    if (secret && receiptData) {
+      const result = await verifyAppleReceipt(receiptData, secret);
+      return { ...result, planIndex, platform };
+    }
+    if (!STRICT && productId) {
+      console.warn('IAP: Apple verify skipped (missing secret/receipt); dev accept productId only');
+      return { valid: true, planIndex, platform, devBypass: true };
+    }
+    return { valid: false, planIndex, error: 'Apple receipt verification not configured' };
+  }
+
+  if (platform === 'android') {
+    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.yencode.ghostroute';
+    if (purchaseToken && process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH) {
+      try {
+        const result = await verifyGoogleSubscription({
+          packageName,
+          productId,
+          purchaseToken,
+        });
+        return { ...result, planIndex, platform };
+      } catch (e) {
+        return { valid: false, planIndex, error: e.message };
+      }
+    }
+    if (!STRICT && productId && purchaseToken) {
+      console.warn('IAP: Google verify skipped; dev accept token present');
+      return { valid: true, planIndex, platform, devBypass: true };
+    }
+    return { valid: false, planIndex, error: 'Google Play verification not configured' };
+  }
+
+  return { valid: false, planIndex, error: 'Invalid platform' };
+}

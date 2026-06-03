@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Tron VPN',
+      title: 'Ghost Route',
       scaffoldMessengerKey: MyDialogs.rootScaffoldMessengerKey,
       home: const SplashScreen(),
 

@@ -9,5 +9,6 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/forgot-password/send-otp', authController.forgotPasswordSendOtp);
 router.post('/forgot-password/verify-and-reset', authController.forgotPasswordVerifyAndReset);
+router.post('/delete-account', authController.deleteAccount);
 
 export default router;
