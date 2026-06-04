@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../apis/payment_api.dart';
+import '../config/app_config.dart';
 import '../config/iap_products.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
@@ -36,7 +37,11 @@ class PaymentController extends GetxController {
 
   Future<void> _initIap() async {
     if (!isPaymentSupported) return;
-    _iapReady = await _iap.initialize(_handlePurchase);
+    _iapReady = await _iap.initialize(
+      onPurchase: _handlePurchase,
+      onError: _handlePurchaseError,
+      onCancelled: _handlePurchaseCancelled,
+    );
     if (_iapReady) {
       await loadStoreProducts();
     }
@@ -66,6 +71,18 @@ class PaymentController extends GetxController {
     return label;
   }
 
+  /// App Store / Play localized subscription title.
+  String? storeTitleForPlanIndex(int planIndex) {
+    final product = _iap.productForPlanIndex(planIndex, _storeProducts);
+    final title = product?.title;
+    if (title == null || title.isEmpty) return null;
+    return title;
+  }
+
+  String get _storeProductsNotFoundMessage => Platform.isIOS
+      ? AppConfig.storeProductsNotFoundIos
+      : AppConfig.storeProductsNotFoundAndroid;
+
   /// Start in-app subscription purchase for [plan].
   Future<void> openCheckout(Plan plan, {bool fromSignup = false}) async {
     if (!isPaymentSupported) {
@@ -73,7 +90,11 @@ class PaymentController extends GetxController {
       return;
     }
     if (!_iapReady) {
-      _iapReady = await _iap.initialize(_handlePurchase);
+      _iapReady = await _iap.initialize(
+        onPurchase: _handlePurchase,
+        onError: _handlePurchaseError,
+        onCancelled: _handlePurchaseCancelled,
+      );
       if (!_iapReady) {
         MyDialogs.error(msg: 'Store is not available. Try again later.');
         return;
@@ -85,10 +106,7 @@ class PaymentController extends GetxController {
 
     final product = _iap.productForPlanIndex(plan.index, _storeProducts);
     if (product == null) {
-      MyDialogs.error(
-        msg:
-            'Subscription not found in the store. Ensure products are configured in App Store Connect / Play Console.',
-      );
+      MyDialogs.error(msg: _storeProductsNotFoundMessage);
       if (fromSignup) Get.offAll(() => HomeScreen());
       return;
     }
@@ -98,14 +116,14 @@ class PaymentController extends GetxController {
     try {
       final started = await _iap.buy(product);
       if (!started) {
+        isPurchasing.value = false;
         MyDialogs.error(msg: 'Could not start purchase');
         _clearPending(fromSignup: fromSignup);
       }
     } catch (e) {
+      isPurchasing.value = false;
       MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
       _clearPending(fromSignup: fromSignup);
-    } finally {
-      isPurchasing.value = false;
     }
   }
 
@@ -115,16 +133,37 @@ class PaymentController extends GetxController {
       return;
     }
     if (!_iapReady) {
-      _iapReady = await _iap.initialize(_handlePurchase);
+      _iapReady = await _iap.initialize(
+        onPurchase: _handlePurchase,
+        onError: _handlePurchaseError,
+        onCancelled: _handlePurchaseCancelled,
+      );
     }
     MyDialogs.info(msg: 'Restoring purchases…');
     await _iap.restorePurchases();
+  }
+
+  void _handlePurchaseError(PurchaseDetails purchase) {
+    isPurchasing.value = false;
+    final message = purchase.error?.message;
+    MyDialogs.error(
+      msg: message != null && message.isNotEmpty
+          ? message
+          : 'Purchase failed. Please try again.',
+    );
+    _clearPending(fromSignup: _fromSignup);
+  }
+
+  void _handlePurchaseCancelled() {
+    isPurchasing.value = false;
+    onPurchaseCancelled(fromSignup: _fromSignup);
   }
 
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
     final productId = purchase.productID;
     final planIndex = IapProducts.planIndexForProductId(productId);
     if (planIndex == null) {
+      isPurchasing.value = false;
       MyDialogs.error(msg: 'Unknown subscription product');
       return;
     }
@@ -132,6 +171,7 @@ class PaymentController extends GetxController {
     final fromSignup = _fromSignup;
     final backendUserId = Pref.currentUser?.backendUserId;
     if (backendUserId == null || backendUserId.isEmpty) {
+      isPurchasing.value = false;
       MyDialogs.error(msg: 'Sign in required before purchasing');
       return;
     }
@@ -173,6 +213,8 @@ class PaymentController extends GetxController {
     } catch (e) {
       MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
       _clearPending(fromSignup: fromSignup);
+    } finally {
+      isPurchasing.value = false;
     }
   }
 
@@ -183,7 +225,7 @@ class PaymentController extends GetxController {
     }
   }
 
-  /// User cancelled before store sheet — used if we add explicit cancel handling.
+  /// User cancelled before store sheet completes.
   void onPurchaseCancelled({bool fromSignup = false}) {
     if (fromSignup) {
       Get.offAll(() => HomeScreen());

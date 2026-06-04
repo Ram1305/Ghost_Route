@@ -1,19 +1,42 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../apis/payment_api.dart';
+import '../config/app_config.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/plan.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
+import '../widgets/subscription_legal_footer.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 
-class PremiumScreen extends StatelessWidget {
+class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
+
+  @override
+  State<PremiumScreen> createState() => _PremiumScreenState();
+}
+
+class _PremiumScreenState extends State<PremiumScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _ensurePaymentController();
+  }
+
+  void _ensurePaymentController() {
+    if (!Get.isRegistered<PaymentController>()) {
+      Get.put(PaymentController());
+    } else {
+      Get.find<PaymentController>().loadStoreProducts();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +69,8 @@ class PremiumScreen extends StatelessWidget {
                         _buildCta(context),
                         const SizedBox(height: 12),
                         _buildSubscriptionDisclosure(context),
+                        const SizedBox(height: 8),
+                        const SubscriptionLegalFooter(),
                         const SizedBox(height: 12),
                         _buildRestorePurchases(context),
                         const SizedBox(height: 16),
@@ -287,10 +312,13 @@ class PremiumScreen extends StatelessWidget {
   }
 
   Widget _buildSubscriptionDisclosure(BuildContext context) {
+    final disclosure = Platform.isIOS
+        ? AppConfig.subscriptionDisclosureIos
+        : AppConfig.subscriptionDisclosureAndroid;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Text(
-        'Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Payment is charged to your App Store or Google Play account. Manage or cancel in your device subscription settings.',
+        disclosure,
         textAlign: TextAlign.center,
         style: GoogleFonts.outfit(
           fontSize: 11,
@@ -348,6 +376,7 @@ class PremiumScreen extends StatelessWidget {
 
   void _showPlanSheet(BuildContext context) async {
     try {
+      _ensurePaymentController();
       final plans = await PaymentApi.getPlans();
       if (!context.mounted) return;
       final isLoggedIn = Pref.isLoggedIn;
@@ -482,7 +511,9 @@ class _PlanSheetState extends State<PlanSheet> {
                       accentColor: NexusTheme.purple,
                       plans: _platinumPlusPlans,
                     ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+                  const SubscriptionLegalFooter(),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -569,6 +600,15 @@ class _PlanSheetState extends State<PlanSheet> {
     );
   }
 
+  String _titleLabel(Plan plan) {
+    if (Get.isRegistered<PaymentController>()) {
+      final store =
+          Get.find<PaymentController>().storeTitleForPlanIndex(plan.index);
+      if (store != null && store.isNotEmpty) return store;
+    }
+    return plan.displayName;
+  }
+
   String _priceLabel(Plan plan) {
     if (Get.isRegistered<PaymentController>()) {
       final store =
@@ -628,36 +668,40 @@ class _PlanSheetState extends State<PlanSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            plan.intervalLabel,
+                      Text(
+                        _titleLabel(plan),
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: NexusTheme.text,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${plan.intervalLabel} · ${plan.period}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          color: NexusTheme.text2,
+                        ),
+                      ),
+                      if (plan.badge != null && plan.badge!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: NexusTheme.gold.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            plan.badge!,
                             style: GoogleFonts.outfit(
-                              fontSize: 16,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: NexusTheme.text,
+                              color: NexusTheme.gold,
                             ),
                           ),
-                          if (plan.badge != null && plan.badge!.isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: NexusTheme.gold.withOpacity(0.25),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                plan.badge!,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: NexusTheme.gold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                       const SizedBox(height: 2),
                       Text(
                         plan.description,

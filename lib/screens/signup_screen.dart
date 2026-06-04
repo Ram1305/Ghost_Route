@@ -10,6 +10,7 @@ import '../models/plan.dart';
 import '../models/subscription.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
+import '../widgets/subscription_legal_footer.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'premium_screen.dart';
@@ -181,6 +182,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       children: [
                         const SizedBox(height: 16),
                         _buildPlanCard(_plan, _plans),
+                        const SizedBox(height: 12),
+                        const SubscriptionLegalFooter(),
                         const SizedBox(height: 24),
                         _buildTextField(
                           controller: _username,

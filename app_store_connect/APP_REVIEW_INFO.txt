@@ -7,12 +7,22 @@ See app_store_connect/ASC_PRIVACY_AND_METADATA.md
 - Set "Used for tracking" = NO for all data types
 - Email = App Functionality / Account Management only
 
-APP METADATA (Guideline 2.3.2)
-------------------------------
-See ASC_PRIVACY_AND_METADATA.md for description text requiring subscription.
+APP METADATA (Guideline 2.3.2 + 3.1.2(c))
+-----------------------------------------
+See ASC_PRIVACY_AND_METADATA.md for full description text.
+
+Paste at top of App Description:
+  Ghost Route is free to download. Full VPN access requires an active
+  Platinum or Platinum+ subscription (weekly, monthly, or yearly),
+  purchased through the App Store. Premium features, server tiers, and
+  device limits vary by plan.
+
+  Terms of Use (EULA): https://ghostroutetermsofuse.netlify.app/
+  Privacy Policy: https://ghostroutes.netlify.app/
+
 - App name: Ghost Route
-- Privacy policy URL: https://ghostroutes.netlify.app/
-- Support URL: your support page
+- Privacy policy URL field: https://ghostroutes.netlify.app/
+- Remove Google Play references from iOS metadata
 
 APP REVIEW INFORMATION (Guideline 2.1)
 --------------------------------------
@@ -28,13 +38,15 @@ Login path:
 
 Account deletion (Guideline 5.1.1):
   Profile → Delete account → enter password → confirm → Login screen
-  Record on a physical device; attach video URL in Review Notes (see ASC_PRIVACY_AND_METADATA.md)
+  Record on a physical device; attach video URL in Review Notes
 
-In-App Purchase (Guideline 3.1.1):
-  Premium → Choose plan → App Store / Play billing sheet
+In-App Purchase (Guideline 3.1.1 + 2.1(b)):
+  Premium → Choose plan → App Store billing sheet
   Restore purchases: Premium screen or Profile
   Product IDs: app_store_connect/STORE_PRODUCTS.md
   Demo account has premium without purchase for VPN testing
+  Attach screen recording: Premium screen shows Terms + Privacy links,
+  then successful sandbox purchase on iPad/iPhone
 
 VPN servers:
   App loads managed list from GET https://ghostroute.octosofttechnologies.in/api/servers
@@ -42,13 +54,39 @@ VPN servers:
 Backend health:
   GET https://ghostroute.octosofttechnologies.in/api/health
 
+Backend IAP (required for purchases to succeed):
+  APPLE_SHARED_SECRET=<from App Store Connect → App Information>
+  APPLE_BUNDLE_ID=com.yencode.ghostroute
+  IAP_STRICT_VERIFY=true
+
 REVIEW NOTES (paste)
 --------------------
 - App Privacy corrected: we do not track users; no ATT prompt.
-- Subscriptions use Apple IAP / Google Play Billing only (no external payment).
+- Subscriptions use Apple In-App Purchase only (no external payment).
+- Premium screen includes Terms of Use and Privacy Policy links (Guideline 3.1.2).
+- Google Play references removed from iOS binary (Guideline 2.3.10).
+- App description updated to disclose subscription required (Guideline 2.3.2).
 - Phone number is optional at signup.
 - Account deletion: Profile → Delete account.
 - VPN data collection answers: see ASC_PRIVACY_AND_METADATA.md section 2.1.
+- Screen recording attached: IAP purchase flow + legal links on Premium screen.
+
+REPLY TO REJECTION (paste in App Store Connect)
+------------------------------------------------
+We have addressed all issues:
+
+1. Guideline 3.1.2(c): Added Terms of Use link in app (Premium/plan screens) and
+   in App Description. Privacy Policy link also on subscription screens.
+
+2. Guideline 2.1: VPN data collection answers provided below [paste section 2.1
+   from ASC_PRIVACY_AND_METADATA.md].
+
+3. Guideline 2.3.2: App Description updated to state subscription required.
+
+4. Guideline 2.3.10: Removed Google Play references from iOS app binary.
+
+5. Guideline 2.1(b): Fixed IAP error handling; verified APPLE_SHARED_SECRET on
+   production backend; tested sandbox purchase. Screen recording attached.
 
 BUNDLE ID
 ---------
@@ -57,6 +95,10 @@ com.yencode.ghostroute
 BUILD (iOS release)
 -------------------
 flutter build ios --release --dart-define=API_BASE_URL=https://ghostroute.octosofttechnologies.in
+
+DEPLOY TERMS PAGE (Netlify)
+---------------------------
+Terms of Use URL: https://ghostroutetermsofuse.netlify.app/
 
 BACKEND DEPLOY
 --------------

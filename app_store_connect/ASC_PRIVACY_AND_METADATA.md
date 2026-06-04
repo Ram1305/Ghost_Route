@@ -2,6 +2,23 @@
 
 Use this when updating App Store Connect before resubmission. Do not commit secrets here.
 
+## Guideline 3.1.2(c) — Terms of Use (EULA) + subscription legal info
+
+**In-app (fixed in binary):** Premium screen and plan picker show Privacy Policy and Terms of Use links. Subscription title, length, and price are displayed on plan tiles.
+
+**App Store Connect — paste into App Description:**
+
+```
+Ghost Route is free to download. Full VPN access requires an active Platinum or Platinum+ subscription (weekly, monthly, or yearly), purchased through the App Store. Premium features, server tiers, and device limits vary by plan.
+
+Terms of Use (EULA): https://ghostroutetermsofuse.netlify.app/
+Privacy Policy: https://ghostroutes.netlify.app/
+```
+
+**Privacy Policy URL (App Information field):** https://ghostroutes.netlify.app/
+
+---
+
 ## Guideline 5.1.2(i) — App Privacy (no tracking)
 
 1. App Privacy → **Does your app collect data?** → Yes  
@@ -19,13 +36,11 @@ Use this when updating App Store Connect before resubmission. Do not commit secr
 
 ## Guideline 2.3.2 — App description (paid disclosure)
 
-Add near the top of the **Description**:
+Add near the top of the **Description** (included in EULA block above):
 
-> Ghost Route is free to download. Full VPN access requires an active Platinum or Platinum+ subscription (weekly, monthly, or yearly), purchased through the App Store or Google Play. Premium features, server tiers, and device limits vary by plan.
+> Ghost Route is free to download. Full VPN access requires an active Platinum or Platinum+ subscription (weekly, monthly, or yearly), purchased through the App Store. Premium features, server tiers, and device limits vary by plan.
 
-Audit subtitle, screenshots, and promotional text for “premium included” without “subscription required.”
-
-**Privacy Policy URL (App Information):** https://ghostroutes.netlify.app/
+Audit subtitle, screenshots, and promotional text for “premium included” without “subscription required.” Use **App Store** only in iOS metadata (no Google Play references).
 
 ---
 
@@ -33,7 +48,7 @@ Audit subtitle, screenshots, and promotional text for “premium included” wit
 
 **What user information is the app collecting using VPN?**
 
-The VPN tunnel (OpenVPN via Network Extension) routes device traffic to the selected VPN server. Ghost Route’s backend does not receive browsing history, DNS queries, or packet contents from the VPN session. Account data (email, username, optional phone, subscription status) is collected separately for login and premium access.
+The VPN tunnel (OpenVPN via Network Extension) routes device traffic to the selected VPN server. Ghost Route’s backend does not receive browsing history, DNS queries, or packet contents from the VPN session. On-device only, the app stores connection statistics (bytes/packets, connection stage) locally for the UI. Account data (email, username, optional phone, subscription status) is collected separately for login and premium access.
 
 **For what purposes?**
 
@@ -47,8 +62,25 @@ The VPN tunnel (OpenVPN via Network Extension) routes device traffic to the sele
 - **VPN servers:** OpenVPN configs from our managed API (`GET /api/servers`); tunnel traffic handled by those endpoints.  
 - **ip-api.com:** geolocation for network test only.  
 - **Firebase:** Remote Config only (analytics disabled).  
-- **Apple / Google:** in-app subscription billing.  
+- **Apple:** in-app subscription billing and receipt verification.  
 - We do not sell personal data to data brokers and do not perform cross-app tracking.
+
+---
+
+## Guideline 2.1(b) — IAP purchase errors
+
+Before resubmitting, confirm on production server:
+
+```env
+APPLE_SHARED_SECRET=<App-Specific Shared Secret from App Store Connect>
+APPLE_BUNDLE_ID=com.yencode.ghostroute
+IAP_STRICT_VERIFY=true
+```
+
+Also confirm:
+- Paid Apps Agreement is active (App Store Connect → Business)
+- All 6 subscription product IDs submitted with this app version (see STORE_PRODUCTS.md)
+- Sandbox purchase tested: Premium → Choose plan → purchase while logged in → no verification error
 
 ---
 
@@ -67,6 +99,7 @@ Path: Splash → Login → Home → Profile → Delete account.
 ## In-App Purchase testing (Guideline 3.1.1)
 
 - Product IDs: see [STORE_PRODUCTS.md](STORE_PRODUCTS.md)  
-- Sandbox Apple ID + Play license testers required for purchase flows  
+- Sandbox Apple ID required for purchase flows  
 - Demo account above has premium **without** purchase for VPN/feature testing  
 - **Restore purchases** on Premium screen and Profile  
+- Attach screen recording showing Premium legal links + successful sandbox purchase in Review Notes

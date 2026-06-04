@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ghost Route Terms of Use (EULA) - Subscription terms and service agreement. Developed by Yencode Technologies.">
+  <title>Terms of Use | Ghost Route by Yencode Technologies</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #1a2234;
+      --accent: #00d4aa;
+      --accent-dim: #00a884;
+      --accent-glow: rgba(0, 212, 170, 0.15);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #2d3a4f;
+      --gradient-start: #00d4aa;
+      --gradient-end: #0891b2;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bg-pattern {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-glow), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 50%, rgba(8, 145, 178, 0.08), transparent),
+        radial-gradient(ellipse 40% 60% at 0% 80%, rgba(0, 212, 170, 0.06), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(45, 58, 79, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45, 58, 79, 0.15) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 0 3.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .logo-text {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 0.35rem 0.85rem;
+      border-radius: 100px;
+      margin-top: 0.5rem;
+      border: 1px solid rgba(0, 212, 170, 0.3);
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .last-updated {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    main { padding-top: 2.5rem; }
+
+    .intro {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      padding: 1.5rem 1.75rem;
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 2.25rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2::before {
+      content: '';
+      width: 4px;
+      height: 1.2em;
+      background: linear-gradient(180deg, var(--gradient-start), var(--gradient-end));
+      border-radius: 2px;
+    }
+
+    p { color: var(--text-secondary); margin-bottom: 1rem; }
+    ul { margin: 0.75rem 0 1.25rem 1.5rem; color: var(--text-secondary); }
+    li { margin-bottom: 0.5rem; }
+
+    .highlight-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin: 1.25rem 0;
+      border-left: 4px solid var(--accent);
+    }
+
+    .highlight-box p { margin-bottom: 0; }
+
+    a { color: var(--accent); }
+
+    footer {
+      margin-top: 3.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .company { font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .tagline { font-size: 0.9rem; color: var(--text-muted); }
+
+    .contact-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    @media (max-width: 600px) {
+      .container { padding: 1.25rem 1rem 3rem; }
+      h1 { font-size: 1.75rem; }
+      header { padding: 2rem 0 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-pattern"></div>
+  <div class="grid-overlay"></div>
+
+  <div class="container">
+    <header>
+      <div class="logo-wrap">
+        <div class="logo-icon">📜</div>
+        <span class="logo-text">Ghost Route</span>
+      </div>
+      <span class="badge">Terms of Use (EULA)</span>
+      <h1>End User License Agreement</h1>
+      <p class="last-updated">Last updated: June 4, 2026</p>
+    </header>
+
+    <main>
+      <div class="intro">
+        These Terms of Use ("Terms") govern your use of <strong>Ghost Route</strong>, a VPN application developed by <strong>Yencode Technologies</strong> ("we", "us", or "our"). By downloading, installing, or using Ghost Route, you agree to these Terms. If you do not agree, do not use the app.
+      </div>
+
+      <h2>License Grant</h2>
+      <p>We grant you a limited, non-exclusive, non-transferable, revocable license to use Ghost Route on devices you own or control, subject to these Terms and applicable app store rules.</p>
+
+      <h2>Subscriptions and Billing</h2>
+      <p>Ghost Route offers auto-renewable subscriptions:</p>
+      <ul>
+        <li><strong>Platinum</strong> — weekly, monthly, or yearly plans with device and server limits as shown in the app.</li>
+        <li><strong>Platinum+</strong> — weekly, monthly, or yearly plans with expanded device limits and premium features as shown in the app.</li>
+      </ul>
+      <div class="highlight-box">
+        <p><strong>Auto-renewal:</strong> Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current billing period. Payment is charged to your Apple ID account (or Google Play account on Android) at confirmation of purchase and upon each renewal. You can manage or cancel subscriptions in your device settings (iOS: Settings → Apple ID → Subscriptions).</p>
+      </div>
+      <p>Prices, billing intervals, and included features are displayed in the app before purchase. Free trial or introductory offers, if offered, convert to a paid subscription unless cancelled before the trial ends.</p>
+
+      <h2>Account Registration</h2>
+      <p>You may need to create an account to use premium features. You are responsible for maintaining the confidentiality of your credentials and for all activity under your account. You must provide accurate information and notify us of unauthorized use.</p>
+
+      <h2>Acceptable Use</h2>
+      <p>You agree not to use Ghost Route to:</p>
+      <ul>
+        <li>Violate any applicable law or regulation.</li>
+        <li>Infringe intellectual property or privacy rights of others.</li>
+        <li>Transmit malware, spam, or harmful content.</li>
+        <li>Attempt to gain unauthorized access to our systems or other networks.</li>
+        <li>Resell, sublicense, or redistribute the service without permission.</li>
+      </ul>
+      <p>We may suspend or terminate access for violations of these Terms.</p>
+
+      <h2>VPN Service</h2>
+      <p>Ghost Route provides encrypted VPN connectivity to servers you select. We do not guarantee uninterrupted or error-free service. VPN performance depends on network conditions and third-party server availability. See our <a href="https://ghostroutes.netlify.app/">Privacy Policy</a> for data handling practices.</p>
+
+      <h2>Disclaimer of Warranties</h2>
+      <p>Ghost Route is provided "as is" and "as available" without warranties of any kind, express or implied, including merchantability, fitness for a particular purpose, and non-infringement. We do not warrant that the service will meet your requirements or be secure, timely, or error-free.</p>
+
+      <h2>Limitation of Liability</h2>
+      <p>To the maximum extent permitted by law, Yencode Technologies shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, data, or goodwill, arising from your use of Ghost Route. Our total liability shall not exceed the amount you paid us in the twelve months preceding the claim.</p>
+
+      <h2>Termination</h2>
+      <p>You may stop using Ghost Route at any time and delete your account through the app (Profile → Delete account). We may terminate or suspend your access for breach of these Terms. Upon termination, your license ends and you must cease use of the app.</p>
+
+      <h2>Changes to Terms</h2>
+      <p>We may update these Terms from time to time. Material changes will be communicated through the app or our website. Continued use after changes constitutes acceptance of the updated Terms.</p>
+
+      <h2>Governing Law</h2>
+      <p>These Terms are governed by applicable laws in your jurisdiction, without regard to conflict-of-law principles. Disputes shall be resolved in courts of competent jurisdiction unless otherwise required by mandatory consumer protection laws.</p>
+
+      <h2>Contact</h2>
+      <p>For questions about these Terms, contact Yencode Technologies:</p>
+      <ul>
+        <li>Email: yencodetechnologies@gmail.com</li>
+        <li>Website: www.yencodetechnologies.com</li>
+      </ul>
+    </main>
+
+    <footer>
+      <p class="company">Yencode Technologies</p>
+      <p class="tagline">Ghost Route — secure VPN service</p>
+      <a href="https://ghostroutes.netlify.app/" class="contact-link">Privacy Policy</a>
+    </footer>
+  </div>
+</body>
+</html>
