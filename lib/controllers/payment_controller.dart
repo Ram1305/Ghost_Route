@@ -42,9 +42,26 @@ class PaymentController extends GetxController {
       onError: _handlePurchaseError,
       onCancelled: _handlePurchaseCancelled,
     );
-    if (_iapReady) {
-      await loadStoreProducts();
+  }
+
+  /// Load store products once IAP is ready. Safe to call multiple times.
+  Future<void> ensureStoreProductsLoaded({bool forceRefresh = false}) async {
+    if (!isPaymentSupported) return;
+    if (!_iapReady) {
+      _iapReady = await _iap.initialize(
+        onPurchase: _handlePurchase,
+        onError: _handlePurchaseError,
+        onCancelled: _handlePurchaseCancelled,
+      );
+      if (!_iapReady) return;
     }
+    if (!forceRefresh &&
+        _storeProducts.isNotEmpty &&
+        _iap.hasCachedProducts) {
+      return;
+    }
+    if (isLoadingProducts.value) return;
+    await loadStoreProducts(forceRefresh: forceRefresh);
   }
 
   @override
@@ -53,14 +70,23 @@ class PaymentController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadStoreProducts() async {
+  Future<void> loadStoreProducts({bool forceRefresh = false}) async {
     if (!isPaymentSupported) return;
     isLoadingProducts.value = true;
     try {
-      _storeProducts = await _iap.queryProducts();
+      _storeProducts =
+          await _iap.queryProducts(forceRefresh: forceRefresh);
     } finally {
       isLoadingProducts.value = false;
     }
+  }
+
+  String _iosStoreUnavailableMessage() {
+    final code = _iap.lastQueryError?.code ?? '';
+    if (code == 'storekit_no_response') {
+      return AppConfig.storeKitNoResponseIos;
+    }
+    return AppConfig.storeProductsNotFoundIos;
   }
 
   /// App Store / Play localized price string for UI (e.g. `$4.99`).
@@ -101,12 +127,16 @@ class PaymentController extends GetxController {
       }
     }
     if (_storeProducts.isEmpty) {
-      await loadStoreProducts();
+      await loadStoreProducts(forceRefresh: true);
     }
 
     final product = _iap.productForPlanIndex(plan.index, _storeProducts);
     if (product == null) {
-      MyDialogs.error(msg: _storeProductsNotFoundMessage);
+      MyDialogs.error(
+        msg: Platform.isIOS
+            ? _iosStoreUnavailableMessage()
+            : _storeProductsNotFoundMessage,
+      );
       if (fromSignup) Get.offAll(() => HomeScreen());
       return;
     }

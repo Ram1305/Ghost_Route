@@ -39,7 +39,15 @@ class AppConfig {
 
   /// Error when store products are not configured (iOS).
   static const String storeProductsNotFoundIos =
-      'Subscription not found in the store. Ensure products are configured in App Store Connect.';
+      'Could not load App Store subscriptions. '
+      'On Simulator: open ios/Runner.xcworkspace in Xcode and use Product → Run (⌘R) — '
+      'flutter run does not load Products.storekit. '
+      'On a device: add all 6 subscription IDs in App Store Connect and sign in with a Sandbox Apple ID.';
+
+  /// Error when StoreKit returns no response (iOS).
+  static const String storeKitNoResponseIos =
+      'App Store did not respond. On Simulator, run from Xcode (Product → Run), not flutter run. '
+      'On device, check App Store Connect products and Sandbox account.';
 
   /// Error when store products are not configured (Android).
   static const String storeProductsNotFoundAndroid =

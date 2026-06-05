@@ -19,91 +19,11 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
-    final user = auth.currentUser.value ?? Pref.currentUser;
-
-    if (user == null) {
-      return Scaffold(
-        backgroundColor: NexusTheme.bg,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.5,
-                child: const CanvasBackground(opacity: 0.5),
-              ),
-            ),
-            SafeArea(
-              child: Column(
-                children: [
-                  _buildAppBar(context, isLoggedIn: false),
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.person_rounded,
-                              size: 64,
-                              color: NexusTheme.text3,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Not logged in',
-                              style: GoogleFonts.outfit(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: NexusTheme.text2,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Log in to see your profile and subscription history.',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.outfit(
-                                fontSize: 14,
-                                color: NexusTheme.text3,
-                              ),
-                            ),
-                            const SizedBox(height: 28),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 52,
-                              child: ElevatedButton(
-                                onPressed: () => Get.to(() => const LoginScreen()),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: NexusTheme.teal,
-                                  foregroundColor: Colors.black87,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Login',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Obx(() {
-      final currentUser = auth.currentUser.value ?? user;
+      final currentUser = auth.currentUser.value ?? Pref.currentUser;
+      if (currentUser == null) {
+        return _buildNotLoggedInScaffold(context);
+      }
       final subscriptionHistory = currentUser.subscriptionHistory;
       final currentActivePlan = currentUser.activePlan ??
           (subscriptionHistory.isNotEmpty ? subscriptionHistory.last.plan : null);
@@ -241,6 +161,87 @@ class ProfileScreen extends StatelessWidget {
         ),
       );
     });
+  }
+
+  Widget _buildNotLoggedInScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: NexusTheme.bg,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.5,
+              child: const CanvasBackground(opacity: 0.5),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildAppBar(context, isLoggedIn: false),
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_rounded,
+                            size: 64,
+                            color: NexusTheme.text3,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Not logged in',
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: NexusTheme.text2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Log in to see your profile and subscription history.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              color: NexusTheme.text3,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: () => Get.to(() => const LoginScreen()),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: NexusTheme.teal,
+                                foregroundColor: Colors.black87,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: Text(
+                                'Login',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildAppBar(BuildContext context, {required bool isLoggedIn}) {
@@ -629,7 +630,7 @@ class ProfileScreen extends StatelessWidget {
       child: OutlinedButton(
         onPressed: () {
           Get.find<AuthController>().logout();
-          Get.off(() => const ProfileScreen());
+          Get.offAll(() => const LoginScreen());
         },
         style: OutlinedButton.styleFrom(
           foregroundColor: NexusTheme.red,

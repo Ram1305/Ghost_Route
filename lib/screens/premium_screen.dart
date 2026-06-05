@@ -33,9 +33,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
   void _ensurePaymentController() {
     if (!Get.isRegistered<PaymentController>()) {
       Get.put(PaymentController());
-    } else {
-      Get.find<PaymentController>().loadStoreProducts();
     }
+    Get.find<PaymentController>().ensureStoreProductsLoaded();
   }
 
   @override

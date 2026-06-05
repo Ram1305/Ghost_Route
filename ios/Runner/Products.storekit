@@ -1,29 +1,39 @@
 {
   "identifier" : "GhostRouteSubscriptions",
-  "nonRenewingSubscriptions" : [],
-  "products" : [],
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
   "settings" : {
     "_applicationInternalID" : "0",
-    "_developerTeamID" : "REPLACE_WITH_TEAM_ID",
+    "_developerTeamID" : "2SQ83H6LMV",
     "_lastSynchronizedDate" : 0
   },
   "subscriptionGroups" : [
     {
-      "id" : "platinum",
-      "localizations" : [],
+      "id" : "21482456",
+      "localizations" : [
+
+      ],
       "name" : "Platinum",
       "subscriptions" : [
         {
-          "adHocOffers" : [],
-          "codeOffers" : [],
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
           "displayPrice" : "4.99",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "internalID" : "platinum_weekly",
+          "internalID" : "21482457",
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum weekly",
+              "description" : "Platinum weekly subscription",
               "displayName" : "Platinum Weekly",
               "locale" : "en_US"
             }
@@ -31,15 +41,24 @@
           "productID" : "com.yencode.ghostroute.platinum.weekly",
           "recurringSubscriptionPeriod" : "P1W",
           "referenceName" : "Platinum Weekly",
-          "subscriptionGroupID" : "platinum",
+          "subscriptionGroupID" : "21482456",
           "type" : "RecurringSubscription"
         },
         {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
           "displayPrice" : "9.99",
-          "internalID" : "platinum_monthly",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "21482458",
+          "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum monthly",
+              "description" : "Platinum monthly subscription",
               "displayName" : "Platinum Monthly",
               "locale" : "en_US"
             }
@@ -47,15 +66,24 @@
           "productID" : "com.yencode.ghostroute.platinum.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Platinum Monthly",
-          "subscriptionGroupID" : "platinum",
+          "subscriptionGroupID" : "21482456",
           "type" : "RecurringSubscription"
         },
         {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
           "displayPrice" : "39.99",
-          "internalID" : "platinum_yearly",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "21482459",
+          "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum yearly",
+              "description" : "Platinum yearly subscription",
               "displayName" : "Platinum Yearly",
               "locale" : "en_US"
             }
@@ -63,21 +91,33 @@
           "productID" : "com.yencode.ghostroute.platinum.yearly",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Platinum Yearly",
-          "subscriptionGroupID" : "platinum",
+          "subscriptionGroupID" : "21482456",
           "type" : "RecurringSubscription"
         }
       ]
     },
     {
-      "id" : "platinum_plus",
+      "id" : "21482460",
+      "localizations" : [
+
+      ],
       "name" : "Platinum+",
       "subscriptions" : [
         {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
           "displayPrice" : "6.99",
-          "internalID" : "platinumplus_weekly",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "21482461",
+          "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum+ weekly",
+              "description" : "Platinum+ weekly subscription",
               "displayName" : "Platinum+ Weekly",
               "locale" : "en_US"
             }
@@ -85,15 +125,24 @@
           "productID" : "com.yencode.ghostroute.platinumplus.weekly",
           "recurringSubscriptionPeriod" : "P1W",
           "referenceName" : "Platinum+ Weekly",
-          "subscriptionGroupID" : "platinum_plus",
+          "subscriptionGroupID" : "21482460",
           "type" : "RecurringSubscription"
         },
         {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
           "displayPrice" : "14.99",
-          "internalID" : "platinumplus_monthly",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "21482462",
+          "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum+ monthly",
+              "description" : "Platinum+ monthly subscription",
               "displayName" : "Platinum+ Monthly",
               "locale" : "en_US"
             }
@@ -101,15 +150,24 @@
           "productID" : "com.yencode.ghostroute.platinumplus.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Platinum+ Monthly",
-          "subscriptionGroupID" : "platinum_plus",
+          "subscriptionGroupID" : "21482460",
           "type" : "RecurringSubscription"
         },
         {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
           "displayPrice" : "59.99",
-          "internalID" : "platinumplus_yearly",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "21482463",
+          "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum+ yearly",
+              "description" : "Platinum+ yearly subscription",
               "displayName" : "Platinum+ Yearly",
               "locale" : "en_US"
             }
@@ -117,11 +175,14 @@
           "productID" : "com.yencode.ghostroute.platinumplus.yearly",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Platinum+ Yearly",
-          "subscriptionGroupID" : "platinum_plus",
+          "subscriptionGroupID" : "21482460",
           "type" : "RecurringSubscription"
         }
       ]
     }
   ],
-  "version" : { "major" : 3, "minor" : 0 }
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
 }

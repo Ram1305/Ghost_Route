@@ -21,7 +21,19 @@ class IapService {
   PurchaseErrorHandler? _onError;
   PurchaseCancelledHandler? _onCancelled;
 
+  Future<List<ProductDetails>>? _productQueryInFlight;
+  List<ProductDetails> _cachedProducts = const [];
+  DateTime? _productsCachedAt;
+  IAPError? _lastQueryError;
+
+  static const Duration _productCacheTtl = Duration(minutes: 10);
+
   bool get isSupported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+  /// Last StoreKit / Play Billing error from a product query, if any.
+  IAPError? get lastQueryError => _lastQueryError;
+
+  bool get hasCachedProducts => _cachedProducts.isNotEmpty;
 
   Future<bool> initialize({
     required PurchaseHandler onPurchase,
@@ -48,20 +60,74 @@ class IapService {
     _onPurchase = null;
     _onError = null;
     _onCancelled = null;
+    _productQueryInFlight = null;
+    _cachedProducts = const [];
+    _productsCachedAt = null;
+    _lastQueryError = null;
   }
 
-  Future<List<ProductDetails>> queryProducts() async {
+  bool _cacheIsFresh() {
+    final cachedAt = _productsCachedAt;
+    if (cachedAt == null || _cachedProducts.isEmpty) return false;
+    return DateTime.now().difference(cachedAt) < _productCacheTtl;
+  }
+
+  Future<List<ProductDetails>> queryProducts({bool forceRefresh = false}) async {
     if (!isSupported) return [];
+
+    if (!forceRefresh && _cacheIsFresh()) {
+      return _cachedProducts;
+    }
+
+    final inFlight = _productQueryInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final query = _queryProductsOnce();
+    _productQueryInFlight = query;
+    try {
+      return await query;
+    } finally {
+      if (identical(_productQueryInFlight, query)) {
+        _productQueryInFlight = null;
+      }
+    }
+  }
+
+  Future<List<ProductDetails>> _queryProductsOnce() async {
+    if (Platform.isIOS) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+
     final response =
         await _iap.queryProductDetails(IapProducts.allProductIds.toSet());
+    _lastQueryError = response.error;
+
     if (response.error != null) {
       debugPrint('IAP query error: ${response.error}');
     }
-    if (response.notFoundIDs.isNotEmpty) {
+    if (response.notFoundIDs.isNotEmpty && response.productDetails.isEmpty) {
       debugPrint('IAP products not found: ${response.notFoundIDs}');
+      if (Platform.isIOS && response.error?.code == 'storekit_no_response') {
+        debugPrint(
+          'IAP hint (iOS): StoreKit returned no products. On Simulator, run '
+          'from Xcode (Product → Run) so Products.storekit loads — flutter run '
+          'does not apply the scheme StoreKit config. On device, create '
+          'subscriptions in App Store Connect and use a Sandbox Apple ID.',
+        );
+      }
     }
+
     final products = response.productDetails.toList()
       ..sort((a, b) => a.id.compareTo(b.id));
+
+    if (products.isNotEmpty) {
+      _cachedProducts = products;
+      _productsCachedAt = DateTime.now();
+      _lastQueryError = null;
+    }
+
     return products;
   }
 
