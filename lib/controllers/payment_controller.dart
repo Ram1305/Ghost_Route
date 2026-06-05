@@ -225,11 +225,18 @@ class PaymentController extends GetxController {
       }
 
       final auth = Get.find<AuthController>();
-      final premiumPlan =
-          PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
-      await auth.updatePack(premiumPlan);
-      if (result.subscriptionExpiresAt != null) {
-        auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
+      if (result.user != null) {
+        final local = Pref.currentUser;
+        auth.applyBackendUser(
+          result.user!.copyWith(password: local?.password ?? ''),
+        );
+      } else {
+        final premiumPlan =
+            PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
+        await auth.updatePack(premiumPlan);
+        if (result.subscriptionExpiresAt != null) {
+          auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
+        }
       }
 
       _fromSignup = false;

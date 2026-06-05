@@ -8,8 +8,10 @@ import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../models/subscription.dart';
+import '../models/user.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
+import '../widgets/purchase_invoice_sheet.dart';
 import 'login_screen.dart';
 import 'premium_screen.dart';
 
@@ -114,7 +116,7 @@ class ProfileScreen extends StatelessWidget {
                           if (!isExpired) _buildUpgradePlanCard(context),
                           if (isExpired) _buildRenewButton(context),
                           const SizedBox(height: 28),
-                          _buildSectionTitle('Subscription plan history'),
+                          _buildSectionTitle('Purchase history'),
                           const SizedBox(height: 12),
                           if (subscriptionHistory.isEmpty)
                             Container(
@@ -126,7 +128,7 @@ class ProfileScreen extends StatelessWidget {
                               ),
                               child: Center(
                                 child: Text(
-                                  'No subscription history yet.',
+                                  'No purchases yet.',
                                   style: GoogleFonts.outfit(
                                     fontSize: 14,
                                     color: NexusTheme.text2,
@@ -138,7 +140,11 @@ class ProfileScreen extends StatelessWidget {
                             ...subscriptionHistory.reversed.map((s) {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
-                                child: _buildSubscriptionTile(s),
+                                child: _buildPurchaseHistoryTile(
+                                  context,
+                                  purchase: s,
+                                  user: currentUser,
+                                ),
                               );
                             }),
                           const SizedBox(height: 24),
@@ -650,53 +656,78 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSubscriptionTile(Subscription s) {
-    final planLabel = '${s.planLabel} · ${s.plan.price}';
-    final d = s.date;
+  Widget _buildPurchaseHistoryTile(
+    BuildContext context, {
+    required Subscription purchase,
+    required User user,
+  }) {
+    final planLabel = purchase.planLabel;
+    final amount = purchase.displayAmount;
+    final d = purchase.date;
     final dateStr = '${d.day}/${d.month}/${d.year}';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: NexusTheme.surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => PurchaseInvoiceSheet.show(
+          context,
+          purchase: purchase,
+          user: user,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: NexusTheme.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: NexusTheme.gold.withOpacity(0.2),
-            ),
-            child: const Icon(Icons.star_rounded, size: 20, color: NexusTheme.gold),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: NexusTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: NexusTheme.border),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  planLabel,
-                  style: GoogleFonts.outfit(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: NexusTheme.text,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: NexusTheme.gold.withOpacity(0.2),
                 ),
-                if (dateStr.isNotEmpty)
-                  Text(
-                    dateStr,
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      color: NexusTheme.text2,
+                child: const Icon(Icons.receipt_long_rounded, size: 20, color: NexusTheme.gold),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      planLabel,
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: NexusTheme.text,
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$amount · $dateStr',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        color: NexusTheme.text2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tap to view invoice',
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: NexusTheme.teal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 20, color: NexusTheme.text3),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

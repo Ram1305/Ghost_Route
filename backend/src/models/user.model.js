@@ -5,6 +5,11 @@ const subscriptionSchema = new mongoose.Schema(
   {
     plan: { type: Number, required: true }, // PremiumPlan index 0-5
     date: { type: Date, default: Date.now },
+    transactionId: { type: String, default: null },
+    productId: { type: String, default: null },
+    platform: { type: String, enum: ['ios', 'android', null], default: null },
+    amount: { type: String, default: null },
+    currency: { type: String, default: 'USD' },
   },
   { _id: false }
 );

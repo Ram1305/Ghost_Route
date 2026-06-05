@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
 import '../models/plan.dart';
+import '../models/user.dart';
+import 'auth_api.dart';
 
 /// Payment API – plans and store (App Store / Google Play) verification.
 class PaymentApi {
@@ -116,10 +118,16 @@ class PaymentApi {
     final expiresAtRaw = data['subscriptionExpiresAt'];
     final DateTime? subscriptionExpiresAt =
         expiresAtRaw is String ? DateTime.tryParse(expiresAtRaw) : null;
+    User? user;
+    final userRaw = data['user'];
+    if (userRaw is Map<String, dynamic>) {
+      user = AuthApi.userFromBackendJson(userRaw, backendUserId: userId);
+    }
     return StoreVerifyResponse(
       verified: data['verified'] as bool? ?? true,
       activePlan: data['activePlan'] as int?,
       subscriptionExpiresAt: subscriptionExpiresAt,
+      user: user,
     );
   }
 
@@ -163,11 +171,13 @@ class StoreVerifyResponse {
   final bool verified;
   final int? activePlan;
   final DateTime? subscriptionExpiresAt;
+  final User? user;
 
   StoreVerifyResponse({
     required this.verified,
     this.activePlan,
     this.subscriptionExpiresAt,
+    this.user,
   });
 }
 

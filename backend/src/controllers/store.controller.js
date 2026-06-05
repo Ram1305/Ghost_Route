@@ -12,7 +12,15 @@ async function activatePlanForUser(user, planIndex, { transactionId, productId, 
   const expiresAt = new Date(now);
   expiresAt.setDate(expiresAt.getDate() + planDoc.durationDays);
 
-  user.subscriptionHistory.push({ plan: planIndex, date: now });
+  user.subscriptionHistory.push({
+    plan: planIndex,
+    date: now,
+    transactionId: transactionId || null,
+    productId: productId || null,
+    platform: platform || null,
+    amount: planDoc.price,
+    currency: planDoc.currency || 'USD',
+  });
   user.activePlan = planIndex;
   user.subscriptionExpiresAt = expiresAt;
   user.subscriptionPlatform = platform;

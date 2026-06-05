@@ -169,6 +169,21 @@ class AuthController extends GetxController {
     }
   }
 
+  /// Replace local user with backend profile (subscription history, plan, expiry).
+  void applyBackendUser(User backendUser) {
+    final u = Pref.currentUser;
+    if (u == null) return;
+    final toStore = backendUser.copyWith(password: u.password);
+    final users = Pref.users;
+    final idx = users.indexWhere((e) => e.email.toLowerCase() == u.email.toLowerCase());
+    if (idx >= 0) {
+      users[idx] = toStore;
+    }
+    Pref.users = users;
+    Pref.currentUser = toStore;
+    currentUser.value = toStore;
+  }
+
   /// Update current user's pack locally. Backend sync via activate-subscription when backendUserId is set.
   Future<bool> updatePack(PremiumPlan plan) async {
     final u = Pref.currentUser;

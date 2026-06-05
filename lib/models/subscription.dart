@@ -172,14 +172,57 @@ extension PremiumPlanX on PremiumPlan {
 class Subscription {
   final PremiumPlan plan;
   final DateTime date;
+  final String? transactionId;
+  final String? productId;
+  final String? platform;
+  final String? amount;
+  final String? currency;
 
-  Subscription({required this.plan, required this.date});
+  Subscription({
+    required this.plan,
+    required this.date,
+    this.transactionId,
+    this.productId,
+    this.platform,
+    this.amount,
+    this.currency,
+  });
 
   String get planLabel => plan.planLabel;
+
+  String get displayAmount => amount ?? plan.price;
+
+  String get displayCurrency => currency ?? plan.currencyCode;
+
+  String get paymentMethodLabel {
+    switch (platform) {
+      case 'ios':
+        return 'App Store';
+      case 'android':
+        return 'Google Play';
+      default:
+        return 'In-app purchase';
+    }
+  }
+
+  String get invoiceNumber {
+    final d = date;
+    final suffix = transactionId != null && transactionId!.length >= 4
+        ? transactionId!.substring(transactionId!.length - 4).toUpperCase()
+        : '${plan.index}${d.millisecond}';
+    return 'GR-${d.year}${d.month.toString().padLeft(2, '0')}${d.day.toString().padLeft(2, '0')}-$suffix';
+  }
+
+  DateTime get validUntil => date.add(Duration(days: plan.daysInPlan));
 
   Map<String, dynamic> toJson() => {
         'plan': plan.index,
         'date': date.toIso8601String(),
+        if (transactionId != null) 'transactionId': transactionId,
+        if (productId != null) 'productId': productId,
+        if (platform != null) 'platform': platform,
+        if (amount != null) 'amount': amount,
+        if (currency != null) 'currency': currency,
       };
 
   factory Subscription.fromJson(Map<String, dynamic> json) {
@@ -188,6 +231,11 @@ class Subscription {
     return Subscription(
       plan: PremiumPlan.values[planIndex],
       date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
+      transactionId: json['transactionId'] as String?,
+      productId: json['productId'] as String?,
+      platform: json['platform'] as String?,
+      amount: json['amount'] as String?,
+      currency: json['currency'] as String?,
     );
   }
 }

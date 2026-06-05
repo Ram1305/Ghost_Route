@@ -72,8 +72,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         const SubscriptionLegalFooter(),
                         const SizedBox(height: 12),
                         _buildRestorePurchases(context),
-                        const SizedBox(height: 16),
-                        _buildAlreadyHaveAccount(context),
+                        if (!Pref.isLoggedIn) ...[
+                          const SizedBox(height: 16),
+                          _buildAlreadyHaveAccount(context),
+                        ],
                         const SizedBox(height: 40),
                       ],
                     ),

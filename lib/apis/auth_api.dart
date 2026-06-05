@@ -44,7 +44,7 @@ class AuthApi {
     }
   }
 
-  static User _userFromBackendJson(Map<String, dynamic> json, {String? backendUserId}) {
+  static User userFromBackendJson(Map<String, dynamic> json, {String? backendUserId}) {
     final id = backendUserId ?? json['_id']?.toString();
     final historyRaw = json['subscriptionHistory'];
     List<Subscription> history = [];
@@ -95,7 +95,7 @@ class AuthApi {
     }
     final userJson = data['user'] as Map<String, dynamic>? ?? data;
     final backendUserId = data['backendUserId'] as String?;
-    return _userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
+    return userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
   }
 
   /// Login. Returns user with backendUserId.
@@ -114,7 +114,7 @@ class AuthApi {
     }
     final userJson = data['user'] as Map<String, dynamic>? ?? data;
     final backendUserId = data['backendUserId'] as String?;
-    return _userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
+    return userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
   }
 
   static Future<bool> forgotPasswordSendOtp(String email) async {
