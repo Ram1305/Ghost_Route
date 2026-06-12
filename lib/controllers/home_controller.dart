@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -116,11 +117,15 @@ class HomeController extends GetxController {
       final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
 
       if (user == null || plan == null || isExpired) {
-        MyDialogs.error(
-          msg: 'Subscription Required. Please subscribe to a premium plan to protect your connection.',
-        );
-        Get.to(() => const PremiumScreen());
-        return;
+        if (kDebugMode) {
+          debugPrint('[TronVPN] connectToVpn: Subscription check failed, but bypassing in debug mode.');
+        } else {
+          MyDialogs.error(
+            msg: 'Subscription Required. Please subscribe to a premium plan to protect your connection.',
+          );
+          Get.to(() => const PremiumScreen());
+          return;
+        }
       }
 
       debugPrint(

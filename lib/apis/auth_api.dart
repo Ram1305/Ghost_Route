@@ -44,15 +44,25 @@ class AuthApi {
     }
   }
 
-  static User userFromBackendJson(Map<String, dynamic> json, {String? backendUserId}) {
-    final id = backendUserId ?? json['_id']?.toString();
-    final historyRaw = json['subscriptionHistory'];
-    List<Subscription> history = [];
-    if (historyRaw is List) {
-      for (final e in historyRaw) {
-        if (e is Map) history.add(Subscription.fromJson(Map<String, dynamic>.from(e as Map)));
+  static List<Subscription> subscriptionHistoryFromJson(dynamic historyRaw) {
+    if (historyRaw is! List) return [];
+    final history = <Subscription>[];
+    for (final e in historyRaw) {
+      if (e is! Map) continue;
+      try {
+        history.add(
+          Subscription.fromJson(Map<String, dynamic>.from(e)),
+        );
+      } catch (_) {
+        // Skip malformed entries so one bad row does not break login/sync.
       }
     }
+    return history;
+  }
+
+  static User userFromBackendJson(Map<String, dynamic> json, {String? backendUserId}) {
+    final id = backendUserId ?? json['_id']?.toString();
+    final history = subscriptionHistoryFromJson(json['subscriptionHistory']);
     final activePlanRaw = json['activePlan'];
     PremiumPlan? active;
     if (activePlanRaw != null && activePlanRaw is int && activePlanRaw >= 0 && activePlanRaw < PremiumPlan.values.length) {

@@ -7,7 +7,6 @@ import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/my_dialogs.dart';
 import '../models/plan.dart';
-import '../models/subscription.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/subscription_legal_footer.dart';
@@ -106,7 +105,6 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
     setState(() => _loading = true);
-    final premiumPlan = PremiumPlan.values[_plan!.index.clamp(0, PremiumPlan.values.length - 1)];
     final ok = await _auth.signUp(
       username: _username.text,
       email: _email.text,
@@ -114,7 +112,6 @@ class _SignupScreenState extends State<SignupScreen> {
       password: _password.text,
       confirmPassword: _confirmPassword.text,
       otpVerified: _otpVerified,
-      selectedPlan: premiumPlan,
     );
     setState(() => _loading = false);
     if (!ok) return;

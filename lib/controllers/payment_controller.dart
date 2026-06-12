@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -24,6 +25,11 @@ class PaymentController extends GetxController {
   bool _iapReady = false;
   bool _isRestoring = false;
   int _restoredCount = 0;
+  int _restoreHandlersInFlight = 0;
+  DateTime? _lastRestoreHandlerFinishedAt;
+
+  static const Duration _restoreMaxWait = Duration(seconds: 15);
+  static const Duration _restoreIdleWindow = Duration(milliseconds: 800);
 
   final RxBool isLoadingProducts = false.obs;
   final RxBool isPurchasing = false.obs;
@@ -178,11 +184,13 @@ class PaymentController extends GetxController {
     MyDialogs.showProgress();
     _isRestoring = true;
     _restoredCount = 0;
+    _restoreHandlersInFlight = 0;
+    _lastRestoreHandlerFinishedAt = null;
     try {
       await _iap.restorePurchases();
-      // Allow some time for native platforms to query and emit any past purchases to the stream
-      await Future.delayed(const Duration(seconds: 2));
-      
+      _lastRestoreHandlerFinishedAt = DateTime.now();
+      await _waitForRestoreEvents();
+
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
@@ -196,9 +204,25 @@ class PaymentController extends GetxController {
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
-      MyDialogs.error(msg: 'Restore failed: ${e.toString().replaceFirst("Exception: ", "")}');
+      MyDialogs.error(
+        msg: 'Restore failed: ${e.toString().replaceFirst("Exception: ", "")}',
+      );
     } finally {
       _isRestoring = false;
+      _restoreHandlersInFlight = 0;
+    }
+  }
+
+  Future<void> _waitForRestoreEvents() async {
+    final deadline = DateTime.now().add(_restoreMaxWait);
+    while (DateTime.now().isBefore(deadline)) {
+      final idleSince = _lastRestoreHandlerFinishedAt;
+      if (_restoreHandlersInFlight == 0 &&
+          idleSince != null &&
+          DateTime.now().difference(idleSince) >= _restoreIdleWindow) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 200));
     }
   }
 
@@ -224,12 +248,44 @@ class PaymentController extends GetxController {
     onPurchaseCancelled(fromSignup: _fromSignup);
   }
 
+  Future<void> _syncSubscriptionAfterVerify({
+    required AuthController auth,
+    required StoreVerifyResponse result,
+    required int planIndex,
+  }) async {
+    if (result.user != null) {
+      final local = Pref.currentUser;
+      auth.applyBackendUser(
+        result.user!.copyWith(password: local?.password ?? ''),
+      );
+    } else {
+      final premiumPlan = PremiumPlan
+          .values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
+      await auth.updatePack(premiumPlan);
+      if (result.subscriptionExpiresAt != null) {
+        auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
+      }
+    }
+    await auth.refreshCurrentUserFromBackend();
+  }
+
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
+    final restoring = _isRestoring;
+    if (restoring) {
+      _restoreHandlersInFlight++;
+    }
+
     final productId = purchase.productID;
     final planIndex = IapProducts.planIndexForProductId(productId);
     if (planIndex == null) {
       isPurchasing.value = false;
-      MyDialogs.error(msg: 'Unknown subscription product');
+      if (restoring) {
+        _restoreHandlersInFlight--;
+        _lastRestoreHandlerFinishedAt = DateTime.now();
+      }
+      if (!restoring) {
+        MyDialogs.error(msg: 'Unknown subscription product');
+      }
       return;
     }
 
@@ -237,7 +293,13 @@ class PaymentController extends GetxController {
     final backendUserId = Pref.currentUser?.backendUserId;
     if (backendUserId == null || backendUserId.isEmpty) {
       isPurchasing.value = false;
-      MyDialogs.error(msg: 'Sign in required before purchasing');
+      if (restoring) {
+        _restoreHandlersInFlight--;
+        _lastRestoreHandlerFinishedAt = DateTime.now();
+      }
+      if (!restoring) {
+        MyDialogs.error(msg: 'Sign in required before purchasing');
+      }
       return;
     }
 
@@ -254,39 +316,41 @@ class PaymentController extends GetxController {
       );
 
       if (result == null || !result.verified) {
-        MyDialogs.error(msg: 'Subscription verification failed');
-        _clearPending(fromSignup: fromSignup);
+        if (!restoring) {
+          MyDialogs.error(msg: 'Subscription verification failed');
+          _clearPending(fromSignup: fromSignup);
+        }
         return;
       }
 
       final auth = Get.find<AuthController>();
-      if (result.user != null) {
-        final local = Pref.currentUser;
-        auth.applyBackendUser(
-          result.user!.copyWith(password: local?.password ?? ''),
-        );
-      } else {
-        final premiumPlan =
-            PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
-        await auth.updatePack(premiumPlan);
-        if (result.subscriptionExpiresAt != null) {
-          auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
-        }
-      }
+      await _syncSubscriptionAfterVerify(
+        auth: auth,
+        result: result,
+        planIndex: planIndex,
+      );
 
-      if (_isRestoring) {
+      if (restoring) {
         _restoredCount++;
+        return;
       }
 
       _fromSignup = false;
-
       Get.offAll(() => const PaymentSuccessScreen());
       MyDialogs.success(msg: 'Subscription active');
     } catch (e) {
-      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
-      _clearPending(fromSignup: fromSignup);
+      if (!restoring) {
+        MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
+        _clearPending(fromSignup: fromSignup);
+      } else if (kDebugMode) {
+        debugPrint('[PaymentController] restore verify failed: $e');
+      }
     } finally {
       isPurchasing.value = false;
+      if (restoring) {
+        _restoreHandlersInFlight--;
+        _lastRestoreHandlerFinishedAt = DateTime.now();
+      }
     }
   }
 

@@ -15,6 +15,27 @@ async function activatePlanForUser(user, planIndex, { transactionId, productId, 
     finalExpiresAt.setDate(finalExpiresAt.getDate() + planDoc.durationDays);
   }
 
+  const txId = transactionId ? String(transactionId).trim() : null;
+  if (txId) {
+    const existing = user.subscriptionHistory.find(
+      (entry) => entry.transactionId && String(entry.transactionId).trim() === txId,
+    );
+    if (existing) {
+      user.activePlan = planIndex;
+      user.subscriptionExpiresAt = finalExpiresAt;
+      user.subscriptionPlatform = platform;
+      user.subscriptionProductId = productId;
+      if (platform === 'ios' && txId) {
+        user.appleOriginalTransactionId = txId;
+      }
+      if (platform === 'android' && txId) {
+        user.googlePurchaseToken = txId;
+      }
+      await user.save();
+      return user;
+    }
+  }
+
   user.subscriptionHistory.push({
     plan: planIndex,
     date: now,

@@ -119,6 +119,15 @@ class ProfileScreen extends StatelessWidget {
                                     : currentPlanLabel,
                               ),
                             ),
+                          if (currentPlanLabel == null && !isExpired)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _buildDetailCard(
+                                Icons.info_outline_rounded,
+                                'Current plan',
+                                'No active plan',
+                              ),
+                            ),
                           if (!isExpired) _buildUpgradePlanCard(context),
                           if (isExpired) _buildRenewButton(context),
                           const SizedBox(height: 28),

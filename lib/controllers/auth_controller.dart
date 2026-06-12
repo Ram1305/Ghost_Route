@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../apis/auth_api.dart';
@@ -60,7 +61,6 @@ class AuthController extends GetxController {
     required String password,
     required String confirmPassword,
     required bool otpVerified,
-    PremiumPlan? selectedPlan,
   }) async {
     if (username.trim().isEmpty) {
       MyDialogs.error(msg: 'Enter username');
@@ -89,23 +89,17 @@ class AuthController extends GetxController {
         username: username,
         phone: phone,
       );
-      final withPlan = selectedPlan != null
-          ? user.copyWith(
-              subscriptionHistory: [...user.subscriptionHistory, Subscription(plan: selectedPlan, date: DateTime.now())],
-              activePlan: selectedPlan,
-            )
-          : user;
       final users = Pref.users;
-      final existing = users.where((u) => u.email.toLowerCase() == withPlan.email.toLowerCase());
+      final existing = users.where((u) => u.email.toLowerCase() == user.email.toLowerCase());
       if (existing.isEmpty) {
-        users.add(withPlan);
+        users.add(user);
       } else {
-        final idx = users.indexWhere((u) => u.email.toLowerCase() == withPlan.email.toLowerCase());
-        users[idx] = withPlan;
+        final idx = users.indexWhere((u) => u.email.toLowerCase() == user.email.toLowerCase());
+        users[idx] = user;
       }
       Pref.users = users;
-      Pref.currentUser = withPlan;
-      currentUser.value = withPlan;
+      Pref.currentUser = user;
+      currentUser.value = user;
       MyDialogs.success(msg: 'Account created');
       return true;
     } catch (e) {
@@ -133,7 +127,10 @@ class AuthController extends GetxController {
       Pref.currentUser = toStore;
       currentUser.value = toStore;
       return true;
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthController] refreshCurrentUserFromBackend failed: $e');
+      }
       return false;
     }
   }

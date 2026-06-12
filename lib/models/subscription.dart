@@ -225,17 +225,47 @@ class Subscription {
         if (currency != null) 'currency': currency,
       };
 
+  static DateTime _parseDate(dynamic raw) {
+    if (raw is String && raw.isNotEmpty) {
+      final parsed = DateTime.tryParse(raw);
+      if (parsed != null) return parsed;
+    }
+    if (raw is int) {
+      return DateTime.fromMillisecondsSinceEpoch(raw);
+    }
+    if (raw is num) {
+      return DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+    }
+    return DateTime.now();
+  }
+
+  static String? _parseAmount(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    if (raw is num) return raw.toString();
+    return raw.toString();
+  }
+
+  static String? _parseString(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    return raw.toString();
+  }
+
   factory Subscription.fromJson(Map<String, dynamic> json) {
-    final idx = json['plan'] as int? ?? 0;
-    final planIndex = idx >= 0 && idx < PremiumPlan.values.length ? idx : 2;
+    final idx = json['plan'] is int
+        ? json['plan'] as int
+        : int.tryParse('${json['plan']}') ?? 0;
+    final planIndex =
+        idx >= 0 && idx < PremiumPlan.values.length ? idx : 2;
     return Subscription(
       plan: PremiumPlan.values[planIndex],
-      date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
-      transactionId: json['transactionId'] as String?,
-      productId: json['productId'] as String?,
-      platform: json['platform'] as String?,
-      amount: json['amount'] as String?,
-      currency: json['currency'] as String?,
+      date: _parseDate(json['date']),
+      transactionId: _parseString(json['transactionId']),
+      productId: _parseString(json['productId']),
+      platform: _parseString(json['platform']),
+      amount: _parseAmount(json['amount']),
+      currency: _parseString(json['currency']),
     );
   }
 }
