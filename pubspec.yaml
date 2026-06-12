@@ -27,6 +27,8 @@ dependencies:
 
   # In-App Purchase (App Store & Google Play)
   in_app_purchase: ^3.2.0
+  in_app_purchase_platform_interface: ^1.4.0
+  in_app_purchase_storekit: ^0.4.9
 
   # Privacy policy & support links
   url_launcher: ^6.3.1

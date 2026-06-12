@@ -306,12 +306,15 @@ class PaymentController extends GetxController {
     try {
       final platform = Platform.isIOS ? 'ios' : 'android';
       final token = purchase.verificationData.serverVerificationData;
+      final receiptData = platform == 'ios'
+          ? await _iap.receiptDataForServerVerification(purchase)
+          : null;
       final result = await PaymentApi.verifyStorePurchase(
         userId: backendUserId,
         platform: platform,
         productId: productId,
         purchaseToken: platform == 'android' ? token : null,
-        receiptData: platform == 'ios' ? token : null,
+        receiptData: receiptData,
         transactionId: purchase.purchaseID,
       );
 

@@ -273,7 +273,7 @@ packages:
     source: hosted
     version: "0.4.0+11"
   in_app_purchase_platform_interface:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: in_app_purchase_platform_interface
       sha256: "1d353d38251da5b9fea6635c0ebfc6bb17a2d28d0e86ea5e083bf64244f1fb4c"
@@ -281,7 +281,7 @@ packages:
     source: hosted
     version: "1.4.0"
   in_app_purchase_storekit:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: in_app_purchase_storekit
       sha256: f2cf3a6c5233f8f43b4bb148e658be881441f33c3d285fe6ae8348c4994e1a75

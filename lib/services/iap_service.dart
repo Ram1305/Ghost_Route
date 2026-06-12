@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
 import '../config/iap_products.dart';
 
@@ -149,6 +151,30 @@ class IapService {
 
   Future<void> restorePurchases() async {
     await _iap.restorePurchases();
+  }
+
+  /// StoreKit 2 returns a JWS transaction in [PurchaseDetails.verificationData],
+  /// but Apple's verifyReceipt endpoint requires the base64 app receipt.
+  Future<String> receiptDataForServerVerification(
+      PurchaseDetails purchase) async {
+    if (!Platform.isIOS) {
+      return purchase.verificationData.serverVerificationData;
+    }
+    final addition = InAppPurchasePlatformAddition.instance;
+    if (addition is InAppPurchaseStoreKitPlatformAddition) {
+      try {
+        final refreshed = await addition.refreshPurchaseVerificationData();
+        final receipt = refreshed?.serverVerificationData;
+        if (receipt != null && receipt.isNotEmpty) {
+          return receipt;
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[IapService] App receipt refresh failed: $e');
+        }
+      }
+    }
+    return purchase.verificationData.serverVerificationData;
   }
 
   bool _isUserCancelled(PurchaseDetails purchase) {

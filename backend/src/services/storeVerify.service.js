@@ -23,7 +23,17 @@ export function resolvePlanIndex(productId) {
   return idx === undefined ? null : idx;
 }
 
+function isJwsReceipt(receiptData) {
+  return String(receiptData || '').trim().startsWith('eyJ');
+}
+
 async function verifyAppleReceipt(receiptData, sharedSecret) {
+  if (isJwsReceipt(receiptData)) {
+    return {
+      valid: false,
+      error: 'Invalid iOS receipt format (JWS); app receipt required',
+    };
+  }
   const body = {
     'receipt-data': receiptData,
     password: sharedSecret,
@@ -42,8 +52,13 @@ async function verifyAppleReceipt(receiptData, sharedSecret) {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (data.status === 0) return { valid: true, environment: url.includes('sandbox') ? 'sandbox' : 'production', data };
+      if (data.status === 0) {
+        const environment = url.includes('sandbox') ? 'sandbox' : 'production';
+        console.log(`IAP: Apple receipt verified (${environment})`);
+        return { valid: true, environment, data };
+      }
       if (data.status === 21007 && url.includes('buy.itunes')) {
+        console.log('IAP: Apple receipt is sandbox; retrying with sandbox endpoint');
         continue;
       }
       lastError = `Apple status ${data.status}`;
