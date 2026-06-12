@@ -196,7 +196,7 @@ class PaymentController extends GetxController {
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
-      MyDialogs.error(msg: 'Restore failed: ${e.toString().replaceFirst(\'Exception: \', \'\')}');
+      MyDialogs.error(msg: 'Restore failed: ${e.toString().replaceFirst("Exception: ", "")}');
     } finally {
       _isRestoring = false;
     }

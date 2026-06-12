@@ -8,6 +8,7 @@ import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';
 import '../models/vpn_config.dart';
+import '../models/subscription.dart';
 import '../services/vpn_engine.dart';
 import '../screens/premium_screen.dart';
 import '../theme/nexus_theme.dart';
