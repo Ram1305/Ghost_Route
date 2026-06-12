@@ -13,9 +13,21 @@ const REVIEW_EMAIL = process.env.REVIEW_ACCOUNT_EMAIL || 'review@yencodetech.com
 const REVIEW_PASSWORD = process.env.REVIEW_ACCOUNT_PASSWORD || 'YencodeReview2026!';
 const REVIEW_USERNAME = process.env.REVIEW_ACCOUNT_USERNAME || 'App Review';
 
-async function seedReviewAccount() {
+export async function seedReviewAccount({ connect = false, disconnect = false } = {}) {
   try {
-    await connectDB();
+    if (connect) {
+      await connectDB();
+    }
+
+    const subscriptionData = [{
+      plan: 2,
+      date: new Date(),
+      amount: '$39.99',
+      currency: 'USD',
+      platform: 'ios',
+      transactionId: 'GHOST-REV-2026',
+      productId: 'com.yencode.ghostroute.platinum.yearly'
+    }];
 
     const existing = await User.findOne({ email: REVIEW_EMAIL });
     if (existing) {
@@ -23,15 +35,7 @@ async function seedReviewAccount() {
       existing.password = REVIEW_PASSWORD;
       existing.activePlan = 2;
       existing.subscriptionExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-      existing.subscriptionHistory = [{
-        plan: 2,
-        date: new Date(),
-        amount: '$39.99',
-        currency: 'USD',
-        platform: 'ios',
-        transactionId: 'GHOST-REV-2026',
-        productId: 'com.yencode.ghostroute.platinum.yearly'
-      }];
+      existing.subscriptionHistory = subscriptionData;
       await existing.save();
       console.log(`Review account updated: ${REVIEW_EMAIL}`);
     } else {
@@ -42,7 +46,7 @@ async function seedReviewAccount() {
         phone: '',
         activePlan: 2,
         subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        subscriptionHistory: [{ plan: 2, date: new Date() }],
+        subscriptionHistory: subscriptionData,
       });
       console.log(`Review account created: ${REVIEW_EMAIL}`);
     }
@@ -55,10 +59,23 @@ async function seedReviewAccount() {
     console.log('------------------------------------------------\n');
   } catch (err) {
     console.error('Seed review account error:', err);
-    process.exit(1);
+    if (connect) {
+      process.exit(1);
+    } else {
+      throw err;
+    }
   } finally {
-    await mongoose.disconnect();
+    if (disconnect) {
+      await mongoose.disconnect();
+    }
   }
 }
 
-seedReviewAccount();
+// Run immediately if this file was executed directly
+const isDirectRun = process.argv[1] && (
+  process.argv[1].endsWith('seedReviewAccount.js') || 
+  process.argv[1].endsWith('seedReviewAccount')
+);
+if (isDirectRun) {
+  seedReviewAccount({ connect: true, disconnect: true });
+}
