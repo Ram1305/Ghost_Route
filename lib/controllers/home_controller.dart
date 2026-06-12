@@ -9,6 +9,7 @@ import '../helpers/pref.dart';
 import '../models/vpn.dart';
 import '../models/vpn_config.dart';
 import '../services/vpn_engine.dart';
+import '../screens/premium_screen.dart';
 import '../theme/nexus_theme.dart';
 
 class HomeController extends GetxController {
@@ -104,6 +105,23 @@ class HomeController extends GetxController {
     }
 
     if (vpnState.value == VpnEngine.vpnDisconnected) {
+      // Enforce active subscription check
+      final user = Pref.currentUser;
+      final plan = Pref.currentUserActivePlan;
+      final expiresAt = user?.subscriptionExpiresAt ??
+          (user != null && user.subscriptionHistory.isNotEmpty && plan != null
+              ? user.subscriptionHistory.last.date.add(Duration(days: plan.daysInPlan))
+              : null);
+      final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
+
+      if (user == null || plan == null || isExpired) {
+        MyDialogs.error(
+          msg: 'Subscription Required. Please subscribe to a premium plan to protect your connection.',
+        );
+        Get.to(() => const PremiumScreen());
+        return;
+      }
+
       debugPrint(
           '[TronVPN] connectToVpn: Starting connect to ${vpn.value.countryLong} (${vpn.value.hostname})');
       _sawConnectingStageThisAttempt = false;

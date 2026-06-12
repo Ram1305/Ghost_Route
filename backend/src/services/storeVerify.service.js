@@ -94,6 +94,35 @@ export async function verifyStorePurchase({
     const secret = process.env.APPLE_SHARED_SECRET;
     if (secret && receiptData) {
       const result = await verifyAppleReceipt(receiptData, secret);
+      if (result.valid && result.data) {
+        const receiptInfo = result.data.latest_receipt_info || (result.data.receipt && result.data.receipt.in_app);
+        if (receiptInfo && Array.isArray(receiptInfo) && receiptInfo.length > 0) {
+          const matchingTransactions = receiptInfo.filter(t => t.product_id === productId);
+          if (matchingTransactions.length === 0) {
+            return { valid: false, planIndex, error: 'Product ID not found in receipt' };
+          }
+          matchingTransactions.sort((a, b) => Number(b.expires_date_ms) - Number(a.expires_date_ms));
+          const latest = matchingTransactions[0];
+          const expiresAtMs = Number(latest.expires_date_ms);
+          if (isNaN(expiresAtMs)) {
+            return { valid: false, planIndex, error: 'Invalid expiration date in receipt' };
+          }
+          const expiresAt = new Date(expiresAtMs);
+          const now = new Date();
+          if (expiresAt < now) {
+            return { valid: false, planIndex, error: 'Subscription has expired', isExpired: true };
+          }
+          return {
+            valid: true,
+            planIndex,
+            platform,
+            expiresAt,
+            transactionId: latest.transaction_id || latest.original_transaction_id,
+          };
+        } else {
+          return { valid: false, planIndex, error: 'No transaction history found in receipt' };
+        }
+      }
       return { ...result, planIndex, platform };
     }
     if (!STRICT && productId) {
@@ -112,6 +141,23 @@ export async function verifyStorePurchase({
           productId,
           purchaseToken,
         });
+        if (result.valid && result.data) {
+          const expiresAtMs = Number(result.data.expiryTimeMillis);
+          if (isNaN(expiresAtMs)) {
+            return { valid: false, planIndex, error: 'Invalid expiration date from Google Play' };
+          }
+          const expiresAt = new Date(expiresAtMs);
+          const now = new Date();
+          if (expiresAt < now) {
+            return { valid: false, planIndex, error: 'Subscription has expired', isExpired: true };
+          }
+          return {
+            valid: true,
+            planIndex,
+            platform,
+            expiresAt,
+          };
+        }
         return { ...result, planIndex, platform };
       } catch (e) {
         return { valid: false, planIndex, error: e.message };

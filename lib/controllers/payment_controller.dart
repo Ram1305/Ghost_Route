@@ -22,6 +22,8 @@ class PaymentController extends GetxController {
   List<ProductDetails> _storeProducts = [];
   bool _fromSignup = false;
   bool _iapReady = false;
+  bool _isRestoring = false;
+  int _restoredCount = 0;
 
   final RxBool isLoadingProducts = false.obs;
   final RxBool isPurchasing = false.obs;
@@ -162,6 +164,10 @@ class PaymentController extends GetxController {
       MyDialogs.error(msg: 'Restore is not supported on this device.');
       return;
     }
+    if (!Pref.isLoggedIn) {
+      MyDialogs.error(msg: 'Please log in first to restore your purchases.');
+      return;
+    }
     if (!_iapReady) {
       _iapReady = await _iap.initialize(
         onPurchase: _handlePurchase,
@@ -169,12 +175,38 @@ class PaymentController extends GetxController {
         onCancelled: _handlePurchaseCancelled,
       );
     }
-    MyDialogs.info(msg: 'Restoring purchases…');
-    await _iap.restorePurchases();
+    MyDialogs.showProgress();
+    _isRestoring = true;
+    _restoredCount = 0;
+    try {
+      await _iap.restorePurchases();
+      // Allow some time for native platforms to query and emit any past purchases to the stream
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      if (_restoredCount > 0) {
+        MyDialogs.success(msg: 'Purchases restored successfully!');
+      } else {
+        MyDialogs.info(msg: 'No active subscriptions found to restore.');
+      }
+    } catch (e) {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      MyDialogs.error(msg: 'Restore failed: ${e.toString().replaceFirst(\'Exception: \', \'\')}');
+    } finally {
+      _isRestoring = false;
+    }
   }
 
   void _handlePurchaseError(PurchaseDetails purchase) {
     isPurchasing.value = false;
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
     final message = purchase.error?.message;
     MyDialogs.error(
       msg: message != null && message.isNotEmpty
@@ -186,6 +218,9 @@ class PaymentController extends GetxController {
 
   void _handlePurchaseCancelled() {
     isPurchasing.value = false;
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
     onPurchaseCancelled(fromSignup: _fromSignup);
   }
 
@@ -239,13 +274,13 @@ class PaymentController extends GetxController {
         }
       }
 
+      if (_isRestoring) {
+        _restoredCount++;
+      }
+
       _fromSignup = false;
 
-      if (fromSignup) {
-        Get.offAll(() => const PaymentSuccessScreen());
-      } else if (Get.key.currentState?.canPop() == true) {
-        Get.back();
-      }
+      Get.offAll(() => const PaymentSuccessScreen());
       MyDialogs.success(msg: 'Subscription active');
     } catch (e) {
       MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));

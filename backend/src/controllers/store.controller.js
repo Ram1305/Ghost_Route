@@ -3,14 +3,17 @@ import Plan from '../models/plan.model.js';
 import * as emailService from '../services/email.service.js';
 import { verifyStorePurchase } from '../services/storeVerify.service.js';
 
-async function activatePlanForUser(user, planIndex, { transactionId, productId, platform }) {
+async function activatePlanForUser(user, planIndex, { transactionId, productId, platform, expiresAt }) {
   const planDoc = await Plan.findOne({ index: planIndex });
   if (!planDoc) {
     throw new Error('Invalid plan index');
   }
   const now = new Date();
-  const expiresAt = new Date(now);
-  expiresAt.setDate(expiresAt.getDate() + planDoc.durationDays);
+  let finalExpiresAt = expiresAt;
+  if (!finalExpiresAt || isNaN(new Date(finalExpiresAt).getTime())) {
+    finalExpiresAt = new Date(now);
+    finalExpiresAt.setDate(finalExpiresAt.getDate() + planDoc.durationDays);
+  }
 
   user.subscriptionHistory.push({
     plan: planIndex,
@@ -22,7 +25,7 @@ async function activatePlanForUser(user, planIndex, { transactionId, productId, 
     currency: planDoc.currency || 'USD',
   });
   user.activePlan = planIndex;
-  user.subscriptionExpiresAt = expiresAt;
+  user.subscriptionExpiresAt = finalExpiresAt;
   user.subscriptionPlatform = platform;
   user.subscriptionProductId = productId;
   if (platform === 'ios' && transactionId) {
@@ -80,9 +83,10 @@ export async function verifyAndActivateStorePurchase(req, res) {
     }
 
     await activatePlanForUser(user, verification.planIndex, {
-      transactionId: transactionId || purchaseToken,
+      transactionId: transactionId || purchaseToken || verification.transactionId,
       productId,
       platform,
+      expiresAt: verification.expiresAt,
     });
 
     const updated = await User.findById(userId).select('-password').lean();
