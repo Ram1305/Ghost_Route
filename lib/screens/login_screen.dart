@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   final _auth = Get.find<AuthController>();
   bool _loading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -93,7 +94,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           label: 'Password',
                           hint: 'Enter password',
                           icon: Icons.lock_rounded,
-                          obscureText: true,
+                          obscureText: _obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                              color: NexusTheme.text3,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Align(
@@ -158,6 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     bool obscureText = false,
     TextInputType? keyboardType,
+    Widget? suffixIcon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,6 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
             hintText: hint,
             hintStyle: GoogleFonts.outfit(color: NexusTheme.text3, fontSize: 14),
             prefixIcon: Icon(icon, size: 20, color: NexusTheme.text3),
+            suffixIcon: suffixIcon,
             filled: true,
             fillColor: NexusTheme.surface,
             border: OutlineInputBorder(

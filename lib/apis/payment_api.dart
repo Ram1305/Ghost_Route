@@ -120,8 +120,8 @@ class PaymentApi {
         expiresAtRaw is String ? DateTime.tryParse(expiresAtRaw) : null;
     User? user;
     final userRaw = data['user'];
-    if (userRaw is Map<String, dynamic>) {
-      user = AuthApi.userFromBackendJson(userRaw, backendUserId: userId);
+    if (userRaw is Map) {
+      user = AuthApi.userFromBackendJson(Map<String, dynamic>.from(userRaw), backendUserId: userId);
     }
     return StoreVerifyResponse(
       verified: data['verified'] as bool? ?? true,

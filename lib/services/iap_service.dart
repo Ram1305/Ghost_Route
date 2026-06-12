@@ -49,6 +49,7 @@ class IapService {
     await _subscription?.cancel();
     _subscription = _iap.purchaseStream.listen(
       _onPurchaseUpdate,
+      onDone: () => _subscription?.cancel(),
       onError: (Object e) => debugPrint('IAP stream error: $e'),
     );
     return true;
@@ -167,9 +168,7 @@ class IapService {
         } else {
           _onError?.call(purchase);
         }
-        if (purchase.pendingCompletePurchase) {
-          await _iap.completePurchase(purchase);
-        }
+        await _safeCompletePurchase(purchase);
         continue;
       }
       if (purchase.status == PurchaseStatus.purchased ||
@@ -177,12 +176,24 @@ class IapService {
         try {
           await _onPurchase?.call(purchase);
         } finally {
-          if (purchase.pendingCompletePurchase) {
-            await _iap.completePurchase(purchase);
-          }
+          await _safeCompletePurchase(purchase);
         }
       } else if (purchase.pendingCompletePurchase) {
+        await _safeCompletePurchase(purchase);
+      }
+    }
+  }
+
+  Future<void> _safeCompletePurchase(PurchaseDetails purchase) async {
+    if (purchase.pendingCompletePurchase) {
+      if (purchase.productID.isEmpty || purchase.purchaseID == null) {
+        debugPrint('Skipping completePurchase because productID is empty or purchaseID is null.');
+        return;
+      }
+      try {
         await _iap.completePurchase(purchase);
+      } catch (e) {
+        debugPrint('Error completing purchase: $e');
       }
     }
   }

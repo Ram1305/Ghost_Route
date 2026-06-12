@@ -23,6 +23,15 @@ async function seedReviewAccount() {
       existing.password = REVIEW_PASSWORD;
       existing.activePlan = 2;
       existing.subscriptionExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      existing.subscriptionHistory = [{
+        plan: 2,
+        date: new Date(),
+        amount: '$39.99',
+        currency: 'USD',
+        platform: 'ios',
+        transactionId: 'GHOST-REV-2026',
+        productId: 'com.yencode.ghostroute.platinum.yearly'
+      }];
       await existing.save();
       console.log(`Review account updated: ${REVIEW_EMAIL}`);
     } else {

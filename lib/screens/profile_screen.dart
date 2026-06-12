@@ -21,6 +21,12 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
+    // Refresh user profile in background to get the latest subscription history
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Pref.isLoggedIn) {
+        auth.refreshCurrentUserFromBackend();
+      }
+    });
     return Obx(() {
       final currentUser = auth.currentUser.value ?? Pref.currentUser;
       if (currentUser == null) {
