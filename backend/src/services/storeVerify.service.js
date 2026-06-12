@@ -27,15 +27,27 @@ function isJwsReceipt(receiptData) {
   return String(receiptData || '').trim().startsWith('eyJ');
 }
 
+function logReceiptMeta(receiptData) {
+  const trimmed = String(receiptData || '').trim();
+  console.log(
+    `IAP: receipt meta length=${trimmed.length} isJws=${isJwsReceipt(trimmed)}`,
+  );
+}
+
 async function verifyAppleReceipt(receiptData, sharedSecret) {
-  if (isJwsReceipt(receiptData)) {
+  const trimmed = String(receiptData || '').trim();
+  if (!trimmed) {
+    return { valid: false, error: 'Missing iOS receipt data' };
+  }
+  logReceiptMeta(trimmed);
+  if (isJwsReceipt(trimmed)) {
     return {
       valid: false,
       error: 'Invalid iOS receipt format (JWS); app receipt required',
     };
   }
   const body = {
-    'receipt-data': receiptData,
+    'receipt-data': trimmed,
     password: sharedSecret,
     'exclude-old-transactions': true,
   };
@@ -107,8 +119,12 @@ export async function verifyStorePurchase({
 
   if (platform === 'ios') {
     const secret = process.env.APPLE_SHARED_SECRET;
-    if (secret && receiptData) {
-      const result = await verifyAppleReceipt(receiptData, secret);
+    const trimmedReceipt = String(receiptData || '').trim();
+    if (!trimmedReceipt) {
+      return { valid: false, planIndex, error: 'Missing iOS receipt data' };
+    }
+    if (secret && trimmedReceipt) {
+      const result = await verifyAppleReceipt(trimmedReceipt, secret);
       if (result.valid && result.data) {
         const receiptInfo = result.data.latest_receipt_info || (result.data.receipt && result.data.receipt.in_app);
         if (receiptInfo && Array.isArray(receiptInfo) && receiptInfo.length > 0) {

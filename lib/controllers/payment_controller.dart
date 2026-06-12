@@ -25,11 +25,17 @@ class PaymentController extends GetxController {
   bool _iapReady = false;
   bool _isRestoring = false;
   int _restoredCount = 0;
+  int _restoreFailedCount = 0;
+  String? _restoreLastError;
   int _restoreHandlersInFlight = 0;
   DateTime? _lastRestoreHandlerFinishedAt;
 
   static const Duration _restoreMaxWait = Duration(seconds: 15);
   static const Duration _restoreIdleWindow = Duration(milliseconds: 800);
+
+  static const String _iosReceiptUnavailableMessage =
+      'Could not verify purchase with App Store. If testing in Xcode, disable '
+      'the StoreKit Configuration file in the Run scheme, then try Restore Purchases.';
 
   final RxBool isLoadingProducts = false.obs;
   final RxBool isPurchasing = false.obs;
@@ -184,6 +190,8 @@ class PaymentController extends GetxController {
     MyDialogs.showProgress();
     _isRestoring = true;
     _restoredCount = 0;
+    _restoreFailedCount = 0;
+    _restoreLastError = null;
     _restoreHandlersInFlight = 0;
     _lastRestoreHandlerFinishedAt = null;
     try {
@@ -197,6 +205,13 @@ class PaymentController extends GetxController {
 
       if (_restoredCount > 0) {
         MyDialogs.success(msg: 'Purchases restored successfully!');
+      } else if (_restoreFailedCount > 0) {
+        final detail = _restoreLastError?.replaceFirst('Exception: ', '');
+        MyDialogs.error(
+          msg: detail != null && detail.isNotEmpty
+              ? 'Restore verification failed: $detail'
+              : 'Restore verification failed. Please try again.',
+        );
       } else {
         MyDialogs.info(msg: 'No active subscriptions found to restore.');
       }
@@ -309,6 +324,10 @@ class PaymentController extends GetxController {
       final receiptData = platform == 'ios'
           ? await _iap.receiptDataForServerVerification(purchase)
           : null;
+      if (platform == 'ios' &&
+          (receiptData == null || IapService.looksLikeJws(receiptData))) {
+        throw Exception(_iosReceiptUnavailableMessage);
+      }
       final result = await PaymentApi.verifyStorePurchase(
         userId: backendUserId,
         platform: platform,
@@ -319,7 +338,10 @@ class PaymentController extends GetxController {
       );
 
       if (result == null || !result.verified) {
-        if (!restoring) {
+        if (restoring) {
+          _restoreFailedCount++;
+          _restoreLastError = 'Subscription verification failed';
+        } else {
           MyDialogs.error(msg: 'Subscription verification failed');
           _clearPending(fromSignup: fromSignup);
         }
@@ -342,11 +364,15 @@ class PaymentController extends GetxController {
       Get.offAll(() => const PaymentSuccessScreen());
       MyDialogs.success(msg: 'Subscription active');
     } catch (e) {
-      if (!restoring) {
+      if (restoring) {
+        _restoreFailedCount++;
+        _restoreLastError = e.toString();
+        if (kDebugMode) {
+          debugPrint('[PaymentController] restore verify failed: $e');
+        }
+      } else {
         MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
         _clearPending(fromSignup: fromSignup);
-      } else if (kDebugMode) {
-        debugPrint('[PaymentController] restore verify failed: $e');
       }
     } finally {
       isPurchasing.value = false;

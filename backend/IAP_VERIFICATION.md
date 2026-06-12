@@ -18,6 +18,24 @@ IAP_STRICT_VERIFY=true
    - Expect success dialog, not "Subscription verification failed"
 5. **Logs:** If verification fails, check server logs for `Apple receipt verification not configured` or `Apple status <code>`
 
+## Xcode StoreKit config vs real sandbox
+
+The default **Runner** scheme must **not** attach `Products.storekit` when testing end-to-end IAP verification on a physical device.
+
+| Setup | Use for | Receipt verify |
+|-------|---------|----------------|
+| Xcode Run **without** StoreKit Configuration | Real App Store Connect sandbox on device | Works |
+| Xcode Run **with** `Products.storekit` attached | Local UI / product loading only | Always fails (21002) |
+
+**Real sandbox test steps:**
+
+1. Xcode → Product → Scheme → Edit Scheme → Run → confirm **StoreKit Configuration** is **None**
+2. On device: Settings → App Store → Sandbox Account (sandbox Apple ID)
+3. Delete and reinstall the app for a fresh receipt
+4. Log in → buy a plan → Profile should show purchase history
+
+To use `ios/Runner/Products.storekit` for local UI testing only, attach it temporarily in the scheme; do not expect server verification to succeed.
+
 ## Shared Secret location
 
 App Store Connect → Your App → General → App Information → App-Specific Shared Secret

@@ -1,7 +1,11 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
 import 'firebase_options.dart';
 import 'theme/nexus_theme.dart';
@@ -15,6 +19,12 @@ late Size mq;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // StoreKit 1 provides base64 app receipts compatible with verifyReceipt.
+  if (!kIsWeb && Platform.isIOS) {
+    // ignore: deprecated_member_use
+    await InAppPurchaseStoreKitPlatform.enableStoreKit1();
+  }
 
   //enter full-screen
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);

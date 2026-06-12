@@ -29,8 +29,18 @@ class IapService {
   IAPError? _lastQueryError;
 
   static const Duration _productCacheTtl = Duration(minutes: 10);
+  static const List<Duration> _receiptRetryDelays = [
+    Duration(milliseconds: 500),
+    Duration(milliseconds: 1000),
+    Duration(milliseconds: 1500),
+    Duration(milliseconds: 2000),
+  ];
 
   bool get isSupported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+  /// True when [data] is a StoreKit 2 JWS token (not a verifyReceipt app receipt).
+  static bool looksLikeJws(String? data) =>
+      data != null && data.trim().startsWith('eyJ');
 
   /// Last StoreKit / Play Billing error from a product query, if any.
   IAPError? get lastQueryError => _lastQueryError;
@@ -153,28 +163,67 @@ class IapService {
     await _iap.restorePurchases();
   }
 
-  /// StoreKit 2 returns a JWS transaction in [PurchaseDetails.verificationData],
-  /// but Apple's verifyReceipt endpoint requires the base64 app receipt.
-  Future<String> receiptDataForServerVerification(
+  /// Returns the base64 app receipt for Apple's verifyReceipt API, or null if
+  /// unavailable. Never returns StoreKit 2 JWS transaction data.
+  Future<String?> receiptDataForServerVerification(
       PurchaseDetails purchase) async {
     if (!Platform.isIOS) {
-      return purchase.verificationData.serverVerificationData;
+      final token = purchase.verificationData.serverVerificationData;
+      return token.isNotEmpty ? token : null;
     }
+    return _fetchIosAppReceipt();
+  }
+
+  Future<String?> _fetchIosAppReceipt() async {
     final addition = InAppPurchasePlatformAddition.instance;
-    if (addition is InAppPurchaseStoreKitPlatformAddition) {
+    if (addition is! InAppPurchaseStoreKitPlatformAddition) {
+      if (kDebugMode) {
+        debugPrint('[IapService] StoreKit platform addition unavailable');
+      }
+      return null;
+    }
+
+    for (var attempt = 0; attempt < _receiptRetryDelays.length; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(_receiptRetryDelays[attempt]);
+      }
       try {
         final refreshed = await addition.refreshPurchaseVerificationData();
         final receipt = refreshed?.serverVerificationData;
-        if (receipt != null && receipt.isNotEmpty) {
-          return receipt;
+        if (receipt == null || receipt.isEmpty) {
+          if (kDebugMode) {
+            debugPrint(
+              '[IapService] App receipt empty (attempt ${attempt + 1}/${_receiptRetryDelays.length})',
+            );
+          }
+          continue;
         }
+        if (looksLikeJws(receipt)) {
+          if (kDebugMode) {
+            debugPrint(
+              '[IapService] App receipt is JWS, retrying (attempt ${attempt + 1}/${_receiptRetryDelays.length}, len=${receipt.length})',
+            );
+          }
+          continue;
+        }
+        if (kDebugMode) {
+          debugPrint(
+            '[IapService] App receipt ready (attempt ${attempt + 1}, len=${receipt.length}, isJws=false)',
+          );
+        }
+        return receipt;
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('[IapService] App receipt refresh failed: $e');
+          debugPrint(
+            '[IapService] App receipt refresh failed (attempt ${attempt + 1}): $e',
+          );
         }
       }
     }
-    return purchase.verificationData.serverVerificationData;
+    if (kDebugMode) {
+      debugPrint('[IapService] Could not obtain app receipt after retries');
+    }
+    return null;
   }
 
   bool _isUserCancelled(PurchaseDetails purchase) {
