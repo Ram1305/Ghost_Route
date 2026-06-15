@@ -26,7 +26,10 @@ Paste at top of App Description:
 
 APP REVIEW INFORMATION (Guideline 2.1)
 --------------------------------------
-Demo login (seed: npm run seed:review):
+IMPORTANT: Update these credentials in App Store Connect before each submission.
+The previous submission had a typo in the email (gmaill.com instead of gmail.com).
+
+Demo login (backend seeds this automatically on startup via seedReviewAccount):
 
   Email:    review@yencodetech.com
   Password: YencodeReview2026!
@@ -36,9 +39,20 @@ Login path:
   2. Premium → "Already have account? Login"
   3. Enter credentials → Home
 
+Account creation (Guideline 2.1(a) — now fixed, no OTP required):
+  1. Launch app → Premium screen
+  2. "Choose plan" → select any plan → "Create account"
+  3. Fill in username, email, password → "Sign up"
+  4. Account is created immediately (no email OTP required)
+
+Purchase without account (Guideline 5.1.1(v) — now fixed):
+  1. Launch app → Premium screen
+  2. "Choose plan" → select any plan
+  3. Dialog appears: "Purchase now" / "Sign in" / "Create account"
+  4. Tap "Purchase now" → App Store billing sheet opens (no account required)
+
 Account deletion (Guideline 5.1.1):
   Profile → Delete account → enter password → confirm → Login screen
-  Record on a physical device; attach video URL in Review Notes
 
 In-App Purchase (Guideline 3.1.1 + 2.1(b)):
   Premium → Choose plan → App Store billing sheet
@@ -59,8 +73,49 @@ Backend IAP (required for purchases to succeed):
   APPLE_BUNDLE_ID=com.yencode.ghostroute
   IAP_STRICT_VERIFY=true
 
+VPN DATA COLLECTION (Answers for Guideline 2.1 — paste in ASC reply)
+----------------------------------------------------------------------
+Q: What user information is the app collecting using VPN?
+
+A: The VPN tunnel itself does not collect, monitor, or log any user
+browsing activity, DNS queries, IP addresses of visited sites, or any
+network traffic passing through the tunnel. The only personal
+information we collect through our backend is:
+  - Email address (required for account creation and login)
+  - Username (display name chosen by the user)
+  - Phone number (optional, collected at signup)
+  - Subscription/transaction records (to verify and manage active plans)
+
+Q: For what purposes is this information collected?
+
+A: The data is collected solely for account management, subscription
+verification, and customer support. Specifically:
+  - Email: to identify the account, enable login, and send optional
+    transactional emails (welcome, invoice, password reset).
+  - Username: to personalise the in-app experience.
+  - Phone: optional contact field; not used for marketing.
+  - Subscription records: to verify active plan, enforce device limits,
+    and handle restore-purchase requests.
+  No VPN traffic or browsing data is ever collected or stored.
+
+Q: Will the data be shared with any third parties?
+
+A: No. We do not share, sell, or transfer user data to any third party.
+  - Apple handles all payment processing through In-App Purchase; we
+    only receive the App Store receipt for server-side verification.
+  - Our backend is self-hosted (ghostroute.octosofttechnologies.in) and
+    does not integrate any advertising, analytics, or data-broker SDKs.
+  - We do not use any third-party analytics frameworks (e.g. Firebase
+    Analytics, Mixpanel, Amplitude) in the app binary.
+
 REVIEW NOTES (paste)
 --------------------
+- Account creation bug fixed: OTP email step removed. Users can create
+  an account with email + password directly; no email service required.
+- Registration no longer required before IAP: choosing a plan as a
+  guest now shows "Purchase now / Sign in / Create account" options.
+  Purchasing without an account activates the subscription locally via
+  Apple's StoreKit; users can create an account anytime to sync.
 - App Privacy corrected: we do not track users; no ATT prompt.
 - Subscriptions use Apple In-App Purchase only (no external payment).
 - Premium screen includes Terms of Use and Privacy Policy links (Guideline 3.1.2).
@@ -68,25 +123,58 @@ REVIEW NOTES (paste)
 - App description updated to disclose subscription required (Guideline 2.3.2).
 - Phone number is optional at signup.
 - Account deletion: Profile → Delete account.
-- VPN data collection answers: see ASC_PRIVACY_AND_METADATA.md section 2.1.
+- VPN data collection answers provided above.
 - Screen recording attached: IAP purchase flow + legal links on Premium screen.
 
-REPLY TO REJECTION (paste in App Store Connect)
-------------------------------------------------
-We have addressed all issues:
+REPLY TO APPLE REVIEW (paste in App Store Connect)
+---------------------------------------------------
+Thank you for your detailed feedback. We have addressed all four issues:
 
-1. Guideline 3.1.2(c): Added Terms of Use link in app (Premium/plan screens) and
-   in App Description. Privacy Policy link also on subscription screens.
+1. Guideline 2.1 – VPN Data Collection
 
-2. Guideline 2.1: VPN data collection answers provided below [paste section 2.1
-   from ASC_PRIVACY_AND_METADATA.md].
+   The VPN tunnel does not collect, monitor, or log any user traffic,
+   browsing activity, or DNS queries. The only data we collect is:
+   • Email address — for account login and transactional emails only.
+   • Username — display name, used in-app only.
+   • Phone number — optional field, not used for marketing.
+   • Subscription records — to verify the active plan and enable
+     restore-purchase.
+   No data is shared with any third party. All payment processing is
+   handled by Apple's In-App Purchase. Our self-hosted backend has no
+   advertising, analytics, or data-broker integrations.
 
-3. Guideline 2.3.2: App Description updated to state subscription required.
+2. Guideline 5.1.1(v) – Registration Required Before IAP
 
-4. Guideline 2.3.10: Removed Google Play references from iOS app binary.
+   Fixed. When a user who is not signed in selects a plan, a dialog
+   now appears offering three options:
+   • "Purchase now" — opens the App Store payment sheet immediately,
+     no account required. The subscription activates locally and is
+     tied to their Apple ID via StoreKit.
+   • "Sign in" — optional, for users who already have an account.
+   • "Create account" — optional, allows users to sync the subscription
+     across devices.
+   Account creation is never a prerequisite for purchasing.
 
-5. Guideline 2.1(b): Fixed IAP error handling; verified APPLE_SHARED_SECRET on
-   production backend; tested sandbox purchase. Screen recording attached.
+3. Guideline 2.1(a) – Cannot Create Account
+
+   Fixed. The previous signup flow required email OTP verification,
+   which depended on an external SMTP service that was not reliably
+   delivering emails to all addresses during review. We have removed
+   the OTP step entirely. Account creation now requires only a
+   username, email address, and password — no email verification is
+   needed at signup. Accounts are created immediately.
+
+4. Guideline 2.1 – Invalid Demo Account Credentials
+
+   We apologise for the typo in the submitted credentials
+   (gmaill.com). The correct demo credentials are:
+     Email:    review@yencodetech.com
+     Password: YencodeReview2026!
+   These credentials have been updated in App Store Connect and the
+   backend seeds this account automatically on startup. The account
+   has an active Platinum Yearly subscription for VPN testing.
+   Login path: Launch app → Premium screen → "Already have account?
+   Login" → enter credentials → Home screen.
 
 BUNDLE ID
 ---------

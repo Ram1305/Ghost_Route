@@ -107,16 +107,18 @@ class HomeController extends GetxController {
     }
 
     if (vpnState.value == VpnEngine.vpnDisconnected) {
-      // Enforce active subscription check
+      // Enforce active subscription check (logged-in user or guest).
       final user = Pref.currentUser;
-      final plan = Pref.currentUserActivePlan;
+      final userPlan = Pref.currentUserActivePlan;
+      final guestPlan = Pref.guestActivePlan;
+      final plan = userPlan ?? guestPlan;
       final expiresAt = user?.subscriptionExpiresAt ??
-          (user != null && user.subscriptionHistory.isNotEmpty && plan != null
-              ? user.subscriptionHistory.last.date.add(Duration(days: plan.daysInPlan))
-              : null);
+          (user != null && user.subscriptionHistory.isNotEmpty && userPlan != null
+              ? user.subscriptionHistory.last.date.add(Duration(days: userPlan.daysInPlan))
+              : Pref.guestSubscriptionExpiresAt);
       final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
 
-      if (user == null || plan == null || isExpired) {
+      if (plan == null || isExpired) {
         if (kDebugMode) {
           debugPrint('[TronVPN] connectToVpn: Subscription check failed, but bypassing in debug mode.');
         } else {

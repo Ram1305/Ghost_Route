@@ -104,4 +104,27 @@ class Pref {
 
   static set lastOtpSentAt(DateTime? v) =>
       _box.put('lastOtpSentAt', v?.millisecondsSinceEpoch);
+
+  // --- Guest subscription (purchased without a backend account) ---
+
+  static int? get guestActivePlanIndex => _box.get('guestActivePlanIndex') as int?;
+  static set guestActivePlanIndex(int? v) =>
+      v == null ? _box.delete('guestActivePlanIndex') : _box.put('guestActivePlanIndex', v);
+
+  static DateTime? get guestSubscriptionExpiresAt {
+    final ms = _box.get('guestSubExpiresAt') as int?;
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  static set guestSubscriptionExpiresAt(DateTime? v) =>
+      v == null ? _box.delete('guestSubExpiresAt') : _box.put('guestSubExpiresAt', v?.millisecondsSinceEpoch);
+
+  /// Active plan for a guest (no backend account). Returns null if expired or not set.
+  static PremiumPlan? get guestActivePlan {
+    final idx = guestActivePlanIndex;
+    if (idx == null || idx < 0 || idx >= PremiumPlan.values.length) return null;
+    final expiry = guestSubscriptionExpiresAt;
+    if (expiry != null && expiry.isBefore(DateTime.now())) return null;
+    return PremiumPlan.values[idx];
+  }
 }

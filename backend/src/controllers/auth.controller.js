@@ -59,9 +59,6 @@ export async function register(req, res) {
     if (!normalizedEmail || !password || !username) {
       return res.status(400).json({ error: 'Email, password and username are required' });
     }
-    if (!otpStore.checkVerifiedAndConsume(normalizedEmail, 'signup')) {
-      return res.status(400).json({ error: 'Please verify your email with OTP first' });
-    }
     const user = await User.create({
       email: normalizedEmail,
       password,

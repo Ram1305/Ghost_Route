@@ -31,13 +31,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
   final _username = TextEditingController();
   final _email = TextEditingController();
-  final _otp = TextEditingController();
   final _phone = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
 
-  bool _otpSent = false;
-  bool _otpVerified = false;
   bool _loading = false;
 
   @override
@@ -54,7 +51,6 @@ class _SignupScreenState extends State<SignupScreen> {
   void dispose() {
     _username.dispose();
     _email.dispose();
-    _otp.dispose();
     _phone.dispose();
     _password.dispose();
     _confirmPassword.dispose();
@@ -88,16 +84,6 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Future<void> _sendOtp() async {
-    final ok = await _auth.sendOtp(_email.text);
-    if (ok) setState(() => _otpSent = true);
-  }
-
-  Future<void> _verifyOtp() async {
-    final ok = await _auth.verifyOtp(_email.text, _otp.text, 'signup');
-    if (ok) setState(() => _otpVerified = true);
-  }
-
   Future<void> _signUp() async {
     if (_loading) return;
     if (_plan == null) {
@@ -111,7 +97,6 @@ class _SignupScreenState extends State<SignupScreen> {
       phone: _phone.text,
       password: _password.text,
       confirmPassword: _confirmPassword.text,
-      otpVerified: _otpVerified,
     );
     setState(() => _loading = false);
     if (!ok) return;
@@ -189,7 +174,13 @@ class _SignupScreenState extends State<SignupScreen> {
                           icon: Icons.person_rounded,
                         ),
                         const SizedBox(height: 14),
-                        _buildEmailWithOtp(),
+                        _buildTextField(
+                          controller: _email,
+                          label: 'Email',
+                          hint: 'Enter email',
+                          icon: Icons.email_rounded,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
                         const SizedBox(height: 14),
                         _buildTextField(
                           controller: _phone,
@@ -309,111 +300,6 @@ class _SignupScreenState extends State<SignupScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildEmailWithOtp() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Email',
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 11,
-            letterSpacing: 1.5,
-            color: NexusTheme.text3,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildTextField(
-                controller: _email,
-                hint: 'Enter email',
-                icon: Icons.email_rounded,
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              height: 52,
-              child: TextButton(
-                onPressed: _otpSent ? null : _sendOtp,
-                style: TextButton.styleFrom(
-                  backgroundColor: NexusTheme.teal.withOpacity(0.2),
-                  foregroundColor: NexusTheme.teal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  _otpSent ? 'Sent' : 'Send OTP',
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (_otpSent) ...[
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              SizedBox(
-                width: 120,
-                child: TextField(
-                  controller: _otp,
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
-                    color: NexusTheme.text,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'OTP',
-                    hintStyle: GoogleFonts.outfit(color: NexusTheme.text3, fontSize: 14),
-                    filled: true,
-                    fillColor: NexusTheme.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: NexusTheme.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: NexusTheme.border),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  ),
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: _otpVerified ? null : _verifyOtp,
-                style: TextButton.styleFrom(
-                  backgroundColor: _otpVerified
-                      ? NexusTheme.teal.withOpacity(0.3)
-                      : NexusTheme.teal.withOpacity(0.2),
-                  foregroundColor: NexusTheme.teal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  _otpVerified ? 'Verified' : 'Verify OTP',
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
     );
   }
 

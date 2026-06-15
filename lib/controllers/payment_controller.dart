@@ -22,6 +22,7 @@ class PaymentController extends GetxController {
   final IapService _iap = IapService.instance;
   List<ProductDetails> _storeProducts = [];
   bool _fromSignup = false;
+  bool _guestMode = false;
   bool _iapReady = false;
   bool _isRestoring = false;
   int _restoredCount = 0;
@@ -124,7 +125,10 @@ class PaymentController extends GetxController {
       : AppConfig.storeProductsNotFoundAndroid;
 
   /// Start in-app subscription purchase for [plan].
-  Future<void> openCheckout(Plan plan, {bool fromSignup = false}) async {
+  /// Set [guestMode] to true when the user has not created a backend account;
+  /// the purchase will be activated locally without backend verification.
+  Future<void> openCheckout(Plan plan, {bool fromSignup = false, bool guestMode = false}) async {
+    _guestMode = guestMode;
     if (!isPaymentSupported) {
       MyDialogs.error(msg: 'Subscriptions are not supported on this device.');
       return;
@@ -305,8 +309,20 @@ class PaymentController extends GetxController {
     }
 
     final fromSignup = _fromSignup;
+    final guestMode = _guestMode;
     final backendUserId = Pref.currentUser?.backendUserId;
     if (backendUserId == null || backendUserId.isEmpty) {
+      if (guestMode && !restoring) {
+        // Guest purchase: activate locally without backend verification.
+        final plan = PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
+        Pref.guestActivePlanIndex = planIndex;
+        Pref.guestSubscriptionExpiresAt = DateTime.now().add(Duration(days: plan.daysInPlan));
+        _guestMode = false;
+        isPurchasing.value = false;
+        Get.offAll(() => const PaymentSuccessScreen());
+        MyDialogs.success(msg: 'Subscription active');
+        return;
+      }
       isPurchasing.value = false;
       if (restoring) {
         _restoreHandlersInFlight--;
@@ -385,6 +401,7 @@ class PaymentController extends GetxController {
 
   void _clearPending({required bool fromSignup}) {
     _fromSignup = false;
+    _guestMode = false;
     if (fromSignup) {
       Get.offAll(() => HomeScreen());
     }

@@ -375,6 +375,78 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
+  /// Shown when a guest (not logged in) picks a plan. They can purchase without
+  /// an account (subscription activates locally, tied to their Apple ID) or
+  /// optionally sign in / create an account for cross-device sync.
+  void _showAccountOrGuestDialog(Plan plan, List<Plan> plans) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: NexusTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'How would you like to continue?',
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+            color: NexusTheme.text,
+          ),
+        ),
+        content: Text(
+          'You can purchase now without an account. Create an account anytime to sync your subscription across devices.',
+          style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2, height: 1.4),
+        ),
+        actionsAlignment: MainAxisAlignment.start,
+        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Get.back();
+                if (!Get.isRegistered<PaymentController>()) Get.put(PaymentController());
+                Get.find<PaymentController>().openCheckout(plan, guestMode: true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NexusTheme.teal,
+                foregroundColor: Colors.black87,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text('Purchase now', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                Get.back();
+                Get.to(() => const LoginScreen());
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: NexusTheme.teal,
+                side: BorderSide(color: NexusTheme.teal.withOpacity(0.5)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text('Sign in', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () {
+                Get.back();
+                Get.to(() => SignupScreen(selectedPlan: plan, plans: plans));
+              },
+              style: TextButton.styleFrom(foregroundColor: NexusTheme.text2),
+              child: Text('Create account', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showPlanSheet(BuildContext context) async {
     try {
       _ensurePaymentController();
@@ -395,7 +467,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               }
               Get.find<PaymentController>().openCheckout(plan);
             } else {
-              Get.to(() => SignupScreen(selectedPlan: plan, plans: plans));
+              _showAccountOrGuestDialog(plan, plans);
             }
           },
         ),

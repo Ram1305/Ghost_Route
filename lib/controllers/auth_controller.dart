@@ -53,14 +53,13 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Sign up via backend (after OTP verified). Also syncs user to Pref with backendUserId.
+  /// Sign up via backend. Also syncs user to Pref with backendUserId.
   Future<bool> signUp({
     required String username,
     required String email,
     required String phone,
     required String password,
     required String confirmPassword,
-    required bool otpVerified,
   }) async {
     if (username.trim().isEmpty) {
       MyDialogs.error(msg: 'Enter username');
@@ -68,10 +67,6 @@ class AuthController extends GetxController {
     }
     if (email.trim().isEmpty) {
       MyDialogs.error(msg: 'Enter email');
-      return false;
-    }
-    if (!otpVerified) {
-      MyDialogs.error(msg: 'Verify email OTP first');
       return false;
     }
     if (password.isEmpty) {

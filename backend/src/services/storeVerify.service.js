@@ -126,33 +126,67 @@ export async function verifyStorePurchase({
     if (secret && trimmedReceipt) {
       const result = await verifyAppleReceipt(trimmedReceipt, secret);
       if (result.valid && result.data) {
-        const receiptInfo = result.data.latest_receipt_info || (result.data.receipt && result.data.receipt.in_app);
-        if (receiptInfo && Array.isArray(receiptInfo) && receiptInfo.length > 0) {
-          const matchingTransactions = receiptInfo.filter(t => t.product_id === productId);
-          if (matchingTransactions.length === 0) {
-            return { valid: false, planIndex, error: 'Product ID not found in receipt' };
-          }
-          matchingTransactions.sort((a, b) => Number(b.expires_date_ms) - Number(a.expires_date_ms));
-          const latest = matchingTransactions[0];
-          const expiresAtMs = Number(latest.expires_date_ms);
-          if (isNaN(expiresAtMs)) {
-            return { valid: false, planIndex, error: 'Invalid expiration date in receipt' };
-          }
-          const expiresAt = new Date(expiresAtMs);
-          const now = new Date();
-          if (expiresAt < now) {
-            return { valid: false, planIndex, error: 'Subscription has expired', isExpired: true };
-          }
-          return {
-            valid: true,
-            planIndex,
-            platform,
-            expiresAt,
-            transactionId: latest.transaction_id || latest.original_transaction_id,
-          };
-        } else {
+        // Merge latest_receipt_info and receipt.in_app so a brand-new purchase
+        // that Apple hasn't yet promoted into latest_receipt_info is still found.
+        const latestInfo = Array.isArray(result.data.latest_receipt_info)
+          ? result.data.latest_receipt_info
+          : [];
+        const inAppInfo = Array.isArray(result.data.receipt?.in_app)
+          ? result.data.receipt.in_app
+          : [];
+
+        // Deduplicate by transaction_id; latest_receipt_info takes priority.
+        const seen = new Set();
+        const allTransactions = [];
+        for (const t of [...latestInfo, ...inAppInfo]) {
+          const id = t.transaction_id || t.original_transaction_id;
+          if (id && seen.has(id)) continue;
+          if (id) seen.add(id);
+          allTransactions.push(t);
+        }
+
+        const normalizedProductId = String(productId || '').trim();
+        console.log(
+          `IAP: receipt has ${latestInfo.length} latest_receipt_info + ${inAppInfo.length} in_app = ` +
+          `${allTransactions.length} total transactions. Looking for productId="${normalizedProductId}". ` +
+          `Found productIds: [${[...new Set(allTransactions.map(t => t.product_id).filter(Boolean))].join(', ')}]`,
+        );
+
+        if (allTransactions.length === 0) {
           return { valid: false, planIndex, error: 'No transaction history found in receipt' };
         }
+
+        const matchingTransactions = allTransactions.filter(
+          t => String(t.product_id || '').trim() === normalizedProductId,
+        );
+
+        if (matchingTransactions.length === 0) {
+          return {
+            valid: false,
+            planIndex,
+            error: `Product ID "${normalizedProductId}" not found in receipt. ` +
+              `Receipt contains: [${[...new Set(allTransactions.map(t => t.product_id).filter(Boolean))].join(', ')}]`,
+          };
+        }
+
+        matchingTransactions.sort((a, b) => Number(b.expires_date_ms) - Number(a.expires_date_ms));
+        const latest = matchingTransactions[0];
+        const expiresAtMs = Number(latest.expires_date_ms);
+        if (isNaN(expiresAtMs)) {
+          return { valid: false, planIndex, error: 'Invalid expiration date in receipt' };
+        }
+        const expiresAt = new Date(expiresAtMs);
+        const now = new Date();
+        if (expiresAt < now) {
+          return { valid: false, planIndex, error: 'Subscription has expired', isExpired: true };
+        }
+        return {
+          valid: true,
+          planIndex,
+          platform,
+          expiresAt,
+          transactionId: latest.transaction_id || latest.original_transaction_id,
+        };
       }
       return { ...result, planIndex, platform };
     }
