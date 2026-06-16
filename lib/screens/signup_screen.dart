@@ -86,10 +86,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _signUp() async {
     if (_loading) return;
-    if (_plan == null) {
-      MyDialogs.error(msg: 'Please select a plan first');
-      return;
-    }
     setState(() => _loading = true);
     final ok = await _auth.signUp(
       username: _username.text,
@@ -101,6 +97,11 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _loading = false);
     if (!ok) return;
     if (!mounted) return;
+    // No plan selected → go straight to home; user can subscribe anytime from Premium.
+    if (_plan == null) {
+      Get.offAll(() => HomeScreen());
+      return;
+    }
     final subscribe = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -249,6 +250,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Widget _buildPlanCard(Plan? plan, List<Plan>? plans) {
+    final hasPlan = plan != null;
     final accent = plan?.isPlatinumPlus == true ? NexusTheme.purple : NexusTheme.gold;
     return InkWell(
       onTap: _changePlan,
@@ -257,8 +259,10 @@ class _SignupScreenState extends State<SignupScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accent.withOpacity(0.4)),
-          color: accent.withOpacity(0.1),
+          border: Border.all(
+            color: hasPlan ? accent.withOpacity(0.4) : NexusTheme.border,
+          ),
+          color: hasPlan ? accent.withOpacity(0.1) : NexusTheme.surface,
         ),
         child: Row(
           children: [
@@ -267,7 +271,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    plan?.displayName ?? 'Choose your plan',
+                    hasPlan ? plan!.displayName : 'Subscribe (optional)',
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -276,9 +280,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    plan != null
-                        ? '${plan.displayPrice} ${plan.period} · ${plan.description}'
-                        : 'Tap to select a plan',
+                    hasPlan
+                        ? '${plan!.displayPrice} ${plan.period} · ${plan.description}'
+                        : 'You can subscribe now or any time after signup',
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       color: NexusTheme.text2,
@@ -288,15 +292,19 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
             Text(
-              'Change',
+              hasPlan ? 'Change' : 'Select',
               style: GoogleFonts.outfit(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: accent,
+                color: hasPlan ? accent : NexusTheme.teal,
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.arrow_forward_ios_rounded, size: 12, color: accent),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 12,
+              color: hasPlan ? accent : NexusTheme.teal,
+            ),
           ],
         ),
       ),

@@ -122,9 +122,6 @@ class HomeController extends GetxController {
         if (kDebugMode) {
           debugPrint('[TronVPN] connectToVpn: Subscription check failed, but bypassing in debug mode.');
         } else {
-          MyDialogs.error(
-            msg: 'Subscription Required. Please subscribe to a premium plan to protect your connection.',
-          );
           Get.to(() => const PremiumScreen());
           return;
         }

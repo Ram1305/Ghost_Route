@@ -75,6 +75,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         if (!Pref.isLoggedIn) ...[
                           const SizedBox(height: 16),
                           _buildAlreadyHaveAccount(context),
+                          const SizedBox(height: 10),
+                          _buildCreateAccount(context),
                         ],
                         const SizedBox(height: 40),
                       ],
@@ -362,7 +364,33 @@ class _PremiumScreenState extends State<PremiumScreen> {
             children: [
               const TextSpan(text: 'Already have an account? '),
               TextSpan(
-                text: 'Login',
+                text: 'Sign in',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w700,
+                  color: NexusTheme.teal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreateAccount(BuildContext context) {
+    return Center(
+      child: GestureDetector(
+        onTap: () => Get.to(() => const SignupScreen()),
+        child: RichText(
+          text: TextSpan(
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: NexusTheme.text2,
+            ),
+            children: [
+              const TextSpan(text: 'New here? '),
+              TextSpan(
+                text: 'Create account',
                 style: GoogleFonts.outfit(
                   fontWeight: FontWeight.w700,
                   color: NexusTheme.teal,

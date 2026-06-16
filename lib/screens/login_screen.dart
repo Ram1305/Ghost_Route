@@ -7,6 +7,7 @@ import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -127,6 +128,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 28),
                         _buildLoginButton(),
+                        const SizedBox(height: 24),
+                        _buildCreateAccount(),
                         const SizedBox(height: 40),
                       ],
                     ),
@@ -214,6 +217,32 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCreateAccount() {
+    return Center(
+      child: GestureDetector(
+        onTap: () => Get.to(() => const SignupScreen()),
+        child: RichText(
+          text: TextSpan(
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: NexusTheme.text2,
+            ),
+            children: [
+              const TextSpan(text: "Don't have an account? "),
+              TextSpan(
+                text: 'Create account',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w700,
+                  color: NexusTheme.teal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
