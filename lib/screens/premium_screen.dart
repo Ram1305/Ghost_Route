@@ -12,6 +12,7 @@ import '../helpers/pref.dart';
 import '../models/plan.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
+import '../widgets/subscription_disclaimer_banner.dart';
 import '../widgets/subscription_legal_footer.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
@@ -245,6 +246,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SubscriptionDisclaimerBanner(
+          text: AppConfig.disclaimerPlatinumBenefits,
+        ),
+        const SizedBox(height: 16),
         Text(
           'WHAT YOU GET',
           style: GoogleFonts.jetBrainsMono(

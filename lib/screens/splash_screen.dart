@@ -9,7 +9,6 @@ import '../main.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import 'home_screen.dart';
-import 'premium_screen.dart';
 
 /// Tron VPN-style splash with shield ripple animation
 class SplashScreen extends StatefulWidget {
@@ -70,11 +69,12 @@ class _SplashScreenState extends State<SplashScreen>
         try {
           await Get.find<AuthController>().refreshCurrentUserFromBackend();
         } catch (_) {}
-        if (!mounted) return;
-        Get.off(() => HomeScreen());
-      } else {
-        Get.off(() => const PremiumScreen());
       }
+      // Always land on HomeScreen — Apple Guideline 5.1.1(v): apps must not
+      // require sign-in or subscription before showing any functionality.
+      // The subscription gate fires only when the user taps the VPN toggle.
+      if (!mounted) return;
+      Get.off(() => HomeScreen());
     });
   }
 

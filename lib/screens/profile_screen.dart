@@ -14,6 +14,7 @@ import '../widgets/canvas_background.dart';
 import '../widgets/purchase_invoice_sheet.dart';
 import 'login_screen.dart';
 import 'premium_screen.dart';
+import 'signup_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -244,11 +245,30 @@ class ProfileScreen extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                'Login',
+                                'Sign in',
                                 style: GoogleFonts.outfit(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                 ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          GestureDetector(
+                            onTap: () => Get.to(() => const SignupScreen()),
+                            child: RichText(
+                              text: TextSpan(
+                                style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2),
+                                children: [
+                                  const TextSpan(text: "Don't have an account? "),
+                                  TextSpan(
+                                    text: 'Create account',
+                                    style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.w700,
+                                      color: NexusTheme.teal,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

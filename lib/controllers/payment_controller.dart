@@ -209,6 +209,7 @@ class PaymentController extends GetxController {
 
       if (_restoredCount > 0) {
         MyDialogs.success(msg: 'Purchases restored successfully!');
+        Get.offAll(() => HomeScreen());
       } else if (_restoreFailedCount > 0) {
         final detail = _restoreLastError?.replaceFirst('Exception: ', '');
         MyDialogs.error(
@@ -312,8 +313,10 @@ class PaymentController extends GetxController {
     final guestMode = _guestMode;
     final backendUserId = Pref.currentUser?.backendUserId;
     if (backendUserId == null || backendUserId.isEmpty) {
-      if (guestMode && !restoring) {
-        // Guest purchase: activate locally without backend verification.
+      if (!restoring) {
+        // No backend account — activate locally (covers explicit guest mode and
+        // StoreKit replay of pending transactions). Apple requires purchases to
+        // work without an account.
         final plan = PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
         Pref.guestActivePlanIndex = planIndex;
         Pref.guestSubscriptionExpiresAt = DateTime.now().add(Duration(days: plan.daysInPlan));
@@ -323,14 +326,10 @@ class PaymentController extends GetxController {
         MyDialogs.success(msg: 'Subscription active');
         return;
       }
+      // Restoring without a logged-in account — skip silently.
       isPurchasing.value = false;
-      if (restoring) {
-        _restoreHandlersInFlight--;
-        _lastRestoreHandlerFinishedAt = DateTime.now();
-      }
-      if (!restoring) {
-        MyDialogs.error(msg: 'Sign in required before purchasing');
-      }
+      _restoreHandlersInFlight--;
+      _lastRestoreHandlerFinishedAt = DateTime.now();
       return;
     }
 

@@ -34,13 +34,19 @@ Privacy Policy: https://ghostroutes.netlify.app/
 
 ---
 
-## Guideline 2.3.2 — App description (paid disclosure)
+## Guideline 2.3.2 — Accurate metadata (paid disclosure)
 
-Add near the top of the **Description** (included in EULA block above):
+**Rejection (June 2026):** Description and screenshots referenced VPN features without clearly labelling them as requiring purchase.
 
-> Ghost Route is free to download. Full VPN access requires an active Platinum or Platinum+ subscription (weekly, monthly, or yearly), purchased through the App Store. Premium features, server tiers, and device limits vary by plan.
+**Fix:** Use the full copy-paste blocks in **[APP_STORE_METADATA.md](APP_STORE_METADATA.md)** — subtitle, promotional text, description, screenshot overlays, and App Review reply.
 
-Audit subtitle, screenshots, and promotional text for “premium included” without “subscription required.” Use **App Store** only in iOS metadata (no Google Play references).
+Minimum requirements:
+1. **Description** — First line must state subscription is required for VPN connection; separate free vs paid sections.
+2. **Subtitle** — Must not imply free VPN (use `VPN · Subscription Required`).
+3. **Screenshots** — Any image showing connect/secured/servers/benefits needs a visible “Subscription required” overlay.
+4. **Promotional text** — Lead with subscription requirement.
+
+Use **App Store** only in iOS metadata (no Google Play references).
 
 ---
 

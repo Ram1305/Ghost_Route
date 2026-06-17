@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../controllers/home_controller.dart';
+import '../config/app_config.dart';
 import '../main.dart';
 import '../models/vpn_status.dart';
 import '../services/vpn_engine.dart';
@@ -11,6 +12,7 @@ import '../widgets/canvas_background.dart';
 import '../widgets/count_down_timer.dart';
 import '../widgets/power_orb.dart';
 import '../widgets/secured_overlay.dart';
+import '../widgets/subscription_disclaimer_banner.dart';
 import 'location_screen.dart';
 import 'network_test_screen.dart';
 import 'premium_screen.dart';
@@ -253,6 +255,16 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 22),
       child: Column(
         children: [
+          Obx(() {
+            final connected =
+                _controller.vpnState.value == VpnEngine.vpnConnected;
+            return SubscriptionDisclaimerBanner(
+              text: connected
+                  ? AppConfig.disclaimerActiveSubRequired
+                  : AppConfig.disclaimerConnectRequired,
+            );
+          }),
+          const SizedBox(height: 14),
           GestureDetector(
             onTap: () {
               debugPrint('[TronVPN] Connect button (power orb) tapped');
@@ -288,8 +300,8 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   connected
-                      ? '✦ Secured via ${_controller.vpn.value.countryLong}'
-                      : 'Tap the shield to protect your connection',
+                      ? 'Connected via ${_controller.vpn.value.countryLong}'
+                      : 'Tap the shield to connect',
                   style: TextStyle(
                     fontSize: 13,
                     color: connected ? NexusTheme.teal : NexusTheme.text2,
@@ -419,6 +431,11 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          const SubscriptionDisclaimerBanner(
+            text: AppConfig.disclaimerSubscribeToServers,
+            compact: true,
           ),
           const SizedBox(height: 13),
           GestureDetector(

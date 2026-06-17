@@ -5,8 +5,10 @@ import 'package:lottie/lottie.dart';
 
 import '../controllers/home_controller.dart';
 import '../controllers/location_controller.dart';
+import '../config/app_config.dart';
 import '../main.dart';
 import '../theme/nexus_theme.dart';
+import '../widgets/subscription_disclaimer_banner.dart';
 import '../widgets/vpn_card.dart';
 
 class LocationScreen extends StatefulWidget {
@@ -55,11 +57,24 @@ class _LocationScreenState extends State<LocationScreen> {
             child: const Icon(Icons.refresh_rounded),
           ),
         ),
-        body: _controller.isLoading.value
-            ? _loadingWidget()
-            : _controller.vpnList.isEmpty
-                ? _noVPNFound()
-                : _vpnData(),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: const SubscriptionDisclaimerBanner(
+                text: AppConfig.disclaimerBrowseServers,
+              ),
+            ),
+            Expanded(
+              child: _controller.isLoading.value
+                  ? _loadingWidget()
+                  : _controller.vpnList.isEmpty
+                      ? _noVPNFound()
+                      : _vpnData(),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -56,4 +56,16 @@ class AppConfig {
   /// User-Agent for public HTTP requests (VPN Gate requires a desktop-style UA).
   static const String userAgent =
       'GhostRoute/1.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+
+  /// Visible paid-content labels for VPN-related screens (App Store Guideline 2.3.2).
+  static const String disclaimerConnectRequired =
+      'Subscription required to connect';
+  static const String disclaimerActiveSubRequired =
+      'Active subscription required';
+  static const String disclaimerSubscribeToServers =
+      'Subscribe to connect to servers';
+  static const String disclaimerBrowseServers =
+      'Browse free · Subscribe to connect';
+  static const String disclaimerPlatinumBenefits =
+      'Included with Platinum subscription';
 }

@@ -2,7 +2,9 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_config.dart';
 import '../theme/nexus_theme.dart';
+import 'subscription_disclaimer_banner.dart';
 
 /// Full-screen "You're Secured" overlay shown on connect
 class SecuredOverlay extends StatefulWidget {
@@ -153,8 +155,15 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                       ),
                     ),
                     const SizedBox(height: 8),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 32),
+                      child: SubscriptionDisclaimerBanner(
+                        text: AppConfig.disclaimerActiveSubRequired,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      'TRON VPN · MILITARY GRADE',
+                      'Ghost Route · Encrypted tunnel',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12,
                         color: NexusTheme.text2,
@@ -201,7 +210,7 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                             ],
                           ),
                           child: Text(
-                            'Start Browsing →',
+                            'Continue',
                             style: GoogleFonts.outfit(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
