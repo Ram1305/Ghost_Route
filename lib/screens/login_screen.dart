@@ -6,7 +6,7 @@ import '../controllers/auth_controller.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
+import 'main_shell_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final ok = await _auth.login(_email.text, _password.text);
     setState(() => _loading = false);
     if (ok) {
-      Get.offAll(() => HomeScreen());
+      Get.offAll(() => const MainShellScreen());
     }
   }
 

@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../controllers/home_controller.dart';
+import '../controllers/main_nav_controller.dart';
 import '../config/app_config.dart';
+import '../helpers/pref.dart';
 import '../main.dart';
 import '../models/vpn_status.dart';
 import '../services/vpn_engine.dart';
@@ -13,10 +15,6 @@ import '../widgets/count_down_timer.dart';
 import '../widgets/power_orb.dart';
 import '../widgets/secured_overlay.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
-import 'location_screen.dart';
-import 'network_test_screen.dart';
-import 'premium_screen.dart';
-import 'profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
@@ -68,13 +66,6 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     ),
-          // Bottom nav
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildBottomNav(context),
-          ),
           // Secured overlay
           Obx(() {
             if (!_controller.showSecuredOverlay.value) return const SizedBox();
@@ -151,7 +142,7 @@ class HomeScreen extends StatelessWidget {
                 ).createShader(bounds),
                 blendMode: BlendMode.srcIn,
                 child: Text(
-                  'Tron VPN',
+                  'Ghost Route',
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -213,7 +204,7 @@ class HomeScreen extends StatelessWidget {
               }),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: () => Get.to(() => const PremiumScreen()),
+                onTap: () => MainNavController.switchTo(MainTab.premium),
                 child: Container(
                   width: 36,
                   height: 36,
@@ -258,6 +249,9 @@ class HomeScreen extends StatelessWidget {
           Obx(() {
             final connected =
                 _controller.vpnState.value == VpnEngine.vpnConnected;
+            if (Pref.hasActiveSubscription) {
+              return const SizedBox.shrink();
+            }
             return SubscriptionDisclaimerBanner(
               text: connected
                   ? AppConfig.disclaimerActiveSubRequired
@@ -421,7 +415,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => Get.to(() => LocationScreen()),
+                onTap: () => MainNavController.switchTo(MainTab.servers),
                 child: Text(
                   'View All →',
                   style: TextStyle(
@@ -433,13 +427,15 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const SubscriptionDisclaimerBanner(
-            text: AppConfig.disclaimerSubscribeToServers,
-            compact: true,
-          ),
-          const SizedBox(height: 13),
+          if (!Pref.hasActiveSubscription)
+            const SubscriptionDisclaimerBanner(
+              text: AppConfig.disclaimerSubscribeToServers,
+              compact: true,
+            ),
+          if (!Pref.hasActiveSubscription) const SizedBox(height: 13),
+          if (Pref.hasActiveSubscription) const SizedBox(height: 13),
           GestureDetector(
-            onTap: () => Get.to(() => LocationScreen()),
+            onTap: () => MainNavController.switchTo(MainTab.servers),
             child: _ServerCard(
               country: _controller.vpn.value.countryLong.isEmpty
                   ? 'Select Server'
@@ -536,61 +532,6 @@ class HomeScreen extends StatelessWidget {
                 ],
               );
             },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 10,
-        bottom: MediaQuery.of(context).padding.bottom + 28,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, NexusTheme.bg],
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          Expanded(
-            child: _NavBtn(
-              icon: Icons.shield_rounded,
-              label: 'Shield',
-              active: true,
-              onTap: () {},
-            ),
-          ),
-          Expanded(
-            child: _NavBtn(
-              icon: Icons.public_rounded,
-              label: 'Servers',
-              active: false,
-              onTap: () => Get.to(() => LocationScreen()),
-            ),
-          ),
-          Expanded(
-            child: _NavBtn(
-              icon: Icons.star_rounded,
-              label: 'Premium',
-              active: false,
-              onTap: () => Get.to(() => const PremiumScreen()),
-            ),
-          ),
-          Expanded(
-            child: _NavBtn(
-              icon: Icons.person_rounded,
-              label: 'Account',
-              active: false,
-              onTap: () => Get.to(() => const ProfileScreen()),
-            ),
           ),
         ],
       ),
@@ -860,59 +801,6 @@ class _StatTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _NavBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _NavBtn({
-    required this.icon,
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: active ? NexusTheme.teal : NexusTheme.text2.withOpacity(0.35),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 9,
-                letterSpacing: 1.5,
-                color: active ? NexusTheme.teal : NexusTheme.text2.withOpacity(0.35),
-              ),
-            ),
-            if (active)
-              Container(
-                width: 4,
-                height: 4,
-                margin: const EdgeInsets.only(top: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: NexusTheme.teal,
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }

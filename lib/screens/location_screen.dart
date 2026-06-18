@@ -6,13 +6,16 @@ import 'package:lottie/lottie.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/location_controller.dart';
 import '../config/app_config.dart';
+import '../helpers/pref.dart';
 import '../main.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
 import '../widgets/vpn_card.dart';
 
 class LocationScreen extends StatefulWidget {
-  const LocationScreen({super.key});
+  final bool embedded;
+
+  const LocationScreen({super.key, this.embedded = false});
 
   @override
   State<LocationScreen> createState() => _LocationScreenState();
@@ -60,12 +63,13 @@ class _LocationScreenState extends State<LocationScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: const SubscriptionDisclaimerBanner(
-                text: AppConfig.disclaimerBrowseServers,
+            if (!Pref.hasActiveSubscription)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: const SubscriptionDisclaimerBanner(
+                  text: AppConfig.disclaimerBrowseServers,
+                ),
               ),
-            ),
             Expanded(
               child: _controller.isLoading.value
                   ? _loadingWidget()

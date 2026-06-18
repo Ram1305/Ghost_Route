@@ -6,10 +6,29 @@ class MyDialogs {
   /// route transitions or when Get.overlayContext is not ready.
   static final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+  static String? _lastMsg;
+  static DateTime? _lastShownAt;
+  static const Duration _debounce = Duration(seconds: 2);
+
   /// Shows snackbar via ScaffoldMessenger (no Overlay.of lookup needed).
   static void _showSnackbar(SnackBar snackBar) {
+    final content = snackBar.content;
+    final msg = content is Text ? content.data : null;
+    if (msg != null &&
+        msg == _lastMsg &&
+        _lastShownAt != null &&
+        DateTime.now().difference(_lastShownAt!) < _debounce) {
+      return;
+    }
+    if (msg != null) {
+      _lastMsg = msg;
+      _lastShownAt = DateTime.now();
+    }
+
     void tryShow() {
-      rootScaffoldMessengerKey.currentState?.showSnackBar(snackBar);
+      final messenger = rootScaffoldMessengerKey.currentState;
+      messenger?.clearSnackBars();
+      messenger?.showSnackBar(snackBar);
     }
 
     if (rootScaffoldMessengerKey.currentContext != null &&

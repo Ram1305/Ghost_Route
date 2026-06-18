@@ -10,7 +10,7 @@ import '../models/plan.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/subscription_legal_footer.dart';
-import 'home_screen.dart';
+import 'main_shell_screen.dart';
 import 'login_screen.dart';
 import 'premium_screen.dart';
 
@@ -99,7 +99,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (!mounted) return;
     // No plan selected → go straight to home; user can subscribe anytime from Premium.
     if (_plan == null) {
-      Get.offAll(() => HomeScreen());
+      Get.offAll(() => const MainShellScreen());
       return;
     }
     final subscribe = await showDialog<bool>(
@@ -135,7 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
       }
       await Get.find<PaymentController>().openCheckout(_plan!, fromSignup: true);
     } else {
-      Get.offAll(() => HomeScreen());
+      Get.offAll(() => const MainShellScreen());
     }
   }
 

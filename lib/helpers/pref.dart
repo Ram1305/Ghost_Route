@@ -127,4 +127,32 @@ class Pref {
     if (expiry != null && expiry.isBefore(DateTime.now())) return null;
     return PremiumPlan.values[idx];
   }
+
+  /// Whether the user (logged-in or guest) has a non-expired subscription.
+  static bool get hasActiveSubscription => activeSubscriptionPlan != null;
+
+  /// Active plan for connect gate — guest first, then logged-in user.
+  static PremiumPlan? get activeSubscriptionPlan {
+    final guest = guestActivePlan;
+    if (guest != null) return guest;
+
+    final u = currentUser;
+    if (u == null) return null;
+
+    final plan = currentUserActivePlan;
+    if (plan == null) return null;
+    if (isSubscriptionExpired(u, plan)) return null;
+    return plan;
+  }
+
+  /// True only when an explicit expiry exists and is in the past.
+  static bool isSubscriptionExpired(User user, PremiumPlan plan) {
+    final expiresAt = user.subscriptionExpiresAt;
+    if (expiresAt != null) {
+      return expiresAt.isBefore(DateTime.now());
+    }
+    // No store/backend expiry — trust activePlan; do not infer expiry from
+    // purchase history (old rows would incorrectly block valid subscribers).
+    return false;
+  }
 }

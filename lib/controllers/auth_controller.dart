@@ -110,7 +110,20 @@ class AuthController extends GetxController {
     if (u == null || u.email.isEmpty || u.password.isEmpty) return false;
     try {
       final user = await AuthApi.login(u.email, u.password);
-      final toStore = user.copyWith(password: u.password);
+      var toStore = user.copyWith(password: u.password);
+      // Keep locally verified subscription if backend profile is stale.
+      final localPlan = u.activePlan ?? Pref.currentUserActivePlan;
+      if (toStore.activePlan == null &&
+          localPlan != null &&
+          !Pref.isSubscriptionExpired(u, localPlan)) {
+        toStore = toStore.copyWith(
+          activePlan: localPlan,
+          subscriptionExpiresAt: u.subscriptionExpiresAt,
+          subscriptionHistory: u.subscriptionHistory.isNotEmpty
+              ? u.subscriptionHistory
+              : toStore.subscriptionHistory,
+        );
+      }
       final users = Pref.users;
       final idx = users.indexWhere((e) => e.email.toLowerCase() == user.email.toLowerCase());
       if (idx >= 0) {
@@ -177,7 +190,7 @@ class AuthController extends GetxController {
   }
 
   /// Update current user's pack locally. Backend sync via activate-subscription when backendUserId is set.
-  Future<bool> updatePack(PremiumPlan plan) async {
+  Future<bool> updatePack(PremiumPlan plan, {bool showToast = true}) async {
     final u = Pref.currentUser;
     if (u == null) return false;
     final updatedHistory = List<Subscription>.from(u.subscriptionHistory)
@@ -193,8 +206,10 @@ class AuthController extends GetxController {
     Pref.users = users;
     Pref.currentUser = updatedUser;
     currentUser.value = updatedUser;
-    final label = Subscription(plan: plan, date: DateTime.now()).planLabel;
-    MyDialogs.success(msg: 'Plan updated to $label');
+    if (showToast) {
+      final label = Subscription(plan: plan, date: DateTime.now()).planLabel;
+      MyDialogs.success(msg: 'Plan updated to $label');
+    }
     return true;
   }
 

@@ -11,7 +11,7 @@ import '../models/vpn.dart';
 import '../models/vpn_config.dart';
 import '../models/subscription.dart';
 import '../services/vpn_engine.dart';
-import '../screens/premium_screen.dart';
+import '../controllers/main_nav_controller.dart';
 import '../theme/nexus_theme.dart';
 
 class HomeController extends GetxController {
@@ -27,6 +27,8 @@ class HomeController extends GetxController {
   bool _userCancelledConnect = false;
   /// True once we've seen a non-disconnected stage this connect attempt (avoids false "connection failed" on plugin cleanup).
   bool _sawConnectingStageThisAttempt = false;
+  /// Avoids spamming "connection failed" during VPN reconnect/disconnect cycles.
+  bool _connectFailureNotified = false;
 
   /// Max time to wait for "connected" before showing timeout error.
   static const Duration _connectTimeoutDuration = Duration(seconds: 60);
@@ -45,8 +47,13 @@ class HomeController extends GetxController {
       if (event == VpnEngine.vpnConnected) {
         showSecuredOverlay.value = true;
       }
-      if (event == VpnEngine.vpnDisconnected && wasConnecting && !_userCancelledConnect && _sawConnectingStageThisAttempt) {
+      if (event == VpnEngine.vpnDisconnected &&
+          wasConnecting &&
+          !_userCancelledConnect &&
+          _sawConnectingStageThisAttempt &&
+          !_connectFailureNotified) {
         // Connection failed (native reported disconnect after we actually started connecting).
+        _connectFailureNotified = true;
         _connectTimeout?.cancel();
         _connectTimeout = null;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,29 +114,20 @@ class HomeController extends GetxController {
     }
 
     if (vpnState.value == VpnEngine.vpnDisconnected) {
-      // Enforce active subscription check (logged-in user or guest).
-      final user = Pref.currentUser;
-      final userPlan = Pref.currentUserActivePlan;
-      final guestPlan = Pref.guestActivePlan;
-      final plan = userPlan ?? guestPlan;
-      final expiresAt = user?.subscriptionExpiresAt ??
-          (user != null && user.subscriptionHistory.isNotEmpty && userPlan != null
-              ? user.subscriptionHistory.last.date.add(Duration(days: userPlan.daysInPlan))
-              : Pref.guestSubscriptionExpiresAt);
-      final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
-
-      if (plan == null || isExpired) {
+      if (!Pref.hasActiveSubscription) {
         if (kDebugMode) {
-          debugPrint('[TronVPN] connectToVpn: Subscription check failed, but bypassing in debug mode.');
-        } else {
-          Get.to(() => const PremiumScreen());
-          return;
+          debugPrint(
+            '[TronVPN] connectToVpn: No active subscription — opening Premium.',
+          );
         }
+        MainNavController.switchTo(MainTab.premium);
+        return;
       }
 
       debugPrint(
           '[TronVPN] connectToVpn: Starting connect to ${vpn.value.countryLong} (${vpn.value.hostname})');
       _sawConnectingStageThisAttempt = false;
+      _connectFailureNotified = false;
       vpnState.value = VpnEngine.vpnConnecting;
       _startConnectTimeout();
 

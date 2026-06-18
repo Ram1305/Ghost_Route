@@ -6,14 +6,7 @@ Use this when updating App Store Connect before resubmission. Do not commit secr
 
 **In-app (fixed in binary):** Premium screen and plan picker show Privacy Policy and Terms of Use links. Subscription title, length, and price are displayed on plan tiles.
 
-**App Store Connect — paste into App Description:**
-
-```
-Ghost Route is free to download. Full VPN access requires an active Platinum or Platinum+ subscription (weekly, monthly, or yearly), purchased through the App Store. Premium features, server tiers, and device limits vary by plan.
-
-Terms of Use (EULA): https://ghostroutetermsofuse.netlify.app/
-Privacy Policy: https://ghostroutes.netlify.app/
-```
+**App Store Connect — App Description:** Use the **full** copy-paste block in **[APP_STORE_METADATA.md](APP_STORE_METADATA.md) section 3** (starts with `PAID SUBSCRIPTION REQUIRED FOR VPN ACCESS`). Do not use a shortened description — Apple requires explicit **purchase required** language in the first lines.
 
 **Privacy Policy URL (App Information field):** https://ghostroutes.netlify.app/
 
@@ -41,10 +34,12 @@ Privacy Policy: https://ghostroutes.netlify.app/
 **Fix:** Use the full copy-paste blocks in **[APP_STORE_METADATA.md](APP_STORE_METADATA.md)** — subtitle, promotional text, description, screenshot overlays, and App Review reply.
 
 Minimum requirements:
-1. **Description** — First line must state subscription is required for VPN connection; separate free vs paid sections.
-2. **Subtitle** — Must not imply free VPN (use `VPN · Subscription Required`).
-3. **Screenshots** — Any image showing connect/secured/servers/benefits needs a visible “Subscription required” overlay.
-4. **Promotional text** — Lead with subscription requirement.
+1. **Description** — First line must state **PAID SUBSCRIPTION REQUIRED** and that VPN is **not** included with the free download; separate free vs paid sections.
+2. **Subtitle** — Must not imply free VPN (use `VPN Access · Subscription`).
+3. **Screenshots** — Any image showing connect/secured/servers/benefits needs a visible **“Purchase required”** overlay; re-upload **iPad** set.
+4. **Promotional text** — Lead with paid purchase requirement.
+5. **Keywords** — No `free vpn`; see APP_STORE_METADATA.md section 4.
+6. **IAP localizations** — All 6 products + group names; see STORE_PRODUCTS.md.
 
 Use **App Store** only in iOS metadata (no Google Play references).
 

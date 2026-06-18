@@ -33,7 +33,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum weekly subscription",
+              "description" : "Paid weekly subscription — required to connect to VPN.",
               "displayName" : "Platinum Weekly",
               "locale" : "en_US"
             }
@@ -58,7 +58,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum monthly subscription",
+              "description" : "Paid monthly subscription — required to connect to VPN.",
               "displayName" : "Platinum Monthly",
               "locale" : "en_US"
             }
@@ -83,7 +83,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum yearly subscription",
+              "description" : "Paid yearly subscription — required to connect to VPN.",
               "displayName" : "Platinum Yearly",
               "locale" : "en_US"
             }
@@ -117,7 +117,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum+ weekly subscription",
+              "description" : "Paid weekly subscription — required to connect to VPN.",
               "displayName" : "Platinum+ Weekly",
               "locale" : "en_US"
             }
@@ -142,7 +142,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum+ monthly subscription",
+              "description" : "Paid monthly subscription — required to connect to VPN.",
               "displayName" : "Platinum+ Monthly",
               "locale" : "en_US"
             }
@@ -167,7 +167,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Platinum+ yearly subscription",
+              "description" : "Paid yearly subscription — required to connect to VPN.",
               "displayName" : "Platinum+ Yearly",
               "locale" : "en_US"
             }

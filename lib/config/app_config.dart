@@ -59,13 +59,26 @@ class AppConfig {
 
   /// Visible paid-content labels for VPN-related screens (App Store Guideline 2.3.2).
   static const String disclaimerConnectRequired =
-      'Subscription required to connect';
+      'Purchase required to connect';
   static const String disclaimerActiveSubRequired =
-      'Active subscription required';
+      'Active paid subscription required';
   static const String disclaimerSubscribeToServers =
-      'Subscribe to connect to servers';
+      'Purchase subscription to connect to servers';
   static const String disclaimerBrowseServers =
-      'Browse free · Subscribe to connect';
+      'Browse free · Purchase to connect';
   static const String disclaimerPlatinumBenefits =
-      'Included with Platinum subscription';
+      'Included with paid Platinum subscription';
+
+  /// Shown on Premium screen below hero (Guideline 2.3.2).
+  static const String disclaimerPremiumHero =
+      'VPN access requires a paid in-app subscription. Prices shown before purchase.';
+
+  /// Profile screen — expired subscription (Guideline 2.3.2).
+  static const String profileExpiredTitle =
+      'Paid subscription expired. Purchase to renew.';
+  static const String profileExpiredSubtitle =
+      'Purchase a plan to connect to VPN and use premium features.';
+  static const String profileUpgradeSubtitle =
+      'Purchase a paid plan for faster speeds and more locations';
+  static const String profileRenewButton = 'Purchase to renew';
 }

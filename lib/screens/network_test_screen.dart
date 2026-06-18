@@ -8,14 +8,39 @@ import '../models/ip_details.dart';
 import '../models/network_data.dart';
 import '../widgets/network_card.dart';
 
-class NetworkTestScreen extends StatelessWidget {
+class NetworkTestScreen extends StatefulWidget {
   const NetworkTestScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final ipData = IPDetails.fromJson({}).obs;
-    APIs.getIPDetails(ipData: ipData);
+  State<NetworkTestScreen> createState() => _NetworkTestScreenState();
+}
 
+class _NetworkTestScreenState extends State<NetworkTestScreen> {
+  final ipData = IPDetails.fromJson({}).obs;
+  bool _loadFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIpDetails();
+  }
+
+  Future<void> _loadIpDetails() async {
+    if (_loadFailed) return;
+    await APIs.getIPDetails(ipData: ipData);
+    if (ipData.value.query.isEmpty && ipData.value.country.isEmpty) {
+      _loadFailed = true;
+    }
+  }
+
+  void _refresh() {
+    _loadFailed = false;
+    ipData.value = IPDetails.fromJson({});
+    _loadIpDetails();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Network Test Screen')),
 
@@ -23,10 +48,7 @@ class NetworkTestScreen extends StatelessWidget {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 10, right: 10),
         child: FloatingActionButton(
-            onPressed: () {
-              ipData.value = IPDetails.fromJson({});
-              APIs.getIPDetails(ipData: ipData);
-            },
+            onPressed: _refresh,
             child: Icon(CupertinoIcons.refresh)),
       ),
 

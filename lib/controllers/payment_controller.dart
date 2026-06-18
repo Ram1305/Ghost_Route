@@ -12,7 +12,7 @@ import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/plan.dart';
 import '../models/subscription.dart';
-import '../screens/home_screen.dart';
+import '../screens/main_shell_screen.dart';
 import '../screens/payment_success_screen.dart';
 import '../services/iap_service.dart';
 import 'auth_controller.dart';
@@ -30,6 +30,7 @@ class PaymentController extends GetxController {
   String? _restoreLastError;
   int _restoreHandlersInFlight = 0;
   DateTime? _lastRestoreHandlerFinishedAt;
+  final Set<String> _handledPurchaseKeys = {};
 
   static const Duration _restoreMaxWait = Duration(seconds: 15);
   static const Duration _restoreIdleWindow = Duration(milliseconds: 800);
@@ -155,7 +156,7 @@ class PaymentController extends GetxController {
             ? _iosStoreUnavailableMessage()
             : _storeProductsNotFoundMessage,
       );
-      if (fromSignup) Get.offAll(() => HomeScreen());
+      if (fromSignup) Get.offAll(() => const MainShellScreen());
       return;
     }
 
@@ -176,12 +177,20 @@ class PaymentController extends GetxController {
   }
 
   Future<void> restorePurchases() async {
+    await _restorePurchases(showUi: true);
+  }
+
+  /// Re-sync App Store / Play entitlements on launch (no dialogs).
+  Future<void> syncSubscriptionFromStore() async {
+    if (Pref.hasActiveSubscription) return;
+    await _restorePurchases(showUi: false);
+  }
+
+  Future<void> _restorePurchases({required bool showUi}) async {
     if (!isPaymentSupported) {
-      MyDialogs.error(msg: 'Restore is not supported on this device.');
-      return;
-    }
-    if (!Pref.isLoggedIn) {
-      MyDialogs.error(msg: 'Please log in first to restore your purchases.');
+      if (showUi) {
+        MyDialogs.error(msg: 'Restore is not supported on this device.');
+      }
       return;
     }
     if (!_iapReady) {
@@ -190,8 +199,11 @@ class PaymentController extends GetxController {
         onError: _handlePurchaseError,
         onCancelled: _handlePurchaseCancelled,
       );
+      if (!_iapReady) return;
     }
-    MyDialogs.showProgress();
+    if (showUi) {
+      MyDialogs.showProgress();
+    }
     _isRestoring = true;
     _restoredCount = 0;
     _restoreFailedCount = 0;
@@ -203,30 +215,36 @@ class PaymentController extends GetxController {
       _lastRestoreHandlerFinishedAt = DateTime.now();
       await _waitForRestoreEvents();
 
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
+      if (showUi) {
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
 
-      if (_restoredCount > 0) {
-        MyDialogs.success(msg: 'Purchases restored successfully!');
-        Get.offAll(() => HomeScreen());
-      } else if (_restoreFailedCount > 0) {
-        final detail = _restoreLastError?.replaceFirst('Exception: ', '');
-        MyDialogs.error(
-          msg: detail != null && detail.isNotEmpty
-              ? 'Restore verification failed: $detail'
-              : 'Restore verification failed. Please try again.',
-        );
-      } else {
-        MyDialogs.info(msg: 'No active subscriptions found to restore.');
+        if (_restoredCount > 0) {
+          MyDialogs.success(msg: 'Purchases restored successfully!');
+          Get.offAll(() => const MainShellScreen());
+        } else if (_restoreFailedCount > 0) {
+          final detail = _restoreLastError?.replaceFirst('Exception: ', '');
+          MyDialogs.error(
+            msg: detail != null && detail.isNotEmpty
+                ? 'Restore verification failed: $detail'
+                : 'Restore verification failed. Please try again.',
+          );
+        } else {
+          MyDialogs.info(msg: 'No active subscriptions found to restore.');
+        }
       }
     } catch (e) {
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
+      if (showUi) {
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
+        MyDialogs.error(
+          msg: 'Restore failed: ${e.toString().replaceFirst("Exception: ", "")}',
+        );
+      } else if (kDebugMode) {
+        debugPrint('[PaymentController] silent restore failed: $e');
       }
-      MyDialogs.error(
-        msg: 'Restore failed: ${e.toString().replaceFirst("Exception: ", "")}',
-      );
     } finally {
       _isRestoring = false;
       _restoreHandlersInFlight = 0;
@@ -268,10 +286,56 @@ class PaymentController extends GetxController {
     onPurchaseCancelled(fromSignup: _fromSignup);
   }
 
+  String _purchaseKey(PurchaseDetails purchase) =>
+      '${purchase.productID}:${purchase.purchaseID ?? purchase.transactionDate ?? ''}';
+
+  Future<void> _silentGuestActivation(int planIndex) async {
+    final plan = PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
+    Pref.guestActivePlanIndex = planIndex;
+    Pref.guestSubscriptionExpiresAt =
+        DateTime.now().add(Duration(days: plan.daysInPlan));
+  }
+
+  Future<void> _silentLoggedInActivation({
+    required int planIndex,
+    required PurchaseDetails purchase,
+  }) async {
+    final backendUserId = Pref.currentUser?.backendUserId;
+    if (backendUserId == null || backendUserId.isEmpty) return;
+
+    final platform = Platform.isIOS ? 'ios' : 'android';
+    final token = purchase.verificationData.serverVerificationData;
+    final receiptData = platform == 'ios'
+        ? await _iap.receiptDataForServerVerification(purchase)
+        : null;
+    if (platform == 'ios' &&
+        (receiptData == null || IapService.looksLikeJws(receiptData))) {
+      return;
+    }
+    final result = await PaymentApi.verifyStorePurchase(
+      userId: backendUserId,
+      platform: platform,
+      productId: purchase.productID,
+      purchaseToken: platform == 'android' ? token : null,
+      receiptData: receiptData,
+      transactionId: purchase.purchaseID,
+    );
+    if (result == null || !result.verified) return;
+
+    final auth = Get.find<AuthController>();
+    await _syncSubscriptionAfterVerify(
+      auth: auth,
+      result: result,
+      planIndex: planIndex,
+      showToast: false,
+    );
+  }
+
   Future<void> _syncSubscriptionAfterVerify({
     required AuthController auth,
     required StoreVerifyResponse result,
     required int planIndex,
+    bool showToast = true,
   }) async {
     if (result.user != null) {
       final local = Pref.currentUser;
@@ -281,7 +345,7 @@ class PaymentController extends GetxController {
     } else {
       final premiumPlan = PremiumPlan
           .values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
-      await auth.updatePack(premiumPlan);
+      await auth.updatePack(premiumPlan, showToast: showToast);
       if (result.subscriptionExpiresAt != null) {
         auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
       }
@@ -290,7 +354,13 @@ class PaymentController extends GetxController {
   }
 
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
+    final purchaseKey = _purchaseKey(purchase);
+    if (_handledPurchaseKeys.contains(purchaseKey)) {
+      return;
+    }
+
     final restoring = _isRestoring;
+    final userInitiated = isPurchasing.value || restoring;
     if (restoring) {
       _restoreHandlersInFlight++;
     }
@@ -310,30 +380,34 @@ class PaymentController extends GetxController {
     }
 
     final fromSignup = _fromSignup;
-    final guestMode = _guestMode;
     final backendUserId = Pref.currentUser?.backendUserId;
     if (backendUserId == null || backendUserId.isEmpty) {
-      if (!restoring) {
-        // No backend account — activate locally (covers explicit guest mode and
-        // StoreKit replay of pending transactions). Apple requires purchases to
-        // work without an account.
-        final plan = PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
-        Pref.guestActivePlanIndex = planIndex;
-        Pref.guestSubscriptionExpiresAt = DateTime.now().add(Duration(days: plan.daysInPlan));
-        _guestMode = false;
-        isPurchasing.value = false;
+      await _silentGuestActivation(planIndex);
+      _handledPurchaseKeys.add(purchaseKey);
+      _guestMode = false;
+      isPurchasing.value = false;
+      if (restoring) {
+        _restoredCount++;
+        _restoreHandlersInFlight--;
+        _lastRestoreHandlerFinishedAt = DateTime.now();
+      } else if (userInitiated) {
         Get.offAll(() => const PaymentSuccessScreen());
         MyDialogs.success(msg: 'Subscription active');
-        return;
       }
-      // Restoring without a logged-in account — skip silently.
-      isPurchasing.value = false;
-      _restoreHandlersInFlight--;
-      _lastRestoreHandlerFinishedAt = DateTime.now();
       return;
     }
 
     try {
+      if (!userInitiated) {
+        await _silentLoggedInActivation(
+          planIndex: planIndex,
+          purchase: purchase,
+        );
+        _handledPurchaseKeys.add(purchaseKey);
+        isPurchasing.value = false;
+        return;
+      }
+
       final platform = Platform.isIOS ? 'ios' : 'android';
       final token = purchase.verificationData.serverVerificationData;
       final receiptData = platform == 'ios'
@@ -372,10 +446,12 @@ class PaymentController extends GetxController {
 
       if (restoring) {
         _restoredCount++;
+        _handledPurchaseKeys.add(purchaseKey);
         return;
       }
 
       _fromSignup = false;
+      _handledPurchaseKeys.add(purchaseKey);
       Get.offAll(() => const PaymentSuccessScreen());
       MyDialogs.success(msg: 'Subscription active');
     } catch (e) {
@@ -402,14 +478,14 @@ class PaymentController extends GetxController {
     _fromSignup = false;
     _guestMode = false;
     if (fromSignup) {
-      Get.offAll(() => HomeScreen());
+      Get.offAll(() => const MainShellScreen());
     }
   }
 
   /// User cancelled before store sheet completes.
   void onPurchaseCancelled({bool fromSignup = false}) {
     if (fromSignup) {
-      Get.offAll(() => HomeScreen());
+      Get.offAll(() => const MainShellScreen());
     }
   }
 }

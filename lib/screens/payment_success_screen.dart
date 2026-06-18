@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
-import 'home_screen.dart';
+import 'main_shell_screen.dart';
 
 /// Shown after successful payment (e.g. post signup). User taps "Go to Home" to continue.
 class PaymentSuccessScreen extends StatelessWidget {
@@ -57,7 +57,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => Get.offAll(() => HomeScreen()),
+                        onTap: () => Get.offAll(() => const MainShellScreen()),
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
                           decoration: BoxDecoration(

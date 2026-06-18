@@ -18,7 +18,9 @@ import 'login_screen.dart';
 import 'signup_screen.dart';
 
 class PremiumScreen extends StatefulWidget {
-  const PremiumScreen({super.key});
+  final bool embedded;
+
+  const PremiumScreen({super.key, this.embedded = false});
 
   @override
   State<PremiumScreen> createState() => _PremiumScreenState();
@@ -63,6 +65,20 @@ class _PremiumScreenState extends State<PremiumScreen> {
                       children: [
                         const SizedBox(height: 20),
                         _buildHero(context),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            AppConfig.disclaimerPremiumHero,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: NexusTheme.gold,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 32),
                         _buildBenefits(context),
                         const SizedBox(height: 36),
@@ -97,11 +113,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-            color: NexusTheme.text2,
-          ),
+          if (!widget.embedded)
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              color: NexusTheme.text2,
+            )
+          else
+            const SizedBox(width: 48),
           const Spacer(),
           Text(
             'Ghost Route',

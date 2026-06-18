@@ -4,11 +4,12 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
-import 'home_screen.dart';
+import 'main_shell_screen.dart';
 
 /// Tron VPN-style splash with shield ripple animation
 class SplashScreen extends StatefulWidget {
@@ -70,11 +71,18 @@ class _SplashScreenState extends State<SplashScreen>
           await Get.find<AuthController>().refreshCurrentUserFromBackend();
         } catch (_) {}
       }
+      // Re-sync App Store / Play entitlements if local state has no active sub
+      if (!Pref.hasActiveSubscription) {
+        try {
+          Get.put(PaymentController(), permanent: true);
+          await Get.find<PaymentController>().syncSubscriptionFromStore();
+        } catch (_) {}
+      }
       // Always land on HomeScreen — Apple Guideline 5.1.1(v): apps must not
       // require sign-in or subscription before showing any functionality.
       // The subscription gate fires only when the user taps the VPN toggle.
       if (!mounted) return;
-      Get.off(() => HomeScreen());
+      Get.off(() => const MainShellScreen());
     });
   }
 
@@ -140,7 +148,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ).createShader(bounds),
                           blendMode: BlendMode.srcIn,
                           child: Text(
-                            'Tron VPN',
+                            'Ghost Route',
                             style: GoogleFonts.outfit(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,

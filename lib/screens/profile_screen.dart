@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_config.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/main_nav_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../models/subscription.dart';
@@ -13,21 +14,31 @@ import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/purchase_invoice_sheet.dart';
 import 'login_screen.dart';
-import 'premium_screen.dart';
 import 'signup_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  final bool embedded;
+
+  const ProfileScreen({super.key, this.embedded = false});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Pref.isLoggedIn) {
+        Get.find<AuthController>().refreshCurrentUserFromBackend();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
-    // Refresh user profile in background to get the latest subscription history
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Pref.isLoggedIn) {
-        auth.refreshCurrentUserFromBackend();
-      }
-    });
     return Obx(() {
       final currentUser = auth.currentUser.value ?? Pref.currentUser;
       if (currentUser == null) {
@@ -40,18 +51,11 @@ class ProfileScreen extends StatelessWidget {
           ? Subscription(plan: currentActivePlan, date: DateTime.now()).planLabel
           : null;
 
-      // Effective expiry: from API or computed from last subscription (local)
+      // Effective expiry: from API only (do not infer from old purchase history).
       DateTime? effectiveExpiresAt = currentUser.subscriptionExpiresAt;
-      if (effectiveExpiresAt == null &&
-          subscriptionHistory.isNotEmpty &&
-          currentActivePlan != null) {
-        final last = subscriptionHistory.last;
-        effectiveExpiresAt =
-            last.date.add(Duration(days: last.plan.daysInPlan));
-      }
       final now = DateTime.now();
-      final isExpired = effectiveExpiresAt != null &&
-          effectiveExpiresAt.isBefore(now);
+      final isExpired = currentActivePlan != null &&
+          Pref.isSubscriptionExpired(currentUser, currentActivePlan);
       final int? daysLeft = effectiveExpiresAt != null && !isExpired
           ? effectiveExpiresAt.difference(now).inDays
           : null;
@@ -290,11 +294,14 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-            color: NexusTheme.text2,
-          ),
+          if (!widget.embedded)
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              color: NexusTheme.text2,
+            )
+          else
+            const SizedBox(width: 48),
           const Spacer(),
           Text(
             'Account',
@@ -375,13 +382,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildUpgradePlanCard(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const PremiumScreen(),
-          ),
-        );
-      },
+      onTap: () => MainNavController.switchTo(MainTab.premium),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -423,7 +424,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Subscribe for faster speeds and more premium locations',
+                    AppConfig.profileUpgradeSubtitle,
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       color: NexusTheme.text2,
@@ -464,7 +465,7 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your subscription expired. Renew now.',
+                  AppConfig.profileExpiredTitle,
                   style: GoogleFonts.outfit(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -473,7 +474,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Choose a plan to continue using premium features',
+                  AppConfig.profileExpiredSubtitle,
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     color: NexusTheme.text2,
@@ -494,13 +495,7 @@ class ProfileScreen extends StatelessWidget {
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const PremiumScreen(),
-              ),
-            );
-          },
+          onPressed: () => MainNavController.switchTo(MainTab.premium),
           style: ElevatedButton.styleFrom(
             backgroundColor: NexusTheme.teal,
             foregroundColor: Colors.black87,
@@ -509,7 +504,7 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           child: Text(
-            'Renew subscription',
+            AppConfig.profileRenewButton,
             style: GoogleFonts.outfit(
               fontSize: 16,
               fontWeight: FontWeight.w700,
