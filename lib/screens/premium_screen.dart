@@ -693,23 +693,9 @@ class _PlanSheetState extends State<PlanSheet> {
     );
   }
 
-  String _titleLabel(Plan plan) {
-    if (Get.isRegistered<PaymentController>()) {
-      final store =
-          Get.find<PaymentController>().storeTitleForPlanIndex(plan.index);
-      if (store != null && store.isNotEmpty) return store;
-    }
-    return plan.displayName;
-  }
+  String _titleLabel(Plan plan) => plan.displayName;
 
-  String _priceLabel(Plan plan) {
-    if (Get.isRegistered<PaymentController>()) {
-      final store =
-          Get.find<PaymentController>().storePriceLabelForPlanIndex(plan.index);
-      if (store != null && store.isNotEmpty) return store;
-    }
-    return plan.displayPrice;
-  }
+  String _priceLabel(Plan plan) => plan.displayPrice;
 
   Widget _buildPlanTile(BuildContext context, Plan plan, Color tierColor) {
     final isSelected = _selected.index == plan.index;

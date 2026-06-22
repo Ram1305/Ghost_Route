@@ -1,3 +1,5 @@
+import '../helpers/currency_helper.dart';
+
 /// Premium tier: Platinum only.
 enum PremiumTier { platinum }
 
@@ -158,9 +160,13 @@ class Subscription {
 
   String get planLabel => plan.planLabel;
 
-  String get displayAmount => amount ?? plan.price;
+  String get displayAmount => CurrencyHelper.displayAmount(
+        amount: amount,
+        currency: currency,
+        fallbackCents: plan.amountInSmallestUnit,
+      );
 
-  String get displayCurrency => currency ?? plan.currencyCode;
+  String get displayCurrency => CurrencyHelper.displayCurrencyCode;
 
   String get paymentMethodLabel {
     switch (platform) {
