@@ -15,6 +15,7 @@ import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/purchase_invoice_sheet.dart';
 import 'login_screen.dart';
+import 'main_shell_screen.dart';
 import 'premium_screen.dart';
 import 'signup_screen.dart';
 
@@ -742,7 +743,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: OutlinedButton(
         onPressed: () {
           Get.find<AuthController>().logout();
-          Get.offAll(() => const LoginScreen());
+          Get.offAll(() => const MainShellScreen(initialIndex: MainTab.account));
         },
         style: OutlinedButton.styleFrom(
           foregroundColor: NexusTheme.red,

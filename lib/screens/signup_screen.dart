@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../controllers/auth_controller.dart';
+import '../helpers/auth_navigation.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import 'main_shell_screen.dart';
@@ -163,7 +164,7 @@ class _SignupScreenState extends State<SignupScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Get.back(),
+            onPressed: popAuthScreenOrGoHome,
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
             color: NexusTheme.text2,
           ),
