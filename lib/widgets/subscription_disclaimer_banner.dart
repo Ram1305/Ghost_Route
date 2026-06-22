@@ -9,10 +9,14 @@ class SubscriptionDisclaimerBanner extends StatelessWidget {
     super.key,
     required this.text,
     this.compact = false,
+    this.accentColor,
   });
 
   final String text;
   final bool compact;
+  final Color? accentColor;
+
+  Color get _accent => accentColor ?? NexusTheme.gold;
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +27,8 @@ class SubscriptionDisclaimerBanner extends StatelessWidget {
         vertical: compact ? 6 : 8,
       ),
       decoration: BoxDecoration(
-        color: NexusTheme.gold.withOpacity(0.08),
-        border: Border.all(color: NexusTheme.gold.withOpacity(0.35)),
+        color: _accent.withOpacity(0.08),
+        border: Border.all(color: _accent.withOpacity(0.35)),
         borderRadius: BorderRadius.circular(compact ? 10 : 12),
       ),
       child: Row(
@@ -33,7 +37,7 @@ class SubscriptionDisclaimerBanner extends StatelessWidget {
           Icon(
             Icons.lock_outline_rounded,
             size: compact ? 13 : 15,
-            color: NexusTheme.gold,
+            color: _accent,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -42,7 +46,7 @@ class SubscriptionDisclaimerBanner extends StatelessWidget {
               style: GoogleFonts.outfit(
                 fontSize: compact ? 11 : 12,
                 fontWeight: FontWeight.w600,
-                color: NexusTheme.gold,
+                color: _accent,
                 height: 1.3,
               ),
             ),

@@ -123,6 +123,12 @@ class AuthController extends GetxController {
               ? u.subscriptionHistory
               : toStore.subscriptionHistory,
         );
+      } else if (toStore.activePlan != null &&
+          toStore.subscriptionExpiresAt == null &&
+          u.subscriptionExpiresAt != null &&
+          u.subscriptionExpiresAt!.isAfter(DateTime.now()) &&
+          toStore.activePlan == u.activePlan) {
+        toStore = toStore.copyWith(subscriptionExpiresAt: u.subscriptionExpiresAt);
       }
       final users = Pref.users;
       final idx = users.indexWhere((e) => e.email.toLowerCase() == user.email.toLowerCase());
@@ -198,6 +204,8 @@ class AuthController extends GetxController {
     final updatedUser = u.copyWith(
       subscriptionHistory: updatedHistory,
       activePlan: plan,
+      subscriptionExpiresAt:
+          DateTime.now().add(Duration(days: plan.daysInPlan)),
     );
     final users = Pref.users;
     final idx = users.indexWhere((e) => e.email == u.email);

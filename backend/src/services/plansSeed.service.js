@@ -1,7 +1,7 @@
 import Plan from '../models/plan.model.js';
 import User from '../models/user.model.js';
 import { defaultPlans } from '../config/defaultPlans.js';
-import { migrateLegacyPlanIndex } from '../config/plans.js';
+import { normalizePlanIndex } from '../config/plans.js';
 
 /** Upsert all default plans into MongoDB (by index). */
 export async function upsertDefaultPlans() {
@@ -22,24 +22,24 @@ export async function resetAndSeedDefaultPlans() {
   await migrateUserPlanIndices();
 }
 
-/** Remap user activePlan / history from old 2-5 indices to new 0-1. */
+/** Clamp user activePlan / history to valid indices (0 = monthly, 1 = yearly). */
 export async function migrateUserPlanIndices() {
   const users = await User.find({
     $or: [
-      { activePlan: { $gte: 2 } },
-      { 'subscriptionHistory.plan': { $gte: 2 } },
+      { activePlan: { $nin: [0, 1, null] } },
+      { 'subscriptionHistory.plan': { $nin: [0, 1, null] } },
     ],
   });
 
   for (const user of users) {
     let changed = false;
-    if (user.activePlan != null && user.activePlan >= 2) {
-      user.activePlan = migrateLegacyPlanIndex(user.activePlan);
+    if (user.activePlan != null && user.activePlan !== 0 && user.activePlan !== 1) {
+      user.activePlan = normalizePlanIndex(user.activePlan);
       changed = true;
     }
     for (const entry of user.subscriptionHistory || []) {
-      if (entry.plan != null && entry.plan >= 2) {
-        entry.plan = migrateLegacyPlanIndex(entry.plan);
+      if (entry.plan != null && entry.plan !== 0 && entry.plan !== 1) {
+        entry.plan = normalizePlanIndex(entry.plan);
         changed = true;
       }
     }

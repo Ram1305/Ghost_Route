@@ -7,36 +7,11 @@ export const planDurationDays = {
   1: 365,
 };
 
-/** Legacy indices (old 2-5 scheme) → current plan index. Indices 0-1 pass through. */
+/** Clamp plan index to valid range (0 = monthly, 1 = yearly). */
 export function normalizePlanIndex(planIndex) {
   const idx = Number(planIndex);
-  if (idx >= 0 && idx <= 1) return idx;
-  switch (idx) {
-    case 2:
-    case 5:
-      return 1;
-    case 3:
-    case 4:
-      return 0;
-    default:
-      return idx;
-  }
-}
-
-/** One-time migration for users still on old 0-5 plan indices. */
-export function migrateLegacyPlanIndex(planIndex) {
-  switch (Number(planIndex)) {
-    case 0:
-    case 1:
-    case 3:
-    case 4:
-      return 0;
-    case 2:
-    case 5:
-      return 1;
-    default:
-      return normalizePlanIndex(planIndex);
-  }
+  if (idx === 0 || idx === 1) return idx;
+  return idx > 1 ? 1 : 0;
 }
 
 export function getPlanDurationDays(planIndex) {

@@ -7,6 +7,7 @@ import '../config/app_config.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
+import '../helpers/subscription_expiry.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
 import '../theme/nexus_theme.dart';
@@ -51,13 +52,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ? Subscription(plan: currentActivePlan, date: DateTime.now()).planLabel
           : null;
 
-      // Effective expiry: from API only (do not infer from old purchase history).
-      DateTime? effectiveExpiresAt = currentUser.subscriptionExpiresAt;
+      // Effective expiry: backend first, then latest matching purchase when active.
+      final effectiveExpiresAt =
+          resolveSubscriptionExpiresAt(currentUser, currentActivePlan);
       final now = DateTime.now();
       final isExpired = currentActivePlan != null &&
           Pref.isSubscriptionExpired(currentUser, currentActivePlan);
       final int? daysLeft = effectiveExpiresAt != null && !isExpired
-          ? effectiveExpiresAt.difference(now).inDays
+          ? remainingDays(effectiveExpiresAt, now)
           : null;
 
       return Scaffold(
@@ -369,6 +371,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     fontWeight: FontWeight.w600,
                     color: NexusTheme.text,
                   ),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

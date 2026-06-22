@@ -1,4 +1,5 @@
 import 'subscription.dart';
+import '../helpers/subscription_expiry.dart';
 
 class User {
   final String username;
@@ -51,9 +52,7 @@ class User {
             ? PremiumPlanX.fromStoredIndex(activePlanRaw)
             : null;
     final expiresAtRaw = json['subscriptionExpiresAt'];
-    final DateTime? expiresAt = expiresAtRaw is String
-        ? DateTime.tryParse(expiresAtRaw)
-        : null;
+    final DateTime? expiresAt = parseSubscriptionDate(expiresAtRaw);
     final backendId = json['backendUserId'] as String?;
     return User(
       username: json['username'] ?? '',

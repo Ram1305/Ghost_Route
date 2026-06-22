@@ -1,4 +1,5 @@
 import '../helpers/currency_helper.dart';
+import '../helpers/subscription_expiry.dart';
 
 /// Premium tier: Platinum only.
 enum PremiumTier { platinum }
@@ -13,40 +14,12 @@ enum PremiumPlan {
 }
 
 extension PremiumPlanX on PremiumPlan {
-  /// Normalize legacy plan indices (old 2–5 scheme) to current index (0–1).
-  /// Indices 0–1 are used as-is (0 = monthly, 1 = yearly).
-  static int normalizeStoredIndex(int idx) {
-    if (idx >= 0 && idx < PremiumPlan.values.length) return idx;
-    switch (idx) {
-      case 2: // old yearly
-      case 5: // old platinum+ yearly
-        return 1;
-      case 3: // old platinum+ weekly
-      case 4: // old platinum+ monthly
-        return 0;
-      default:
-        return 1;
+  static PremiumPlan fromStoredIndex(int idx) {
+    if (idx >= 0 && idx < PremiumPlan.values.length) {
+      return PremiumPlan.values[idx];
     }
+    return PremiumPlan.platinumMonthly;
   }
-
-  /// Map pre-migration stored indices (old 0–5) to current indices. Run once on backend DB.
-  static int migrateLegacyStoredIndex(int idx) {
-    switch (idx) {
-      case 0: // old weekly
-      case 1: // old monthly
-      case 3: // old platinum+ weekly
-      case 4: // old platinum+ monthly
-        return 0;
-      case 2: // old yearly
-      case 5: // old platinum+ yearly
-        return 1;
-      default:
-        return idx >= 0 && idx < PremiumPlan.values.length ? idx : 1;
-    }
-  }
-
-  static PremiumPlan fromStoredIndex(int idx) =>
-      PremiumPlan.values[normalizeStoredIndex(idx)];
 
   PremiumTier get tier => PremiumTier.platinum;
 
@@ -200,17 +173,7 @@ class Subscription {
       };
 
   static DateTime _parseDate(dynamic raw) {
-    if (raw is String && raw.isNotEmpty) {
-      final parsed = DateTime.tryParse(raw);
-      if (parsed != null) return parsed;
-    }
-    if (raw is int) {
-      return DateTime.fromMillisecondsSinceEpoch(raw);
-    }
-    if (raw is num) {
-      return DateTime.fromMillisecondsSinceEpoch(raw.toInt());
-    }
-    return DateTime.now();
+    return parseSubscriptionDate(raw) ?? DateTime.now();
   }
 
   static String? _parseAmount(dynamic raw) {

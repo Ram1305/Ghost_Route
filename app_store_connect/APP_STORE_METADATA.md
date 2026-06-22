@@ -21,7 +21,7 @@ VPN · Purchase Required
 ## 2. Promotional text
 
 ```
-PAID IN-APP PURCHASE REQUIRED to connect to VPN. Ghost Route is free to download only — browsing servers and viewing plans are free. Paid in-app purchase required to connect. Platinum or Platinum+ subscription (weekly, monthly, or yearly) via the App Store.
+PAID IN-APP PURCHASE REQUIRED to connect to VPN. Ghost Route is free to download only — browsing servers and viewing plans are free. Paid in-app purchase required to connect. Platinum subscription (monthly or yearly) via the App Store.
 ```
 
 ---
@@ -31,7 +31,7 @@ PAID IN-APP PURCHASE REQUIRED to connect to VPN. Ghost Route is free to download
 ```
 PAID IN-APP PURCHASE REQUIRED TO CONNECT
 
-Ghost Route is free to download. VPN connection and encrypted tunnel access are NOT included with the free download. A separate paid in-app purchase is required to connect. Platinum or Platinum+ auto-renewable subscriptions (weekly, monthly, or yearly) are available through the App Store.
+Ghost Route is free to download. VPN connection and encrypted tunnel access are NOT included with the free download. A separate paid in-app purchase is required to connect. Platinum auto-renewable subscriptions (monthly or yearly) are available through the App Store.
 
 WHAT IS FREE
 • Browse available VPN server locations
@@ -89,7 +89,7 @@ We updated our App Store metadata for Guideline 2.3.2:
 
 3. iPad screenshots — Re-uploaded showing in-app "Paid in-app purchase required to connect" on VPN screens.
 
-The app is free to download for browsing servers and viewing plans only. VPN connection requires a paid Platinum or Platinum+ subscription purchased through the App Store.
+The app is free to download for browsing servers and viewing plans only. VPN connection requires a paid Platinum subscription (monthly or yearly) purchased through the App Store.
 
 Demo account (premium for VPN testing): yencodedeverloper@gmail.com / YencodeReview2026!
 ```
@@ -100,11 +100,7 @@ Demo account (premium for VPN testing): yencodedeverloper@gmail.com / YencodeRev
 
 | Product ID |
 |------------|
-| `com.yencode.ghostroute.platinum.weekly` |
 | `com.yencode.ghostroute.platinum.monthly` |
 | `com.yencode.ghostroute.platinum.yearly` |
-| `com.yencode.ghostroute.platinumplus.weekly` |
-| `com.yencode.ghostroute.platinumplus.monthly` |
-| `com.yencode.ghostroute.platinumplus.yearly` |
 
-IAP display names should include paid/purchase language, e.g. “Platinum Weekly — paid subscription required for VPN”.
+IAP display names should include paid/purchase language, e.g. “Platinum Monthly — paid subscription required for VPN”.

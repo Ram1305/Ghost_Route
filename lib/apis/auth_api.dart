@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../helpers/subscription_expiry.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
 
@@ -69,7 +70,7 @@ class AuthApi {
       active = PremiumPlanX.fromStoredIndex(activePlanRaw);
     }
     final expiresAtRaw = json['subscriptionExpiresAt'];
-    final DateTime? expiresAt = expiresAtRaw is String ? DateTime.tryParse(expiresAtRaw) : null;
+    final DateTime? expiresAt = parseSubscriptionDate(expiresAtRaw);
     return User(
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',

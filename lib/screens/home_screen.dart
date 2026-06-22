@@ -15,7 +15,6 @@ import '../widgets/count_down_timer.dart';
 import '../widgets/power_orb.dart';
 import '../widgets/secured_overlay.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
-import '../widgets/tools_bottom_sheet.dart';
 import 'premium_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -49,8 +48,8 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildHeader(context),
                   _buildFreeSessionBanner(context),
+                  _buildHeader(context),
                   const SizedBox(height: 10),
                   _buildPowerSection(context),
                   const SizedBox(height: 24),
@@ -91,15 +90,58 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildFreeSessionBanner(BuildContext context) {
+    if (Pref.hasActiveSubscription) {
+      return const SizedBox.shrink();
+    }
+
     return Obx(() {
       final connected =
           _controller.vpnState.value == VpnEngine.vpnConnected;
-      if (!connected || Pref.hasActiveSubscription) {
-        return const SizedBox.shrink();
+      final canStart = Pref.canStartFreeVpnSession;
+      final remaining = connected
+          ? _controller.freeSecondsRemaining.value
+          : canStart
+              ? Pref.freeSessionLimit.inSeconds
+              : 0;
+
+      if (!connected && !canStart) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: NexusTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: NexusTheme.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.timer_off_outlined,
+                  size: 18,
+                  color: NexusTheme.text2,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Free session used today',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                      color: NexusTheme.text2,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
-      final remaining = _controller.freeSecondsRemaining.value;
+
       return Padding(
-        padding: const EdgeInsets.fromLTRB(22, 0, 22, 4),
+        padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -118,7 +160,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Free session',
+                  'Free minutes left',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     letterSpacing: 1,
@@ -128,7 +170,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                '${formatSessionMmSs(remaining)} remaining',
+                formatSessionMmSs(remaining),
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -257,24 +299,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 );
               }),
-              const SizedBox(width: 10),
-              GestureDetector(
-                onTap: () => ToolsBottomSheet.show(context),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: NexusTheme.surface,
-                    border: Border.all(color: NexusTheme.border),
-                  ),
-                  child: const Icon(
-                    Icons.grid_view_rounded,
-                    size: 18,
-                    color: NexusTheme.text2,
-                  ),
-                ),
-              ),
               const SizedBox(width: 10),
               GestureDetector(
                 onTap: () => Get.to(() => const PremiumScreen()),

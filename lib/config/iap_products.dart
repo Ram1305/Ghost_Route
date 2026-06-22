@@ -10,17 +10,10 @@ class IapProducts {
     platinumYearly,
   ];
 
-  /// Product ID → current plan index (0 = monthly, 1 = yearly).
-  /// Includes legacy IDs so restore purchases still work.
+  /// Product ID → plan index (0 = monthly, 1 = yearly).
   static const Map<String, int> _planIndexByProductId = {
-    // Current products
     platinumMonthly: 0,
     platinumYearly: 1,
-    // Legacy products (mapped to nearest current plan)
-    'com.yencode.ghostroute.platinum.weekly': 0,
-    'com.yencode.ghostroute.platinumplus.weekly': 0,
-    'com.yencode.ghostroute.platinumplus.monthly': 0,
-    'com.yencode.ghostroute.platinumplus.yearly': 1,
   };
 
   /// PremiumPlan index 0–1 for backend [Plan.index], or null if unknown.

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../helpers/subscription_expiry.dart';
 import '../models/plan.dart';
 import '../models/user.dart';
 import 'auth_api.dart';
@@ -117,7 +118,7 @@ class PaymentApi {
     }
     final expiresAtRaw = data['subscriptionExpiresAt'];
     final DateTime? subscriptionExpiresAt =
-        expiresAtRaw is String ? DateTime.tryParse(expiresAtRaw) : null;
+        parseSubscriptionDate(expiresAtRaw);
     User? user;
     final userRaw = data['user'];
     if (userRaw is Map) {
@@ -154,9 +155,8 @@ class PaymentApi {
         throw Exception(data['error'] ?? 'Failed to activate subscription');
       }
       final expiresAtRaw = data['subscriptionExpiresAt'];
-      final DateTime? subscriptionExpiresAt = expiresAtRaw is String
-          ? DateTime.tryParse(expiresAtRaw)
-          : null;
+      final DateTime? subscriptionExpiresAt =
+          parseSubscriptionDate(expiresAtRaw);
       return ActivateSubscriptionResponse(
         activePlan: data['activePlan'] as int?,
         subscriptionExpiresAt: subscriptionExpiresAt,

@@ -32,13 +32,10 @@ void main() {
       expect(sub.amount, '35.0');
     });
 
-    test('maps legacy plan indices via migration helper', () {
-      expect(PremiumPlanX.migrateLegacyStoredIndex(1), 0);
-      expect(PremiumPlanX.migrateLegacyStoredIndex(2), 1);
-      expect(PremiumPlanX.migrateLegacyStoredIndex(5), 1);
+    test('clamps invalid plan index to monthly', () {
       expect(
-        Subscription.fromJson({'plan': 2, 'date': '2026-01-01T00:00:00.000Z'}).plan,
-        PremiumPlan.platinumYearly,
+        Subscription.fromJson({'plan': 99, 'date': '2026-01-01T00:00:00.000Z'}).plan,
+        PremiumPlan.platinumMonthly,
       );
     });
   });
