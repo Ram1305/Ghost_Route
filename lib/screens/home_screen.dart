@@ -16,6 +16,7 @@ import '../widgets/power_orb.dart';
 import '../widgets/secured_overlay.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
 import '../widgets/tools_bottom_sheet.dart';
+import 'premium_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
@@ -49,6 +50,7 @@ class HomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildHeader(context),
+                  _buildFreeSessionBanner(context),
                   const SizedBox(height: 10),
                   _buildPowerSection(context),
                   const SizedBox(height: 24),
@@ -86,6 +88,58 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildFreeSessionBanner(BuildContext context) {
+    return Obx(() {
+      final connected =
+          _controller.vpnState.value == VpnEngine.vpnConnected;
+      if (!connected || Pref.hasActiveSubscription) {
+        return const SizedBox.shrink();
+      }
+      final remaining = _controller.freeSecondsRemaining.value;
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(22, 0, 22, 4),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: NexusTheme.teal.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: NexusTheme.teal.withOpacity(0.35)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.timer_outlined,
+                size: 18,
+                color: NexusTheme.teal,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Free session',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    letterSpacing: 1,
+                    color: NexusTheme.teal,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '${formatSessionMmSs(remaining)} remaining',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: NexusTheme.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -223,7 +277,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: () => MainNavController.switchTo(MainTab.premium),
+                onTap: () => Get.to(() => const PremiumScreen()),
                 child: Container(
                   width: 36,
                   height: 36,
@@ -329,14 +383,6 @@ class HomeScreen extends StatelessWidget {
               ],
             );
           }),
-          if (_controller.vpnState.value == VpnEngine.vpnConnected)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: CountDownTimer(
-                startTimer:
-                    _controller.vpnState.value == VpnEngine.vpnConnected,
-              ),
-            ),
         ],
       ),
     );
@@ -500,7 +546,8 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               Obx(() {
-                if (_controller.vpnState.value != VpnEngine.vpnConnected) {
+                if (_controller.vpnState.value != VpnEngine.vpnConnected ||
+                    !Pref.hasActiveSubscription) {
                   return Text(
                     'Session: 00:00',
                     style: GoogleFonts.jetBrainsMono(
@@ -518,8 +565,8 @@ class HomeScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text('Session: '),
-                      CountDownTimer(
-                        startTimer: _controller
+                      CountDownTimer.elapsed(
+                        running: _controller
                             .vpnState.value == VpnEngine.vpnConnected,
                       ),
                     ],

@@ -50,8 +50,8 @@ class MainBottomNav extends StatelessWidget {
           ),
           Expanded(
             child: MainNavBtn(
-              icon: Icons.star_rounded,
-              label: 'Premium',
+              icon: Icons.visibility_off_rounded,
+              label: 'Browser',
               active: currentIndex == 2,
               onTap: () => onTabSelected(2),
             ),

@@ -108,7 +108,6 @@ class PurchaseInvoiceSheet extends StatelessWidget {
                   _buildSection('Purchase details', [
                     _InvoiceRow('Plan', purchase.planLabel),
                     _InvoiceRow('Billing period', purchase.plan.period),
-                    _InvoiceRow('Devices', '${purchase.plan.devices}'),
                     _InvoiceRow('Amount', '${purchase.displayAmount} ${purchase.displayCurrency}'),
                     _InvoiceRow('Payment method', purchase.paymentMethodLabel),
                     _InvoiceRow('Purchased on', _formatDate(purchase.date)),

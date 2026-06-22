@@ -48,8 +48,8 @@ export function getPlanDurationDays(planIndex) {
 
 /** Plan index (0-1) → { name, amount, currency } for invoice email. */
 export const planInvoiceInfo = {
-  0: { name: 'Platinum Monthly (5 devices)', amount: '$5.00', currency: 'USD' },
-  1: { name: 'Platinum Yearly (5 devices)', amount: '$35.00', currency: 'USD' },
+  0: { name: 'Platinum Monthly', amount: '$5.00', currency: 'USD' },
+  1: { name: 'Platinum Yearly', amount: '$35.00', currency: 'USD' },
 };
 
 export function getPlanInvoiceInfo(planIndex) {

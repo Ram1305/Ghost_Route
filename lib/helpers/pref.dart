@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'free_vpn_session.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
 import '../models/vpn.dart';
@@ -143,6 +144,57 @@ class Pref {
     if (plan == null) return null;
     if (isSubscriptionExpired(u, plan)) return null;
     return plan;
+  }
+
+  // --- Free VPN daily session (non-subscribers) ---
+
+  static const Duration freeSessionLimit = FreeVpnSession.limit;
+
+  static String? get freeVpnSessionDate => _box.get('freeVpnSessionDate') as String?;
+
+  static set freeVpnSessionDate(String? v) =>
+      v == null ? _box.delete('freeVpnSessionDate') : _box.put('freeVpnSessionDate', v);
+
+  static DateTime? get freeVpnSessionStartedAt {
+    final ms = _box.get('freeVpnSessionStartedAt') as int?;
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  static set freeVpnSessionStartedAt(DateTime? v) => v == null
+      ? _box.delete('freeVpnSessionStartedAt')
+      : _box.put('freeVpnSessionStartedAt', v.millisecondsSinceEpoch);
+
+  static bool get hasUsedFreeVpnSessionToday =>
+      FreeVpnSession.hasUsedSessionToday(freeVpnSessionDate);
+
+  static bool get canStartFreeVpnSession =>
+      FreeVpnSession.canStartSession(freeVpnSessionDate);
+
+  static Duration get freeSessionRemaining =>
+      FreeVpnSession.remainingFromStart(freeVpnSessionStartedAt);
+
+  static int get freeSessionRemainingSeconds =>
+      FreeVpnSession.remainingSecondsFromStart(freeVpnSessionStartedAt);
+
+  static void markFreeVpnSessionUsed() {
+    final now = DateTime.now();
+    freeVpnSessionDate = FreeVpnSession.localDateKey(now);
+    freeVpnSessionStartedAt = now;
+  }
+
+  /// Apply server state after reinstall or cross-device sync.
+  static void applyRemoteFreeSession({
+    required String sessionDate,
+    DateTime? startedAt,
+  }) {
+    freeVpnSessionDate = sessionDate;
+    if (startedAt != null) {
+      freeVpnSessionStartedAt = startedAt;
+    }
+  }
+
+  static void clearFreeVpnSessionStart() {
+    freeVpnSessionStartedAt = null;
   }
 
   /// True only when an explicit expiry exists and is in the past.

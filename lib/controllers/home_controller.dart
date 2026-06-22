@@ -5,13 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../config/app_config.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';
 import '../models/vpn_config.dart';
-import '../models/subscription.dart';
 import '../services/vpn_engine.dart';
-import '../controllers/main_nav_controller.dart';
+import '../services/free_vpn_session_service.dart';
+import '../screens/premium_screen.dart';
 import '../theme/nexus_theme.dart';
 
 class HomeController extends GetxController {
@@ -19,12 +20,18 @@ class HomeController extends GetxController {
 
   final vpnState = VpnEngine.vpnDisconnected.obs;
 
+  /// Seconds left in today's free VPN session (non-subscribers only).
+  final freeSecondsRemaining = 0.obs;
+
   /// Whether to show the "You're Secured" overlay (set on connect, dismissed by user).
   final showSecuredOverlay = false.obs;
 
   StreamSubscription<String>? _vpnStageSubscription;
   Timer? _connectTimeout;
+  Timer? _freeSessionTimer;
   bool _userCancelledConnect = false;
+  bool _freeSessionEnding = false;
+  bool _manualFreeDisconnect = false;
   /// True once we've seen a non-disconnected stage this connect attempt (avoids false "connection failed" on plugin cleanup).
   bool _sawConnectingStageThisAttempt = false;
   /// Avoids spamming "connection failed" during VPN reconnect/disconnect cycles.
@@ -36,26 +43,40 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen((event) {
-      _connectTimeout?.cancel();
-      _connectTimeout = null;
-      final wasConnecting = _isConnectingState(vpnState.value);
-      if (event != VpnEngine.vpnDisconnected) {
-        _sawConnectingStageThisAttempt = true;
+    _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen(_onVpnStage);
+    _initFreeSessionState();
+  }
+
+  Future<void> _initFreeSessionState() async {
+    await FreeVpnSessionService.syncFromServer();
+    _restoreFreeSessionIfNeeded();
+  }
+
+  void _onVpnStage(String event) {
+    _connectTimeout?.cancel();
+    _connectTimeout = null;
+    final wasConnecting = _isConnectingState(vpnState.value);
+    final wasConnected = vpnState.value == VpnEngine.vpnConnected;
+    if (event != VpnEngine.vpnDisconnected) {
+      _sawConnectingStageThisAttempt = true;
+    }
+    vpnState.value = event;
+
+    if (event == VpnEngine.vpnConnected) {
+      showSecuredOverlay.value = true;
+      _onVpnConnected();
+    }
+
+    if (event == VpnEngine.vpnDisconnected) {
+      if (wasConnected) {
+        _onVpnDisconnectedAfterConnect();
       }
-      vpnState.value = event;
-      if (event == VpnEngine.vpnConnected) {
-        showSecuredOverlay.value = true;
-      }
-      if (event == VpnEngine.vpnDisconnected &&
-          wasConnecting &&
+      if (wasConnecting &&
           !_userCancelledConnect &&
+          !_freeSessionEnding &&
           _sawConnectingStageThisAttempt &&
           !_connectFailureNotified) {
-        // Connection failed (native reported disconnect after we actually started connecting).
         _connectFailureNotified = true;
-        _connectTimeout?.cancel();
-        _connectTimeout = null;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           MyDialogs.info(
             msg:
@@ -63,11 +84,124 @@ class HomeController extends GetxController {
           );
         });
       }
-      if (event == VpnEngine.vpnDisconnected) {
-        _sawConnectingStageThisAttempt = false;
+      _sawConnectingStageThisAttempt = false;
+    }
+    _userCancelledConnect = false;
+  }
+
+  void _onVpnConnected() {
+    if (Pref.hasActiveSubscription) return;
+    if (!Pref.hasUsedFreeVpnSessionToday) {
+      Pref.markFreeVpnSessionUsed();
+      FreeVpnSessionService.markUsedOnServer(
+        startedAt: Pref.freeVpnSessionStartedAt,
+      );
+    }
+    _syncFreeSecondsRemaining();
+    _startFreeSessionTimer();
+  }
+
+  void _onVpnDisconnectedAfterConnect() {
+    _stopFreeSessionTimer();
+    Pref.clearFreeVpnSessionStart();
+    freeSecondsRemaining.value = 0;
+
+    if (_freeSessionEnding) {
+      _freeSessionEnding = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showFreeSessionEndedDialog();
+      });
+      return;
+    }
+
+    if (_manualFreeDisconnect && !Pref.hasActiveSubscription) {
+      _manualFreeDisconnect = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        MyDialogs.info(msg: AppConfig.freeSessionUsedMessage);
+      });
+    }
+  }
+
+  void _restoreFreeSessionIfNeeded() {
+    if (Pref.hasActiveSubscription) return;
+    if (Pref.freeVpnSessionStartedAt == null) return;
+
+    VpnEngine.stage().then((stage) {
+      if (stage?.toLowerCase() != VpnEngine.vpnConnected) return;
+      vpnState.value = VpnEngine.vpnConnected;
+      final remaining = Pref.freeSessionRemainingSeconds;
+      if (remaining <= 0) {
+        _endFreeSession();
+        return;
       }
-      _userCancelledConnect = false;
+      freeSecondsRemaining.value = remaining;
+      _startFreeSessionTimer();
     });
+  }
+
+  void _syncFreeSecondsRemaining() {
+    freeSecondsRemaining.value = Pref.freeSessionRemainingSeconds;
+  }
+
+  void _startFreeSessionTimer() {
+    _freeSessionTimer?.cancel();
+    _syncFreeSecondsRemaining();
+    if (freeSecondsRemaining.value <= 0) {
+      _endFreeSession();
+      return;
+    }
+    _freeSessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (Pref.hasActiveSubscription) {
+        _stopFreeSessionTimer();
+        return;
+      }
+      _syncFreeSecondsRemaining();
+      if (freeSecondsRemaining.value <= 0) {
+        _endFreeSession();
+      }
+    });
+  }
+
+  void _stopFreeSessionTimer() {
+    _freeSessionTimer?.cancel();
+    _freeSessionTimer = null;
+  }
+
+  Future<void> _endFreeSession() async {
+    if (_freeSessionEnding) return;
+    _freeSessionEnding = true;
+    _stopFreeSessionTimer();
+    await VpnEngine.stopVpn();
+  }
+
+  void _showFreeSessionEndedDialog() {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: NexusTheme.bg2,
+        title: const Text(
+          'Free session ended',
+          style: TextStyle(color: NexusTheme.text),
+        ),
+        content: Text(
+          AppConfig.freeSessionEndedMessage,
+          style: const TextStyle(color: NexusTheme.text2),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('OK', style: TextStyle(color: NexusTheme.text2)),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              Get.to(() => const PremiumScreen());
+            },
+            child: const Text('Subscribe', style: TextStyle(color: NexusTheme.teal)),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
   }
 
   bool _isConnectingState(String state) {
@@ -82,6 +216,7 @@ class HomeController extends GetxController {
   @override
   void onClose() {
     _connectTimeout?.cancel();
+    _stopFreeSessionTimer();
     _vpnStageSubscription?.cancel();
     super.onClose();
   }
@@ -115,19 +250,24 @@ class HomeController extends GetxController {
 
     if (vpnState.value == VpnEngine.vpnDisconnected) {
       if (!Pref.hasActiveSubscription) {
-        if (kDebugMode) {
-          debugPrint(
-            '[TronVPN] connectToVpn: No active subscription — opening Premium.',
-          );
+        await FreeVpnSessionService.syncFromServer();
+        if (!Pref.canStartFreeVpnSession) {
+          if (kDebugMode) {
+            debugPrint(
+              '[TronVPN] connectToVpn: Free session used today — opening Premium.',
+            );
+          }
+          MyDialogs.info(msg: AppConfig.freeSessionExhaustedMessage);
+          Get.to(() => const PremiumScreen());
+          return;
         }
-        MainNavController.switchTo(MainTab.premium);
-        return;
       }
 
       debugPrint(
           '[TronVPN] connectToVpn: Starting connect to ${vpn.value.countryLong} (${vpn.value.hostname})');
       _sawConnectingStageThisAttempt = false;
       _connectFailureNotified = false;
+      _manualFreeDisconnect = false;
       vpnState.value = VpnEngine.vpnConnecting;
       _startConnectTimeout();
 
@@ -154,6 +294,9 @@ class HomeController extends GetxController {
       }
     } else if (vpnState.value == VpnEngine.vpnConnected) {
       debugPrint('[TronVPN] connectToVpn: Disconnecting (stopVpn)');
+      if (!Pref.hasActiveSubscription) {
+        _manualFreeDisconnect = true;
+      }
       await VpnEngine.stopVpn();
     } else {
       // Intermediate state (e.g. connecting, authenticating): tap cancels the connection.

@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_config.dart';
+import '../helpers/pref.dart';
 import '../theme/nexus_theme.dart';
 import 'subscription_disclaimer_banner.dart';
 
@@ -155,10 +156,12 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 32),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: SubscriptionDisclaimerBanner(
-                        text: AppConfig.disclaimerActiveSubRequired,
+                        text: Pref.hasActiveSubscription
+                            ? AppConfig.connectHelperTextSubscribed
+                            : AppConfig.disclaimerSecuredOverlayFree,
                       ),
                     ),
                     const SizedBox(height: 12),

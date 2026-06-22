@@ -6,7 +6,7 @@ import '../theme/nexus_theme.dart';
 import '../widgets/main_bottom_nav.dart';
 import 'home_screen.dart';
 import 'location_screen.dart';
-import 'premium_screen.dart';
+import 'incognito_browser_screen.dart';
 import 'profile_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
@@ -40,7 +40,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           children: [
             HomeScreen(),
             const LocationScreen(embedded: true),
-            const PremiumScreen(embedded: true),
+            const IncognitoBrowserScreen(embedded: true),
             const ProfileScreen(embedded: true),
           ],
         ),

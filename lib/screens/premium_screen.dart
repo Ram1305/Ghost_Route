@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -27,10 +28,14 @@ class PremiumScreen extends StatefulWidget {
 }
 
 class _PremiumScreenState extends State<PremiumScreen> {
+  List<Plan> _plans = [];
+  bool _loadingPlans = false;
+
   @override
   void initState() {
     super.initState();
     _ensurePaymentController();
+    _loadPlans();
   }
 
   void _ensurePaymentController() {
@@ -40,18 +45,45 @@ class _PremiumScreenState extends State<PremiumScreen> {
     Get.find<PaymentController>().ensureStoreProductsLoaded();
   }
 
+  Future<void> _loadPlans() async {
+    setState(() => _loadingPlans = true);
+    try {
+      final plans = await PaymentApi.getPlans();
+      if (mounted) setState(() => _plans = plans);
+    } catch (_) {
+      // Hero still works; sheet will retry on open.
+    } finally {
+      if (mounted) setState(() => _loadingPlans = false);
+    }
+  }
+
+  Plan? get _yearlyPlan =>
+      _plans.where((p) => p.interval == 'yearly').firstOrNull ?? _plans.lastOrNull;
+
+  Plan? get _monthlyPlan =>
+      _plans.where((p) => p.interval == 'monthly').firstOrNull ?? _plans.firstOrNull;
+
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       backgroundColor: NexusTheme.bg,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.5,
-              child: const CanvasBackground(opacity: 0.5),
-            ),
+          const Positioned.fill(
+            child: Opacity(opacity: 0.55, child: CanvasBackground(opacity: 0.55)),
+          ),
+          Positioned(
+            top: -80,
+            right: -60,
+            child: _GlowOrb(color: NexusTheme.purple, size: 220, opacity: 0.14),
+          ),
+          Positioned(
+            bottom: 120,
+            left: -90,
+            child: _GlowOrb(color: NexusTheme.teal, size: 260, opacity: 0.1),
           ),
           SafeArea(
             child: Column(
@@ -60,48 +92,37 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                    padding: EdgeInsets.fromLTRB(20, 8, 20, 120 + bottomInset),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 20),
                         _buildHero(context),
-                        const SizedBox(height: 16),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            AppConfig.disclaimerPremiumHero,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.outfit(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: NexusTheme.gold,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 20),
+                        _buildPricingRow(context),
+                        const SizedBox(height: 24),
                         _buildBenefits(context),
-                        const SizedBox(height: 36),
-                        _buildCta(context),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
                         _buildSubscriptionDisclosure(context),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         const SubscriptionLegalFooter(),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         _buildRestorePurchases(context),
                         if (!Pref.isLoggedIn) ...[
-                          const SizedBox(height: 16),
-                          _buildAlreadyHaveAccount(context),
-                          const SizedBox(height: 10),
-                          _buildCreateAccount(context),
+                          const SizedBox(height: 12),
+                          _buildAuthLinks(context),
                         ],
-                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
                 ),
               ],
             ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildStickyCta(context, bottomInset),
           ),
         ],
       ),
@@ -110,7 +131,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   Widget _buildAppBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(6, 6, 16, 4),
       child: Row(
         children: [
           if (!widget.embedded)
@@ -122,12 +143,28 @@ class _PremiumScreenState extends State<PremiumScreen> {
           else
             const SizedBox(width: 48),
           const Spacer(),
-          Text(
-            'Ghost Route',
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: NexusTheme.text,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: NexusTheme.teal.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: NexusTheme.teal.withOpacity(0.35)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.workspace_premium_rounded, size: 16, color: NexusTheme.teal),
+                const SizedBox(width: 6),
+                Text(
+                  'PLATINUM',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                    color: NexusTheme.teal,
+                  ),
+                ),
+              ],
             ),
           ),
           const Spacer(),
@@ -138,95 +175,190 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildHero(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            NexusTheme.teal.withOpacity(0.12),
-            NexusTheme.gold.withOpacity(0.08),
-            NexusTheme.purple.withOpacity(0.06),
-          ],
-        ),
-        border: Border.all(
-          color: NexusTheme.teal.withOpacity(0.25),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: NexusTheme.teal.withOpacity(0.15),
-            blurRadius: 40,
-            spreadRadius: -4,
-          ),
-          BoxShadow(
-            color: NexusTheme.gold.withOpacity(0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  NexusTheme.gold,
-                  NexusTheme.gold.withOpacity(0.7),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: NexusTheme.gold.withOpacity(0.4),
-                  blurRadius: 28,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.star_rounded,
-              size: 44,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 20),
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                NexusTheme.gold,
-                NexusTheme.teal,
+                NexusTheme.purple.withOpacity(0.14),
+                NexusTheme.blue.withOpacity(0.08),
+                NexusTheme.bg2.withOpacity(0.6),
               ],
-            ).createShader(bounds),
-            blendMode: BlendMode.srcIn,
-            child: Text(
-              'Platinum',
-              style: GoogleFonts.outfit(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-                color: Colors.white,
+            ),
+            border: Border.all(color: NexusTheme.teal.withOpacity(0.22)),
+            boxShadow: [
+              BoxShadow(
+                color: NexusTheme.purple.withOpacity(0.12),
+                blurRadius: 32,
+                offset: const Offset(0, 12),
               ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: NexusTheme.purple.withOpacity(0.35),
+                          blurRadius: 40,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [NexusTheme.teal, NexusTheme.blue],
+                      ),
+                      border: Border.all(color: Colors.white24, width: 1.5),
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      size: 40,
+                      color: Color(0xFF001A14),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [NexusTheme.teal, NexusTheme.blue, NexusTheme.purple],
+                ).createShader(bounds),
+                blendMode: BlendMode.srcIn,
+                child: Text(
+                  'Unlock Platinum',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.8,
+                    height: 1.1,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Full-speed VPN · Every location · Zero ads',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: NexusTheme.text2,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: NexusTheme.surface2,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: NexusTheme.border2),
+                ),
+                child: Text(
+                  AppConfig.disclaimerPremiumHero,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: NexusTheme.teal.withOpacity(0.9),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPricingRow(BuildContext context) {
+    if (_loadingPlans) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: NexusTheme.teal),
+          ),
+        ),
+      );
+    }
+
+    final monthly = _monthlyPlan;
+    final yearly = _yearlyPlan;
+    if (monthly == null && yearly == null) {
+      return _buildFallbackPricingHint();
+    }
+
+    return Row(
+      children: [
+        if (monthly != null)
+          Expanded(
+            child: _PricingPreviewCard(
+              plan: monthly,
+              accent: NexusTheme.teal,
+              onTap: () => _openCheckoutForPlan(monthly),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Monthly or yearly · Up to 5 devices',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: NexusTheme.text2,
+        if (monthly != null && yearly != null) const SizedBox(width: 12),
+        if (yearly != null)
+          Expanded(
+            child: _PricingPreviewCard(
+              plan: yearly,
+              accent: NexusTheme.purple,
+              highlighted: true,
+              onTap: () => _openCheckoutForPlan(yearly),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFallbackPricingHint() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: NexusTheme.surface,
+        border: Border.all(color: NexusTheme.border2),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.payments_outlined, color: NexusTheme.gold, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'From \$5.00/month · \$35.00/year',
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: NexusTheme.text,
+              ),
             ),
           ),
         ],
@@ -235,103 +367,107 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildBenefits(BuildContext context) {
-    final benefits = [
-      _Benefit(
-        icon: Icons.bolt_rounded,
-        title: 'Unlimited speed',
-        subtitle: 'No throttling, full bandwidth on all servers',
-        color: NexusTheme.gold,
-      ),
-      _Benefit(
-        icon: Icons.public_rounded,
-        title: 'All locations',
-        subtitle: 'Access 50+ countries and 200+ servers',
-        color: NexusTheme.teal,
-      ),
-      _Benefit(
-        icon: Icons.support_agent_rounded,
-        title: 'Priority support',
-        subtitle: '24/7 dedicated help when you need it',
-        color: NexusTheme.blue,
-      ),
-      _Benefit(
-        icon: Icons.block_rounded,
-        title: 'Ad-free experience',
-        subtitle: 'Clean, distraction-free VPN usage',
-        color: NexusTheme.purple,
-      ),
+    const benefits = [
+      _Benefit(Icons.bolt_rounded, 'Unlimited speed', NexusTheme.gold),
+      _Benefit(Icons.public_rounded, '50+ countries', NexusTheme.teal),
+      _Benefit(Icons.lock_rounded, 'Military encryption', NexusTheme.blue),
+      _Benefit(Icons.block_rounded, 'Ad-free', NexusTheme.purple),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SubscriptionDisclaimerBanner(
-          text: AppConfig.disclaimerPlatinumBenefits,
-        ),
-        const SizedBox(height: 16),
+        const SubscriptionDisclaimerBanner(text: AppConfig.disclaimerPlatinumBenefits),
+        const SizedBox(height: 18),
         Text(
-          'WHAT YOU GET',
+          'INCLUDED WITH PLATINUM',
           style: GoogleFonts.jetBrainsMono(
-            fontSize: 11,
-            letterSpacing: 2,
+            fontSize: 10,
+            letterSpacing: 2.2,
             color: NexusTheme.text3,
           ),
         ),
-        const SizedBox(height: 16),
-        ...benefits.asMap().entries.map((e) {
-          final b = e.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _BenefitCard(
-              icon: b.icon,
-              title: b.title,
-              subtitle: b.subtitle,
-              color: b.color,
-            ),
-          );
-        }),
+        const SizedBox(height: 14),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.35,
+          children: benefits
+              .map((b) => _BenefitTile(icon: b.icon, label: b.label, color: b.color))
+              .toList(),
+        ),
       ],
     );
   }
 
-  Widget _buildCta(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showPlanSheet(context),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  NexusTheme.gold,
-                  NexusTheme.gold.withOpacity(0.85),
-                ],
+  Widget _buildStickyCta(BuildContext context, double bottomInset) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + bottomInset),
+          decoration: BoxDecoration(
+            color: NexusTheme.bg2.withOpacity(0.92),
+            border: Border(top: BorderSide(color: NexusTheme.border2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.35),
+                blurRadius: 24,
+                offset: const Offset(0, -8),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: NexusTheme.gold.withOpacity(0.35),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [NexusTheme.teal, NexusTheme.blue],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: NexusTheme.teal.withOpacity(0.35),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _showPlanSheet(context),
+                      borderRadius: BorderRadius.circular(18),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.rocket_launch_rounded, size: 20, color: Color(0xFF001A14)),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Get Platinum',
+                            style: GoogleFonts.outfit(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF001A14),
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              'Choose plan',
-              style: GoogleFonts.outfit(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-                letterSpacing: 0.3,
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -342,156 +478,68 @@ class _PremiumScreenState extends State<PremiumScreen> {
     final disclosure = Platform.isIOS
         ? AppConfig.subscriptionDisclosureIos
         : AppConfig.subscriptionDisclosureAndroid;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        disclosure,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.outfit(
-          fontSize: 11,
-          height: 1.45,
-          color: NexusTheme.text3,
-        ),
-      ),
+    return Text(
+      disclosure,
+      textAlign: TextAlign.center,
+      style: GoogleFonts.outfit(fontSize: 11, height: 1.45, color: NexusTheme.text3),
     );
   }
 
   Widget _buildRestorePurchases(BuildContext context) {
-    return TextButton(
-      onPressed: () async {
-        if (!Get.isRegistered<PaymentController>()) {
-          Get.put(PaymentController());
-        }
-        await Get.find<PaymentController>().restorePurchases();
-      },
-      child: Text(
-        'Restore purchases',
-        style: GoogleFonts.outfit(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: NexusTheme.teal,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAlreadyHaveAccount(BuildContext context) {
     return Center(
-      child: GestureDetector(
-        onTap: () => Get.to(() => const LoginScreen()),
-        child: RichText(
-          text: TextSpan(
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              color: NexusTheme.text2,
-            ),
-            children: [
-              const TextSpan(text: 'Already have an account? '),
-              TextSpan(
-                text: 'Sign in',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.w700,
-                  color: NexusTheme.teal,
-                ),
-              ),
-            ],
-          ),
+      child: TextButton.icon(
+        onPressed: () async {
+          if (!Get.isRegistered<PaymentController>()) Get.put(PaymentController());
+          await Get.find<PaymentController>().restorePurchases();
+        },
+        icon: Icon(Icons.restore_rounded, size: 18, color: NexusTheme.teal.withOpacity(0.9)),
+        label: Text(
+          'Restore purchases',
+          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: NexusTheme.teal),
         ),
       ),
     );
   }
 
-  Widget _buildCreateAccount(BuildContext context) {
-    return Center(
-      child: GestureDetector(
-        onTap: () => Get.to(() => const SignupScreen()),
-        child: RichText(
-          text: TextSpan(
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              color: NexusTheme.text2,
-            ),
-            children: [
-              const TextSpan(text: 'New here? '),
-              TextSpan(
-                text: 'Create account',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.w700,
-                  color: NexusTheme.teal,
-                ),
-              ),
-            ],
-          ),
-        ),
+  Widget _buildAuthLinks(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: NexusTheme.surface,
+        border: Border.all(color: NexusTheme.border),
       ),
-    );
-  }
-
-  /// Shown when a guest (not logged in) picks a plan. They can purchase without
-  /// an account (subscription activates locally, tied to their Apple ID) or
-  /// optionally sign in / create an account for cross-device sync.
-  void _showAccountOrGuestDialog(Plan plan, List<Plan> plans) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: NexusTheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'How would you like to continue?',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-            color: NexusTheme.text,
-          ),
-        ),
-        content: Text(
-          'You can purchase now without an account. Create an account anytime to sync your subscription across devices.',
-          style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2, height: 1.4),
-        ),
-        actionsAlignment: MainAxisAlignment.start,
-        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Get.back();
-                if (!Get.isRegistered<PaymentController>()) Get.put(PaymentController());
-                Get.find<PaymentController>().openCheckout(plan, guestMode: true);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: NexusTheme.teal,
-                foregroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => Get.to(() => const LoginScreen()),
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2),
+                children: [
+                  const TextSpan(text: 'Already have an account? '),
+                  TextSpan(
+                    text: 'Sign in',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: NexusTheme.teal),
+                  ),
+                ],
               ),
-              child: Text('Purchase now', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
             ),
           ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                Get.back();
-                Get.to(() => const LoginScreen());
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: NexusTheme.teal,
-                side: BorderSide(color: NexusTheme.teal.withOpacity(0.5)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => Get.to(() => const SignupScreen()),
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2),
+                children: [
+                  const TextSpan(text: 'New here? '),
+                  TextSpan(
+                    text: 'Create account',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: NexusTheme.teal),
+                  ),
+                ],
               ),
-              child: Text('Sign in', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-            ),
-          ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: () {
-                Get.back();
-                Get.to(() => SignupScreen(selectedPlan: plan, plans: plans));
-              },
-              style: TextButton.styleFrom(foregroundColor: NexusTheme.text2),
-              child: Text('Create account', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -499,11 +547,98 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
-  void _showPlanSheet(BuildContext context) async {
+  Future<void> _openCheckoutForPlan(Plan plan) async {
+    _ensurePaymentController();
+    final plans = _plans.isNotEmpty ? _plans : await PaymentApi.getPlans();
+    if (!mounted) return;
+    if (Pref.isLoggedIn) {
+      Get.find<PaymentController>().openCheckout(plan);
+    } else {
+      _showAccountOrGuestDialog(plan, plans);
+    }
+  }
+
+  void _showAccountOrGuestDialog(Plan plan, List<Plan> plans) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: NexusTheme.bg2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: NexusTheme.border2),
+        ),
+        title: Text(
+          'Continue to purchase',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 18, color: NexusTheme.text),
+        ),
+        content: Text(
+          'Purchase without an account, or sign in to sync your subscription.',
+          style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2, height: 1.45),
+        ),
+        actionsAlignment: MainAxisAlignment.start,
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          _dialogButton(
+            label: 'Purchase now',
+            filled: true,
+            onTap: () {
+              Get.back();
+              if (!Get.isRegistered<PaymentController>()) Get.put(PaymentController());
+              Get.find<PaymentController>().openCheckout(plan, guestMode: true);
+            },
+          ),
+          const SizedBox(height: 8),
+          _dialogButton(
+            label: 'Sign in',
+            filled: false,
+            onTap: () {
+              Get.back();
+              Get.to(() => const LoginScreen());
+            },
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              Get.to(() => SignupScreen(selectedPlan: plan, plans: plans));
+            },
+            child: Text('Create account', style: GoogleFonts.outfit(color: NexusTheme.text2)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dialogButton({required String label, required bool filled, required VoidCallback onTap}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: filled
+          ? ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NexusTheme.teal,
+                foregroundColor: const Color(0xFF001A14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+            )
+          : OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: NexusTheme.teal,
+                side: BorderSide(color: NexusTheme.teal.withOpacity(0.45)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+            ),
+    );
+  }
+
+  Future<void> _showPlanSheet(BuildContext context) async {
     try {
       _ensurePaymentController();
-      final plans = await PaymentApi.getPlans();
+      final plans = _plans.isNotEmpty ? _plans : await PaymentApi.getPlans();
       if (!context.mounted) return;
+      if (mounted && _plans.isEmpty) setState(() => _plans = plans);
       final isLoggedIn = Pref.isLoggedIn;
       showModalBottomSheet<void>(
         context: context,
@@ -512,11 +647,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
         builder: (ctx) => PlanSheet(
           plans: plans,
           onSelect: (plan) {
-            Get.back(); // close sheet
+            Get.back();
             if (isLoggedIn) {
-              if (!Get.isRegistered<PaymentController>()) {
-                Get.put(PaymentController());
-              }
+              if (!Get.isRegistered<PaymentController>()) Get.put(PaymentController());
               Get.find<PaymentController>().openCheckout(plan);
             } else {
               _showAccountOrGuestDialog(plan, plans);
@@ -532,8 +665,176 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 }
 
+class _GlowOrb extends StatelessWidget {
+  final Color color;
+  final double size;
+  final double opacity;
+
+  const _GlowOrb({required this.color, required this.size, this.opacity = 0.12});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color.withOpacity(opacity), color.withOpacity(0)],
+        ),
+      ),
+    );
+  }
+}
+
+class _PricingPreviewCard extends StatelessWidget {
+  final Plan plan;
+  final Color accent;
+  final bool highlighted;
+  final VoidCallback onTap;
+
+  const _PricingPreviewCard({
+    required this.plan,
+    required this.accent,
+    this.highlighted = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: highlighted
+                  ? [accent.withOpacity(0.22), accent.withOpacity(0.06)]
+                  : [NexusTheme.surface, NexusTheme.surface.withOpacity(0.5)],
+            ),
+            border: Border.all(
+              color: highlighted ? accent.withOpacity(0.55) : NexusTheme.border2,
+              width: highlighted ? 1.5 : 1,
+            ),
+            boxShadow: highlighted
+                ? [BoxShadow(color: accent.withOpacity(0.15), blurRadius: 16, offset: const Offset(0, 6))]
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (plan.badge != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    plan.badge!.toUpperCase(),
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                      color: accent,
+                    ),
+                  ),
+                ),
+              Text(
+                plan.intervalLabel,
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: NexusTheme.text2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                plan.displayPrice,
+                style: GoogleFonts.outfit(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: highlighted ? accent : NexusTheme.text,
+                  height: 1,
+                ),
+              ),
+              Text(
+                plan.period,
+                style: GoogleFonts.outfit(fontSize: 11, color: NexusTheme.text3),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Benefit {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _Benefit(this.icon, this.label, this.color);
+}
+
+class _BenefitTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _BenefitTile({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: NexusTheme.surface,
+        border: Border.all(color: NexusTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [color.withOpacity(0.25), color.withOpacity(0.08)],
+              ),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const Spacer(),
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: NexusTheme.text,
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Reusable plan picker (Platinum monthly/yearly). Used by PremiumScreen and SignupScreen.
-/// [plans] come from backend (GET /api/payments/plans).
 class PlanSheet extends StatefulWidget {
   final List<Plan> plans;
   final void Function(Plan plan) onSelect;
@@ -566,118 +867,85 @@ class _PlanSheetState extends State<PlanSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).padding.bottom;
+
     return Container(
       decoration: BoxDecoration(
         color: NexusTheme.bg2,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border.all(color: NexusTheme.border2),
+        boxShadow: [
+          BoxShadow(color: NexusTheme.purple.withOpacity(0.08), blurRadius: 40, offset: const Offset(0, -8)),
+        ],
       ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 44,
+            height: 4,
+            decoration: BoxDecoration(
+              color: NexusTheme.text3.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 8),
             child: Column(
               children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: NexusTheme.text3,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 24),
                 Text(
-                  'Choose your plan',
-                  style: GoogleFonts.outfit(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: NexusTheme.text,
-                  ),
+                  'Pick your plan',
+                  style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: NexusTheme.text),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Platinum · Monthly or yearly',
-                  style: GoogleFonts.outfit(
-                    fontSize: 13,
-                    color: NexusTheme.text2,
-                  ),
+                  'Cancel anytime · Secure payment',
+                  style: GoogleFonts.outfit(fontSize: 13, color: NexusTheme.text2),
                 ),
               ],
             ),
           ),
           Flexible(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + MediaQuery.of(context).padding.bottom),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 16 + bottom),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: NexusTheme.gold.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'Platinum',
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: NexusTheme.gold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Full speed · 50+ locations · Ad-free',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      color: NexusTheme.text2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._sortedPlans.map(
-                    (plan) => _buildPlanTile(context, plan, NexusTheme.gold),
-                  ),
-                  const SizedBox(height: 12),
+                  ..._sortedPlans.map((plan) => _buildPlanCard(plan)),
+                  const SizedBox(height: 16),
                   const SubscriptionLegalFooter(),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    height: 54,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => widget.onSelect(_selected),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                NexusTheme.teal,
-                                NexusTheme.teal2,
-                              ],
-                            ),
+                    height: 56,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        gradient: const LinearGradient(
+                          colors: [NexusTheme.teal, NexusTheme.teal2],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: NexusTheme.teal.withOpacity(0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 5),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Continue',
-                            style: GoogleFonts.outfit(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => widget.onSelect(_selected),
+                          borderRadius: BorderRadius.circular(18),
+                          child: Center(
+                            child: Text(
+                              'Continue with ${_selected.intervalLabel}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF001A14),
+                              ),
                             ),
                           ),
                         ),
@@ -693,53 +961,51 @@ class _PlanSheetState extends State<PlanSheet> {
     );
   }
 
-  String _titleLabel(Plan plan) => plan.displayName;
-
-  String _priceLabel(Plan plan) => plan.displayPrice;
-
-  Widget _buildPlanTile(BuildContext context, Plan plan, Color tierColor) {
+  Widget _buildPlanCard(Plan plan) {
     final isSelected = _selected.index == plan.index;
+    final isYearly = plan.interval == 'yearly';
+    final accent = isYearly ? NexusTheme.purple : NexusTheme.teal;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => setState(() => _selected = plan),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          borderRadius: BorderRadius.circular(22),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(22),
+              gradient: isSelected
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [accent.withOpacity(0.2), accent.withOpacity(0.05)],
+                    )
+                  : null,
+              color: isSelected ? null : NexusTheme.surface,
               border: Border.all(
-                color: isSelected ? tierColor : NexusTheme.border2,
+                color: isSelected ? accent : NexusTheme.border2,
                 width: isSelected ? 2 : 1,
               ),
-              color: isSelected ? tierColor.withOpacity(0.1) : NexusTheme.surface,
               boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: tierColor.withOpacity(0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
+                  ? [BoxShadow(color: accent.withOpacity(0.18), blurRadius: 20, offset: const Offset(0, 6))]
                   : null,
             ),
             child: Row(
               children: [
                 Container(
-                  width: 24,
-                  height: 24,
+                  width: 26,
+                  height: 26,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? tierColor : NexusTheme.text3,
-                      width: 2,
-                    ),
-                    color: isSelected ? tierColor : Colors.transparent,
+                    border: Border.all(color: isSelected ? accent : NexusTheme.text3, width: 2),
+                    color: isSelected ? accent : Colors.transparent,
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check_rounded, size: 14, color: Colors.black87)
+                      ? const Icon(Icons.check_rounded, size: 16, color: Color(0xFF1A1200))
                       : null,
                 ),
                 const SizedBox(width: 14),
@@ -747,62 +1013,40 @@ class _PlanSheetState extends State<PlanSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _titleLabel(plan),
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: NexusTheme.text,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${plan.intervalLabel} · ${plan.period}',
-                        style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          color: NexusTheme.text2,
-                        ),
-                      ),
-                      if (plan.badge != null && plan.badge!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: NexusTheme.gold.withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            plan.badge!,
-                            style: GoogleFonts.outfit(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: NexusTheme.gold,
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 2),
-                      Text(
-                        plan.description,
-                        style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          color: NexusTheme.text2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
                       Row(
                         children: [
-                          Icon(Icons.devices_rounded, size: 14, color: NexusTheme.text3),
-                          const SizedBox(width: 4),
                           Text(
-                            '${plan.devices} devices',
+                            plan.intervalLabel,
                             style: GoogleFonts.outfit(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: NexusTheme.text2,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: NexusTheme.text,
                             ),
                           ),
+                          if (plan.badge != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: NexusTheme.purple.withOpacity(0.18),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                plan.badge!,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: NexusTheme.purple,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        plan.description,
+                        style: GoogleFonts.outfit(fontSize: 12, color: NexusTheme.text2),
                       ),
                     ],
                   ),
@@ -811,19 +1055,16 @@ class _PlanSheetState extends State<PlanSheet> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      _priceLabel(plan),
+                      plan.displayPrice,
                       style: GoogleFonts.outfit(
-                        fontSize: 18,
+                        fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: tierColor,
+                        color: isSelected ? accent : NexusTheme.text,
                       ),
                     ),
                     Text(
                       plan.period,
-                      style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        color: NexusTheme.text3,
-                      ),
+                      style: GoogleFonts.outfit(fontSize: 11, color: NexusTheme.text3),
                     ),
                   ],
                 ),
@@ -831,90 +1072,6 @@ class _PlanSheetState extends State<PlanSheet> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Benefit {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-
-  _Benefit({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-  });
-}
-
-class _BenefitCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-
-  const _BenefitCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: NexusTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: NexusTheme.border),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: color.withOpacity(0.15),
-            ),
-            child: Icon(icon, color: color, size: 26),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: NexusTheme.text,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.outfit(
-                    fontSize: 13,
-                    color: NexusTheme.text2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

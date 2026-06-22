@@ -8,7 +8,9 @@ import '../services/vpn_engine.dart';
 import '../theme/nexus_theme.dart';
 
 class IncognitoBrowserScreen extends StatefulWidget {
-  const IncognitoBrowserScreen({super.key});
+  final bool embedded;
+
+  const IncognitoBrowserScreen({super.key, this.embedded = false});
 
   @override
   State<IncognitoBrowserScreen> createState() => _IncognitoBrowserScreenState();
@@ -95,12 +97,15 @@ class _IncognitoBrowserScreenState extends State<IncognitoBrowserScreen> {
         children: [
           Row(
             children: [
-              IconButton(
-                onPressed: () => Get.back(),
-                icon: const Icon(Icons.close_rounded, size: 22),
-                color: NexusTheme.text2,
-                tooltip: 'Close',
-              ),
+              if (!widget.embedded)
+                IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(Icons.close_rounded, size: 22),
+                  color: NexusTheme.text2,
+                  tooltip: 'Close',
+                )
+              else
+                const SizedBox(width: 8),
               IconButton(
                 onPressed: _canGoBack
                     ? () async {

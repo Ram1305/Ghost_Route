@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_config.dart';
 import '../controllers/auth_controller.dart';
-import '../controllers/main_nav_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../models/subscription.dart';
@@ -14,6 +13,7 @@ import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/purchase_invoice_sheet.dart';
 import 'login_screen.dart';
+import 'premium_screen.dart';
 import 'signup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -382,7 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildUpgradePlanCard(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => MainNavController.switchTo(MainTab.premium),
+      onTap: () => Get.to(() => const PremiumScreen()),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -495,7 +495,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: () => MainNavController.switchTo(MainTab.premium),
+          onPressed: () => Get.to(() => const PremiumScreen()),
           style: ElevatedButton.styleFrom(
             backgroundColor: NexusTheme.teal,
             foregroundColor: Colors.black87,

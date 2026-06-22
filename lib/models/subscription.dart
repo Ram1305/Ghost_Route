@@ -135,8 +135,8 @@ extension PremiumPlanX on PremiumPlan {
     }
   }
 
-  /// Full display label (e.g. "Platinum Yearly (5 devices)").
-  String get planLabel => 'Platinum $intervalLabel ($devices devices)';
+  /// Full display label (e.g. "Platinum Yearly").
+  String get planLabel => 'Platinum $intervalLabel';
 }
 
 class Subscription {

@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 abstract final class MainTab {
   static const int home = 0;
   static const int servers = 1;
-  static const int premium = 2;
+  static const int browser = 2;
   static const int account = 3;
 }
 
