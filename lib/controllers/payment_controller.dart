@@ -163,7 +163,8 @@ class PaymentController extends GetxController {
     _fromSignup = fromSignup;
     isPurchasing.value = true;
     try {
-      final started = await _iap.buy(product);
+      await _iap.drainPendingTransactions();
+      final started = await _tryBuy(product);
       if (!started) {
         isPurchasing.value = false;
         MyDialogs.error(msg: 'Could not start purchase');
@@ -171,9 +172,30 @@ class PaymentController extends GetxController {
       }
     } catch (e) {
       isPurchasing.value = false;
-      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
+      MyDialogs.error(msg: _purchaseStartErrorMessage(e));
       _clearPending(fromSignup: fromSignup);
     }
+  }
+
+  Future<bool> _tryBuy(ProductDetails product) async {
+    try {
+      return await _iap.buy(product);
+    } catch (e) {
+      final message = e.toString();
+      if (!message.contains('storekit_duplicate_product_object')) {
+        rethrow;
+      }
+      await _iap.drainPendingTransactions(includeRestore: true);
+      return _iap.buy(product);
+    }
+  }
+
+  String _purchaseStartErrorMessage(Object error) {
+    final message = error.toString();
+    if (message.contains('storekit_duplicate_product_object')) {
+      return 'A previous purchase is still processing. Wait a moment, tap Restore Purchases, then try again.';
+    }
+    return message.replaceFirst('Exception: ', '');
   }
 
   Future<void> restorePurchases() async {
@@ -289,6 +311,21 @@ class PaymentController extends GetxController {
   String _purchaseKey(PurchaseDetails purchase) =>
       '${purchase.productID}:${purchase.purchaseID ?? purchase.transactionDate ?? ''}';
 
+  bool _isKnownPurchaseTransaction(PurchaseDetails purchase) {
+    final txId = purchase.purchaseID?.trim();
+    if (txId == null || txId.isEmpty) return false;
+    final history = Pref.currentUser?.subscriptionHistory ?? [];
+    return history.any(
+      (entry) => entry.transactionId?.trim() == txId,
+    );
+  }
+
+  bool _alreadyHasActivePlan(int planIndex) {
+    if (!Pref.hasActiveSubscription) return false;
+    final active = Pref.currentUserActivePlan;
+    return active != null && active.index == planIndex;
+  }
+
   Future<void> _silentGuestActivation(int planIndex) async {
     final plan = PremiumPlanX.fromStoredIndex(planIndex);
     Pref.guestActivePlanIndex = planIndex;
@@ -339,12 +376,19 @@ class PaymentController extends GetxController {
   }) async {
     if (result.user != null) {
       final local = Pref.currentUser;
-      auth.applyBackendUser(
-        result.user!.copyWith(password: local?.password ?? ''),
-      );
+      var synced = result.user!.copyWith(password: local?.password ?? '');
+      final expiry = result.subscriptionExpiresAt ?? synced.subscriptionExpiresAt;
+      if (expiry != null) {
+        synced = synced.copyWith(subscriptionExpiresAt: expiry);
+      }
+      auth.applyBackendUser(synced);
     } else {
       final premiumPlan = PremiumPlanX.fromStoredIndex(planIndex);
-      await auth.updatePack(premiumPlan, showToast: showToast);
+      await auth.updatePack(
+        premiumPlan,
+        showToast: showToast,
+        addToHistory: false,
+      );
       if (result.subscriptionExpiresAt != null) {
         auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
       }
@@ -378,9 +422,27 @@ class PaymentController extends GetxController {
       return;
     }
 
+    if (restoring &&
+        (_isKnownPurchaseTransaction(purchase) || _alreadyHasActivePlan(planIndex))) {
+      _handledPurchaseKeys.add(purchaseKey);
+      _restoredCount++;
+      isPurchasing.value = false;
+      _restoreHandlersInFlight--;
+      _lastRestoreHandlerFinishedAt = DateTime.now();
+      return;
+    }
+
     final fromSignup = _fromSignup;
     final backendUserId = Pref.currentUser?.backendUserId;
     if (backendUserId == null || backendUserId.isEmpty) {
+      if (restoring && Pref.guestActivePlanIndex == planIndex && Pref.hasActiveSubscription) {
+        _handledPurchaseKeys.add(purchaseKey);
+        _restoredCount++;
+        isPurchasing.value = false;
+        _restoreHandlersInFlight--;
+        _lastRestoreHandlerFinishedAt = DateTime.now();
+        return;
+      }
       await _silentGuestActivation(planIndex);
       _handledPurchaseKeys.add(purchaseKey);
       _guestMode = false;
@@ -398,19 +460,28 @@ class PaymentController extends GetxController {
 
     try {
       if (!userInitiated) {
+        _handledPurchaseKeys.add(purchaseKey);
+        if (Pref.hasActiveSubscription) {
+          isPurchasing.value = false;
+          return;
+        }
         await _silentLoggedInActivation(
           planIndex: planIndex,
           purchase: purchase,
         );
-        _handledPurchaseKeys.add(purchaseKey);
         isPurchasing.value = false;
         return;
       }
 
       final platform = Platform.isIOS ? 'ios' : 'android';
       final token = purchase.verificationData.serverVerificationData;
+      final forceReceiptRefresh =
+          purchase.status == PurchaseStatus.purchased;
       final receiptData = platform == 'ios'
-          ? await _iap.receiptDataForServerVerification(purchase)
+          ? await _iap.receiptDataForServerVerification(
+              purchase,
+              forceRefresh: forceReceiptRefresh,
+            )
           : null;
       if (platform == 'ios' &&
           (receiptData == null || IapService.looksLikeJws(receiptData))) {

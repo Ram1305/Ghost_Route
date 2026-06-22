@@ -3,7 +3,11 @@ import Plan from '../models/plan.model.js';
 import * as emailService from '../services/email.service.js';
 import { verifyStorePurchase } from '../services/storeVerify.service.js';
 
-async function activatePlanForUser(user, planIndex, { transactionId, productId, platform, expiresAt }) {
+async function activatePlanForUser(
+  user,
+  planIndex,
+  { transactionId, originalTransactionId, productId, platform, expiresAt },
+) {
   const planDoc = await Plan.findOne({ index: planIndex });
   if (!planDoc) {
     throw new Error('Invalid plan index');
@@ -16,24 +20,55 @@ async function activatePlanForUser(user, planIndex, { transactionId, productId, 
   }
 
   const txId = transactionId ? String(transactionId).trim() : null;
-  if (txId) {
-    const existing = user.subscriptionHistory.find(
-      (entry) => entry.transactionId && String(entry.transactionId).trim() === txId,
+  const origTxId = originalTransactionId ? String(originalTransactionId).trim() : null;
+
+  const matchesKnownTransaction = (id) => {
+    if (!id) return false;
+    const trimmed = String(id).trim();
+    return (
+      user.subscriptionHistory.some(
+        (entry) => entry.transactionId && String(entry.transactionId).trim() === trimmed,
+      ) ||
+      (user.appleOriginalTransactionId &&
+        String(user.appleOriginalTransactionId).trim() === trimmed) ||
+      (user.googlePurchaseToken && String(user.googlePurchaseToken).trim() === trimmed)
     );
-    if (existing) {
-      user.activePlan = planIndex;
+  };
+
+  const refreshActiveSubscription = async () => {
+    user.activePlan = planIndex;
+    const currentExpiry = user.subscriptionExpiresAt
+      ? new Date(user.subscriptionExpiresAt)
+      : null;
+    if (!currentExpiry || new Date(finalExpiresAt) > currentExpiry) {
       user.subscriptionExpiresAt = finalExpiresAt;
-      user.subscriptionPlatform = platform;
-      user.subscriptionProductId = productId;
-      if (platform === 'ios' && txId) {
-        user.appleOriginalTransactionId = txId;
-      }
-      if (platform === 'android' && txId) {
-        user.googlePurchaseToken = txId;
-      }
-      await user.save();
-      return user;
     }
+    user.subscriptionPlatform = platform;
+    user.subscriptionProductId = productId;
+    if (platform === 'ios') {
+      const appleId = origTxId || txId;
+      if (appleId) user.appleOriginalTransactionId = appleId;
+    }
+    if (platform === 'android' && txId) {
+      user.googlePurchaseToken = txId;
+    }
+    await user.save();
+    return user;
+  };
+
+  if ((txId && matchesKnownTransaction(txId)) || (origTxId && matchesKnownTransaction(origTxId))) {
+    return refreshActiveSubscription();
+  }
+
+  // Restore: same active product — refresh expiry only, no duplicate history row.
+  if (
+    user.activePlan === planIndex &&
+    user.subscriptionProductId === productId &&
+    user.subscriptionPlatform === platform &&
+    user.subscriptionExpiresAt &&
+    new Date(user.subscriptionExpiresAt) > now
+  ) {
+    return refreshActiveSubscription();
   }
 
   user.subscriptionHistory.push({
@@ -49,11 +84,12 @@ async function activatePlanForUser(user, planIndex, { transactionId, productId, 
   user.subscriptionExpiresAt = finalExpiresAt;
   user.subscriptionPlatform = platform;
   user.subscriptionProductId = productId;
-  if (platform === 'ios' && transactionId) {
-    user.appleOriginalTransactionId = transactionId;
+  if (platform === 'ios') {
+    const appleId = origTxId || txId;
+    if (appleId) user.appleOriginalTransactionId = appleId;
   }
-  if (platform === 'android' && transactionId) {
-    user.googlePurchaseToken = transactionId;
+  if (platform === 'android' && txId) {
+    user.googlePurchaseToken = txId;
   }
   await user.save();
 
@@ -105,6 +141,7 @@ export async function verifyAndActivateStorePurchase(req, res) {
 
     await activatePlanForUser(user, verification.planIndex, {
       transactionId: transactionId || purchaseToken || verification.transactionId,
+      originalTransactionId: verification.originalTransactionId,
       productId,
       platform,
       expiresAt: verification.expiresAt,

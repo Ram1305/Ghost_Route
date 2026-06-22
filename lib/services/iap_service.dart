@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
+import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 
 import '../config/iap_products.dart';
 
@@ -27,8 +28,12 @@ class IapService {
   List<ProductDetails> _cachedProducts = const [];
   DateTime? _productsCachedAt;
   IAPError? _lastQueryError;
+  String? _cachedIosReceipt;
+  DateTime? _cachedIosReceiptAt;
+  Future<String?>? _iosReceiptFetchInFlight;
 
   static const Duration _productCacheTtl = Duration(minutes: 10);
+  static const Duration _receiptCacheTtl = Duration(minutes: 5);
   static const List<Duration> _receiptRetryDelays = [
     Duration(milliseconds: 500),
     Duration(milliseconds: 1000),
@@ -64,6 +69,7 @@ class IapService {
       onDone: () => _subscription?.cancel(),
       onError: (Object e) => debugPrint('IAP stream error: $e'),
     );
+    await drainPendingTransactions();
     return true;
   }
 
@@ -77,6 +83,19 @@ class IapService {
     _cachedProducts = const [];
     _productsCachedAt = null;
     _lastQueryError = null;
+    invalidateReceiptCache();
+  }
+
+  void invalidateReceiptCache() {
+    _cachedIosReceipt = null;
+    _cachedIosReceiptAt = null;
+  }
+
+  bool _receiptCacheIsFresh() {
+    final cachedAt = _cachedIosReceiptAt;
+    final receipt = _cachedIosReceipt;
+    if (cachedAt == null || receipt == null || receipt.isEmpty) return false;
+    return DateTime.now().difference(cachedAt) < _receiptCacheTtl;
   }
 
   bool _cacheIsFresh() {
@@ -155,6 +174,7 @@ class IapService {
   }
 
   Future<bool> buy(ProductDetails product) async {
+    invalidateReceiptCache();
     final param = PurchaseParam(productDetails: product);
     return _iap.buyNonConsumable(purchaseParam: param);
   }
@@ -163,18 +183,93 @@ class IapService {
     await _iap.restorePurchases();
   }
 
+  /// Clears unfinished StoreKit / Play transactions so a new purchase can start.
+  Future<void> drainPendingTransactions({bool includeRestore = false}) async {
+    if (!isSupported) return;
+    try {
+      if (includeRestore) {
+        await restorePurchases();
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+      }
+      if (Platform.isIOS) {
+        await _finishStuckIosTransactions();
+      }
+    } catch (e) {
+      debugPrint('IAP drain pending transactions: $e');
+    }
+  }
+
+  Future<void> _finishStuckIosTransactions() async {
+    final queue = SKPaymentQueueWrapper();
+    final transactions = await queue.transactions();
+    for (final tx in transactions) {
+      final state = tx.transactionState;
+      if (state == SKPaymentTransactionStateWrapper.purchasing ||
+          state == SKPaymentTransactionStateWrapper.deferred) {
+        continue;
+      }
+      try {
+        await queue.finishTransaction(tx);
+      } catch (e) {
+        debugPrint(
+          'IAP finish stuck transaction ${tx.payment.productIdentifier}: $e',
+        );
+      }
+    }
+  }
+
   /// Returns the base64 app receipt for Apple's verifyReceipt API, or null if
   /// unavailable. Never returns StoreKit 2 JWS transaction data.
   Future<String?> receiptDataForServerVerification(
-      PurchaseDetails purchase) async {
+    PurchaseDetails purchase, {
+    bool forceRefresh = false,
+  }) async {
     if (!Platform.isIOS) {
       final token = purchase.verificationData.serverVerificationData;
       return token.isNotEmpty ? token : null;
     }
-    return _fetchIosAppReceipt();
+    return _fetchIosAppReceipt(forceRefresh: forceRefresh);
   }
 
-  Future<String?> _fetchIosAppReceipt() async {
+  Future<String?> _fetchIosAppReceipt({bool forceRefresh = false}) async {
+    if (!forceRefresh && _receiptCacheIsFresh()) {
+      return _cachedIosReceipt;
+    }
+
+    final inFlight = _iosReceiptFetchInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final fetch = _fetchIosAppReceiptOnce(forceRefresh: forceRefresh);
+    _iosReceiptFetchInFlight = fetch;
+    try {
+      final receipt = await fetch;
+      if (receipt != null && receipt.isNotEmpty && !looksLikeJws(receipt)) {
+        _cachedIosReceipt = receipt;
+        _cachedIosReceiptAt = DateTime.now();
+      }
+      return receipt;
+    } finally {
+      if (identical(_iosReceiptFetchInFlight, fetch)) {
+        _iosReceiptFetchInFlight = null;
+      }
+    }
+  }
+
+  Future<String?> _fetchIosAppReceiptOnce({required bool forceRefresh}) async {
+    if (!forceRefresh) {
+      final local = await _readIosReceiptWithoutRefresh();
+      if (local != null) {
+        if (kDebugMode) {
+          debugPrint(
+            '[IapService] App receipt read from disk (len=${local.length})',
+          );
+        }
+        return local;
+      }
+    }
+
     final addition = InAppPurchasePlatformAddition.instance;
     if (addition is! InAppPurchaseStoreKitPlatformAddition) {
       if (kDebugMode) {
@@ -191,24 +286,14 @@ class IapService {
         final refreshed = await addition.refreshPurchaseVerificationData();
         final receipt = refreshed?.serverVerificationData;
         if (receipt == null || receipt.isEmpty) {
-          if (kDebugMode) {
-            debugPrint(
-              '[IapService] App receipt empty (attempt ${attempt + 1}/${_receiptRetryDelays.length})',
-            );
-          }
           continue;
         }
         if (looksLikeJws(receipt)) {
-          if (kDebugMode) {
-            debugPrint(
-              '[IapService] App receipt is JWS, retrying (attempt ${attempt + 1}/${_receiptRetryDelays.length}, len=${receipt.length})',
-            );
-          }
           continue;
         }
         if (kDebugMode) {
           debugPrint(
-            '[IapService] App receipt ready (attempt ${attempt + 1}, len=${receipt.length}, isJws=false)',
+            '[IapService] App receipt refreshed (attempt ${attempt + 1}, len=${receipt.length})',
           );
         }
         return receipt;
@@ -224,6 +309,21 @@ class IapService {
       debugPrint('[IapService] Could not obtain app receipt after retries');
     }
     return null;
+  }
+
+  Future<String?> _readIosReceiptWithoutRefresh() async {
+    try {
+      final receipt = await SKReceiptManager.retrieveReceiptData();
+      if (receipt.isEmpty || looksLikeJws(receipt)) {
+        return null;
+      }
+      return receipt;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[IapService] Local receipt read failed: $e');
+      }
+      return null;
+    }
   }
 
   bool _isUserCancelled(PurchaseDetails purchase) {
@@ -260,16 +360,13 @@ class IapService {
   }
 
   Future<void> _safeCompletePurchase(PurchaseDetails purchase) async {
-    if (purchase.pendingCompletePurchase) {
-      if (purchase.productID.isEmpty || purchase.purchaseID == null) {
-        debugPrint('Skipping completePurchase because productID is empty or purchaseID is null.');
-        return;
-      }
-      try {
-        await _iap.completePurchase(purchase);
-      } catch (e) {
-        debugPrint('Error completing purchase: $e');
-      }
+    if (!purchase.pendingCompletePurchase || purchase.productID.isEmpty) {
+      return;
+    }
+    try {
+      await _iap.completePurchase(purchase);
+    } catch (e) {
+      debugPrint('Error completing purchase: $e');
     }
   }
 }

@@ -2,31 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../apis/payment_api.dart';
 import '../controllers/auth_controller.dart';
-import '../controllers/payment_controller.dart';
-import '../helpers/my_dialogs.dart';
-import '../models/plan.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
-import '../widgets/subscription_legal_footer.dart';
 import 'main_shell_screen.dart';
 import 'login_screen.dart';
-import 'premium_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  final Plan? selectedPlan;
-  final List<Plan>? plans;
-
-  const SignupScreen({super.key, this.selectedPlan, this.plans});
+  const SignupScreen({super.key});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  Plan? _plan;
-  List<Plan>? _plans;
   final _auth = Get.find<AuthController>();
 
   final _username = TextEditingController();
@@ -36,16 +25,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPassword = TextEditingController();
 
   bool _loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _plan = widget.selectedPlan;
-    _plans = widget.plans;
-    if (_plan == null && _plans != null && _plans!.isNotEmpty) {
-      _plan = _plans!.where((p) => p.interval == 'yearly').firstOrNull ?? _plans!.first;
-    }
-  }
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -55,33 +36,6 @@ class _SignupScreenState extends State<SignupScreen> {
     _password.dispose();
     _confirmPassword.dispose();
     super.dispose();
-  }
-
-  void _changePlan() async {
-    List<Plan> plans = _plans ?? [];
-    if (plans.isEmpty) {
-      try {
-        plans = await PaymentApi.getPlans();
-        if (mounted) setState(() => _plans = plans);
-      } catch (e) {
-        if (mounted) MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
-        return;
-      }
-    }
-    if (!mounted || plans.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => PlanSheet(
-        plans: plans,
-        initialSelected: _plan,
-        onSelect: (plan) {
-          setState(() => _plan = plan);
-          Get.back();
-        },
-      ),
-    );
   }
 
   Future<void> _signUp() async {
@@ -95,48 +49,8 @@ class _SignupScreenState extends State<SignupScreen> {
       confirmPassword: _confirmPassword.text,
     );
     setState(() => _loading = false);
-    if (!ok) return;
-    if (!mounted) return;
-    // No plan selected → go straight to home; user can subscribe anytime from Premium.
-    if (_plan == null) {
-      Get.offAll(() => const MainShellScreen());
-      return;
-    }
-    final subscribe = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: NexusTheme.surface,
-        title: Text(
-          'Subscribe now?',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w700,
-            color: NexusTheme.text,
-          ),
-        ),
-        content: Text(
-          'Your account was created. You can subscribe now or continue and subscribe later from Premium.',
-          style: GoogleFonts.outfit(fontSize: 14, color: NexusTheme.text2),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Later', style: GoogleFonts.outfit(color: NexusTheme.text2)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Subscribe', style: GoogleFonts.outfit(color: NexusTheme.teal, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-    if (subscribe == true && _plan != null) {
-      if (!Get.isRegistered<PaymentController>()) {
-        Get.put(PaymentController());
-      }
-      await Get.find<PaymentController>().openCheckout(_plan!, fromSignup: true);
-    } else {
-      Get.offAll(() => const MainShellScreen());
-    }
+    if (!ok || !mounted) return;
+    Get.offAll(() => const MainShellScreen());
   }
 
   @override
@@ -164,10 +78,6 @@ class _SignupScreenState extends State<SignupScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 16),
-                        _buildPlanCard(_plan, _plans),
-                        const SizedBox(height: 12),
-                        const SubscriptionLegalFooter(),
-                        const SizedBox(height: 24),
                         _buildTextField(
                           controller: _username,
                           label: 'Username',
@@ -196,7 +106,19 @@ class _SignupScreenState extends State<SignupScreen> {
                           label: 'Password',
                           hint: 'Enter password',
                           icon: Icons.lock_rounded,
-                          obscureText: true,
+                          obscureText: _obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                              color: NexusTheme.text3,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            },
+                          ),
                         ),
                         const SizedBox(height: 14),
                         _buildTextField(
@@ -204,7 +126,19 @@ class _SignupScreenState extends State<SignupScreen> {
                           label: 'Confirm password',
                           hint: 'Confirm password',
                           icon: Icons.lock_rounded,
-                          obscureText: true,
+                          obscureText: _obscureConfirmPassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                              color: NexusTheme.text3,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                            },
+                          ),
                         ),
                         const SizedBox(height: 28),
                         _buildSignUpButton(),
@@ -249,68 +183,6 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildPlanCard(Plan? plan, List<Plan>? plans) {
-    final hasPlan = plan != null;
-    final accent = NexusTheme.gold;
-    return InkWell(
-      onTap: _changePlan,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: hasPlan ? accent.withOpacity(0.4) : NexusTheme.border,
-          ),
-          color: hasPlan ? accent.withOpacity(0.1) : NexusTheme.surface,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasPlan ? plan!.displayName : 'Subscribe (optional)',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: NexusTheme.text,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    hasPlan
-                        ? '${plan!.displayPrice} ${plan.period} · ${plan.description}'
-                        : 'You can subscribe now or any time after signup',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      color: NexusTheme.text2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              hasPlan ? 'Change' : 'Select',
-              style: GoogleFonts.outfit(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: hasPlan ? accent : NexusTheme.teal,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 12,
-              color: hasPlan ? accent : NexusTheme.teal,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTextField({
     required TextEditingController controller,
     String? label,
@@ -318,6 +190,7 @@ class _SignupScreenState extends State<SignupScreen> {
     required IconData icon,
     bool obscureText = false,
     TextInputType? keyboardType,
+    Widget? suffixIcon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,6 +218,7 @@ class _SignupScreenState extends State<SignupScreen> {
             hintText: hint,
             hintStyle: GoogleFonts.outfit(color: NexusTheme.text3, fontSize: 14),
             prefixIcon: Icon(icon, size: 20, color: NexusTheme.text3),
+            suffixIcon: suffixIcon,
             filled: true,
             fillColor: NexusTheme.surface,
             border: OutlineInputBorder(

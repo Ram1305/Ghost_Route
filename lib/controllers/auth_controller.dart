@@ -123,12 +123,16 @@ class AuthController extends GetxController {
               ? u.subscriptionHistory
               : toStore.subscriptionHistory,
         );
-      } else if (toStore.activePlan != null &&
-          toStore.subscriptionExpiresAt == null &&
-          u.subscriptionExpiresAt != null &&
-          u.subscriptionExpiresAt!.isAfter(DateTime.now()) &&
-          toStore.activePlan == u.activePlan) {
-        toStore = toStore.copyWith(subscriptionExpiresAt: u.subscriptionExpiresAt);
+      } else if (toStore.activePlan != null) {
+        final localExpiry = u.subscriptionExpiresAt;
+        final backendExpiry = toStore.subscriptionExpiresAt;
+        if (localExpiry != null &&
+            (backendExpiry == null || localExpiry.isAfter(backendExpiry))) {
+          toStore = toStore.copyWith(subscriptionExpiresAt: localExpiry);
+        }
+        if (u.subscriptionHistory.length > toStore.subscriptionHistory.length) {
+          toStore = toStore.copyWith(subscriptionHistory: u.subscriptionHistory);
+        }
       }
       final users = Pref.users;
       final idx = users.indexWhere((e) => e.email.toLowerCase() == user.email.toLowerCase());
@@ -196,16 +200,28 @@ class AuthController extends GetxController {
   }
 
   /// Update current user's pack locally. Backend sync via activate-subscription when backendUserId is set.
-  Future<bool> updatePack(PremiumPlan plan, {bool showToast = true}) async {
+  Future<bool> updatePack(
+    PremiumPlan plan, {
+    bool showToast = true,
+    bool addToHistory = true,
+  }) async {
     final u = Pref.currentUser;
     if (u == null) return false;
-    final updatedHistory = List<Subscription>.from(u.subscriptionHistory)
-      ..add(Subscription(plan: plan, date: DateTime.now()));
+
+    final alreadyActive = u.activePlan == plan &&
+        u.subscriptionExpiresAt != null &&
+        !Pref.isSubscriptionExpired(u, plan);
+    final updatedHistory = (!addToHistory || alreadyActive)
+        ? u.subscriptionHistory
+        : (List<Subscription>.from(u.subscriptionHistory)
+          ..add(Subscription(plan: plan, date: DateTime.now())));
+
     final updatedUser = u.copyWith(
       subscriptionHistory: updatedHistory,
       activePlan: plan,
-      subscriptionExpiresAt:
-          DateTime.now().add(Duration(days: plan.daysInPlan)),
+      subscriptionExpiresAt: alreadyActive
+          ? u.subscriptionExpiresAt
+          : DateTime.now().add(Duration(days: plan.daysInPlan)),
     );
     final users = Pref.users;
     final idx = users.indexWhere((e) => e.email == u.email);
@@ -214,7 +230,7 @@ class AuthController extends GetxController {
     Pref.users = users;
     Pref.currentUser = updatedUser;
     currentUser.value = updatedUser;
-    if (showToast) {
+    if (showToast && !alreadyActive) {
       final label = Subscription(plan: plan, date: DateTime.now()).planLabel;
       MyDialogs.success(msg: 'Plan updated to $label');
     }

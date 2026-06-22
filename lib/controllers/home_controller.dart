@@ -13,6 +13,7 @@ import '../models/vpn_config.dart';
 import '../services/vpn_engine.dart';
 import '../services/free_vpn_session_service.dart';
 import '../screens/premium_screen.dart';
+import '../controllers/main_nav_controller.dart';
 import '../theme/nexus_theme.dart';
 
 class HomeController extends GetxController {
@@ -64,6 +65,7 @@ class HomeController extends GetxController {
 
     if (event == VpnEngine.vpnConnected) {
       showSecuredOverlay.value = true;
+      MainNavController.switchTo(MainTab.home);
       _onVpnConnected();
     }
 

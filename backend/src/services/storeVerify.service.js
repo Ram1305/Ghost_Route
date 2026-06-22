@@ -186,6 +186,7 @@ export async function verifyStorePurchase({
           platform,
           expiresAt,
           transactionId: latest.transaction_id || latest.original_transaction_id,
+          originalTransactionId: latest.original_transaction_id || latest.transaction_id,
         };
       }
       return { ...result, planIndex, platform };

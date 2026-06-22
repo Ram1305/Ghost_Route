@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_config.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/main_nav_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../helpers/subscription_expiry.dart';
@@ -27,14 +28,40 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  Worker? _tabRefreshWorker;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Pref.isLoggedIn) {
-        Get.find<AuthController>().refreshCurrentUserFromBackend();
+    if (widget.embedded && Get.isRegistered<MainNavController>()) {
+      final nav = Get.find<MainNavController>();
+      _tabRefreshWorker = ever<int>(nav.currentIndex, (index) {
+        if (index == MainTab.account) {
+          _refreshProfileFromBackend();
+        }
+      });
+      if (nav.currentIndex.value == MainTab.account) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _refreshProfileFromBackend();
+        });
       }
-    });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _refreshProfileFromBackend();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabRefreshWorker?.dispose();
+    super.dispose();
+  }
+
+  void _refreshProfileFromBackend() {
+    if (Pref.isLoggedIn) {
+      Get.find<AuthController>().refreshCurrentUserFromBackend();
+    }
   }
 
   @override
@@ -52,14 +79,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ? Subscription(plan: currentActivePlan, date: DateTime.now()).planLabel
           : null;
 
-      // Effective expiry: backend first, then latest matching purchase when active.
-      final effectiveExpiresAt =
-          resolveSubscriptionExpiresAt(currentUser, currentActivePlan);
+      final effectiveExpiresAt = currentActivePlan != null
+          ? resolveSubscriptionExpiresAt(currentUser, currentActivePlan)
+          : null;
       final now = DateTime.now();
       final isExpired = currentActivePlan != null &&
           Pref.isSubscriptionExpired(currentUser, currentActivePlan);
       final int? daysLeft = effectiveExpiresAt != null && !isExpired
           ? remainingDays(effectiveExpiresAt, now)
+          : null;
+      final String? planStatusLabel = daysLeft != null
+          ? formatSubscriptionDaysLeft(daysLeft)
           : null;
 
       return Scaffold(
@@ -121,8 +151,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: _buildDetailCard(
                                 Icons.workspace_premium_rounded,
                                 'Current plan',
-                                daysLeft != null
-                                    ? '$currentPlanLabel · $daysLeft days left'
+                                planStatusLabel != null
+                                    ? '$currentPlanLabel · $planStatusLabel'
                                     : currentPlanLabel,
                               ),
                             ),
@@ -192,6 +222,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildNotLoggedInScaffold(BuildContext context) {
+    final guestPlan = Pref.guestActivePlan;
+    final guestExpiry = Pref.guestSubscriptionExpiresAt;
+    final guestDaysLeft = guestPlan != null && guestExpiry != null
+        ? remainingDays(guestExpiry, DateTime.now())
+        : null;
+    final guestPlanLabel = guestPlan != null
+        ? Subscription(plan: guestPlan, date: DateTime.now()).planLabel
+        : null;
+
     return Scaffold(
       backgroundColor: NexusTheme.bg,
       body: Stack(
@@ -229,8 +268,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
+                          if (guestPlanLabel != null && guestDaysLeft != null) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: NexusTheme.surface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: NexusTheme.border),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    guestPlanLabel,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: NexusTheme.text,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    formatSubscriptionDaysLeft(guestDaysLeft),
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 13,
+                                      color: NexusTheme.teal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           Text(
-                            'Log in to see your profile and subscription history.',
+                            guestPlan != null
+                                ? 'Sign in to sync your subscription across devices.'
+                                : 'Log in to see your profile and subscription history.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.outfit(
                               fontSize: 14,

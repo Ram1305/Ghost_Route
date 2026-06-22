@@ -570,7 +570,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           TextButton(
             onPressed: () {
               Get.back();
-              Get.to(() => SignupScreen(selectedPlan: plan, plans: plans));
+              Get.to(() => const SignupScreen());
             },
             child: Text('Create account', style: GoogleFonts.outfit(color: NexusTheme.text2)),
           ),
@@ -810,7 +810,7 @@ class _BenefitTile extends StatelessWidget {
   }
 }
 
-/// Reusable plan picker (Platinum monthly/yearly). Used by PremiumScreen and SignupScreen.
+/// Reusable plan picker (Platinum monthly/yearly). Used by PremiumScreen.
 class PlanSheet extends StatefulWidget {
   final List<Plan> plans;
   final void Function(Plan plan) onSelect;

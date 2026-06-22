@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../controllers/home_controller.dart';
+import '../controllers/main_nav_controller.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
 import '../models/vpn.dart';
@@ -36,15 +37,15 @@ class VpnCard extends StatelessWidget {
             final isSameServer = selected;
             if (isSameServer) {
               debugPrint(
-                  '[TronVPN] VpnCard: Same server already selected, going back');
-              Get.back();
+                  '[TronVPN] VpnCard: Same server already selected, going home');
+              _goToHomeShield();
               return;
             }
             debugPrint(
                 '[TronVPN] VpnCard: Selected ${vpn.countryLong} (${vpn.hostname}), saving and connecting');
             controller.vpn.value = vpn;
             Pref.vpn = vpn;
-            Get.back();
+            _goToHomeShield();
 
             if (controller.vpnState.value == VpnEngine.vpnConnected) {
               debugPrint(
@@ -163,5 +164,12 @@ class VpnCard extends StatelessWidget {
     if (p < 60) return 3;
     if (p < 100) return 2;
     return 1;
+  }
+
+  void _goToHomeShield() {
+    MainNavController.switchTo(MainTab.home);
+    if (Get.key.currentState?.canPop() ?? false) {
+      Get.back();
+    }
   }
 }

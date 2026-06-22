@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'free_vpn_session.dart';
+import 'subscription_expiry.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
 import '../models/vpn.dart';
@@ -125,7 +126,7 @@ class Pref {
     final idx = guestActivePlanIndex;
     if (idx == null) return null;
     final expiry = guestSubscriptionExpiresAt;
-    if (expiry != null && expiry.isBefore(DateTime.now())) return null;
+    if (expiry != null && isSubscriptionDateExpired(expiry)) return null;
     return PremiumPlanX.fromStoredIndex(idx);
   }
 
@@ -197,14 +198,8 @@ class Pref {
     freeVpnSessionStartedAt = null;
   }
 
-  /// True only when an explicit expiry exists and is in the past.
+  /// True when the resolved expiry calendar day is before today.
   static bool isSubscriptionExpired(User user, PremiumPlan plan) {
-    final expiresAt = user.subscriptionExpiresAt;
-    if (expiresAt != null) {
-      return expiresAt.isBefore(DateTime.now());
-    }
-    // No store/backend expiry — trust activePlan; do not infer expiry from
-    // purchase history (old rows would incorrectly block valid subscribers).
-    return false;
+    return isUserSubscriptionExpired(user, plan);
   }
 }
