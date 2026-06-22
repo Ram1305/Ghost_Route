@@ -1,33 +1,58 @@
 /**
- * PremiumPlan index (0-5) → duration in days.
- * 0: platinumWeekly, 1: platinumMonthly, 2: platinumYearly,
- * 3: platinumPlusWeekly, 4: platinumPlusMonthly, 5: platinumPlusYearly
+ * PremiumPlan index (0-1) → duration in days.
+ * 0: platinumMonthly, 1: platinumYearly
  */
 export const planDurationDays = {
-  0: 7,
-  1: 30,
-  2: 365,
-  3: 7,
-  4: 30,
-  5: 365,
+  0: 30,
+  1: 365,
 };
 
+/** Legacy indices (old 2-5 scheme) → current plan index. Indices 0-1 pass through. */
+export function normalizePlanIndex(planIndex) {
+  const idx = Number(planIndex);
+  if (idx >= 0 && idx <= 1) return idx;
+  switch (idx) {
+    case 2:
+    case 5:
+      return 1;
+    case 3:
+    case 4:
+      return 0;
+    default:
+      return idx;
+  }
+}
+
+/** One-time migration for users still on old 0-5 plan indices. */
+export function migrateLegacyPlanIndex(planIndex) {
+  switch (Number(planIndex)) {
+    case 0:
+    case 1:
+    case 3:
+    case 4:
+      return 0;
+    case 2:
+    case 5:
+      return 1;
+    default:
+      return normalizePlanIndex(planIndex);
+  }
+}
+
 export function getPlanDurationDays(planIndex) {
-  const days = planDurationDays[planIndex];
+  const normalized = normalizePlanIndex(planIndex);
+  const days = planDurationDays[normalized];
   if (days == null) return null;
   return days;
 }
 
-/** Plan index (0-5) → { name, amount, currency } for invoice email. */
+/** Plan index (0-1) → { name, amount, currency } for invoice email. */
 export const planInvoiceInfo = {
-  0: { name: 'Platinum Weekly (3 devices)', amount: '$4.99', currency: 'USD' },
-  1: { name: 'Platinum Monthly (5 devices)', amount: '$9.99', currency: 'USD' },
-  2: { name: 'Platinum Yearly (5 devices)', amount: '$39.99', currency: 'USD' },
-  3: { name: 'Platinum+ Weekly (5 devices)', amount: '$6.99', currency: 'USD' },
-  4: { name: 'Platinum+ Monthly (10 devices)', amount: '$14.99', currency: 'USD' },
-  5: { name: 'Platinum+ Yearly (10 devices)', amount: '$59.99', currency: 'USD' },
+  0: { name: 'Platinum Monthly (5 devices)', amount: '$5.00', currency: 'USD' },
+  1: { name: 'Platinum Yearly (5 devices)', amount: '$35.00', currency: 'USD' },
 };
 
 export function getPlanInvoiceInfo(planIndex) {
-  return planInvoiceInfo[planIndex] || { name: `Plan ${planIndex}`, amount: 'N/A', currency: 'USD' };
+  const normalized = normalizePlanIndex(planIndex);
+  return planInvoiceInfo[normalized] || { name: `Plan ${planIndex}`, amount: 'N/A', currency: 'USD' };
 }

@@ -20,9 +20,9 @@ export async function seedReviewAccount({ connect = false, disconnect = false } 
     }
 
     const subscriptionData = [{
-      plan: 2,
+      plan: 1,
       date: new Date(),
-      amount: '$39.99',
+      amount: '$35.00',
       currency: 'USD',
       platform: 'ios',
       transactionId: 'GHOST-REV-2026',
@@ -33,7 +33,7 @@ export async function seedReviewAccount({ connect = false, disconnect = false } 
     if (existing) {
       existing.username = REVIEW_USERNAME;
       existing.password = REVIEW_PASSWORD;
-      existing.activePlan = 2;
+      existing.activePlan = 1;
       existing.subscriptionExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
       existing.subscriptionHistory = subscriptionData;
       await existing.save();
@@ -44,7 +44,7 @@ export async function seedReviewAccount({ connect = false, disconnect = false } 
         password: REVIEW_PASSWORD,
         username: REVIEW_USERNAME,
         phone: '',
-        activePlan: 2,
+        activePlan: 1,
         subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         subscriptionHistory: subscriptionData,
       });

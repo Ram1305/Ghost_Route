@@ -115,7 +115,7 @@ export function getKeyId(req, res) {
 
 /**
  * Activate subscription for a user after successful payment.
- * Body: { userId, plan } (plan = PremiumPlan index 0-5). Optional: orderId, paymentId.
+ * Body: { userId, plan } (plan = PremiumPlan index 0-1). Optional: orderId, paymentId.
  */
 export async function activateSubscription(req, res) {
   try {

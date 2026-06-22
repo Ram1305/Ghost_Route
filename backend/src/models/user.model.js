@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 
 const subscriptionSchema = new mongoose.Schema(
   {
-    plan: { type: Number, required: true }, // PremiumPlan index 0-5
+    plan: { type: Number, required: true }, // PremiumPlan index 0-1
     date: { type: Date, default: Date.now },
     transactionId: { type: String, default: null },
     productId: { type: String, default: null },
