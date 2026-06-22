@@ -11,7 +11,7 @@ import 'auth_api.dart';
 class PaymentApi {
   static String get _base => AppConfig.apiBaseUrl;
 
-  /// Fetch all plans from backend. Returns list sorted by index (0–5).
+  /// Fetch all plans from backend. Returns list sorted by index (0–1).
   static Future<List<Plan>> getPlans() async {
     final res = await http.get(Uri.parse('$_base/api/payments/plans'));
     if (res.statusCode != 200) {

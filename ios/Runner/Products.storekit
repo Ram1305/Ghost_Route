@@ -26,34 +26,9 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "4.99",
+          "displayPrice" : "5.00",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "internalID" : "21482457",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Paid weekly subscription — required to connect to VPN.",
-              "displayName" : "Platinum Weekly",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "com.yencode.ghostroute.platinum.weekly",
-          "recurringSubscriptionPeriod" : "P1W",
-          "referenceName" : "Platinum Weekly",
-          "subscriptionGroupID" : "21482456",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "9.99",
-          "familyShareable" : false,
-          "groupNumber" : 2,
           "internalID" : "21482458",
           "introductoryOffer" : null,
           "localizations" : [
@@ -76,9 +51,9 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "39.99",
+          "displayPrice" : "35.00",
           "familyShareable" : false,
-          "groupNumber" : 3,
+          "groupNumber" : 2,
           "internalID" : "21482459",
           "introductoryOffer" : null,
           "localizations" : [
@@ -92,90 +67,6 @@
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Platinum Yearly",
           "subscriptionGroupID" : "21482456",
-          "type" : "RecurringSubscription"
-        }
-      ]
-    },
-    {
-      "id" : "21482460",
-      "localizations" : [
-
-      ],
-      "name" : "Platinum+",
-      "subscriptions" : [
-        {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "6.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "21482461",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Paid weekly subscription — required to connect to VPN.",
-              "displayName" : "Platinum+ Weekly",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "com.yencode.ghostroute.platinumplus.weekly",
-          "recurringSubscriptionPeriod" : "P1W",
-          "referenceName" : "Platinum+ Weekly",
-          "subscriptionGroupID" : "21482460",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "14.99",
-          "familyShareable" : false,
-          "groupNumber" : 2,
-          "internalID" : "21482462",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Paid monthly subscription — required to connect to VPN.",
-              "displayName" : "Platinum+ Monthly",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "com.yencode.ghostroute.platinumplus.monthly",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Platinum+ Monthly",
-          "subscriptionGroupID" : "21482460",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "59.99",
-          "familyShareable" : false,
-          "groupNumber" : 3,
-          "internalID" : "21482463",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Paid yearly subscription — required to connect to VPN.",
-              "displayName" : "Platinum+ Yearly",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "com.yencode.ghostroute.platinumplus.yearly",
-          "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "Platinum+ Yearly",
-          "subscriptionGroupID" : "21482460",
           "type" : "RecurringSubscription"
         }
       ]

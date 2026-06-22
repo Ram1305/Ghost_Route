@@ -65,8 +65,8 @@ class AuthApi {
     final history = subscriptionHistoryFromJson(json['subscriptionHistory']);
     final activePlanRaw = json['activePlan'];
     PremiumPlan? active;
-    if (activePlanRaw != null && activePlanRaw is int && activePlanRaw >= 0 && activePlanRaw < PremiumPlan.values.length) {
-      active = PremiumPlan.values[activePlanRaw];
+    if (activePlanRaw != null && activePlanRaw is int) {
+      active = PremiumPlanX.fromStoredIndex(activePlanRaw);
     }
     final expiresAtRaw = json['subscriptionExpiresAt'];
     final DateTime? expiresAt = expiresAtRaw is String ? DateTime.tryParse(expiresAtRaw) : null;

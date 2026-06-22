@@ -42,7 +42,7 @@ class AppConfig {
       'Could not load App Store subscriptions. '
       'On Simulator: open ios/Runner.xcworkspace in Xcode and use Product → Run (⌘R) — '
       'flutter run does not load Products.storekit. '
-      'On a device: add all 6 subscription IDs in App Store Connect and sign in with a Sandbox Apple ID.';
+      'On a device: add both subscription IDs in App Store Connect and sign in with a Sandbox Apple ID.';
 
   /// Error when StoreKit returns no response (iOS).
   static const String storeKitNoResponseIos =
@@ -59,19 +59,27 @@ class AppConfig {
 
   /// Visible paid-content labels for VPN-related screens (App Store Guideline 2.3.2).
   static const String disclaimerConnectRequired =
-      'Purchase required to connect';
+      'Paid in-app purchase required to connect';
   static const String disclaimerActiveSubRequired =
-      'Active paid subscription required';
+      'Active paid subscription required to connect';
   static const String disclaimerSubscribeToServers =
-      'Purchase subscription to connect to servers';
+      'Paid in-app purchase required to connect to servers';
   static const String disclaimerBrowseServers =
-      'Browse free · Purchase to connect';
+      'Browse free · Paid in-app purchase to connect';
   static const String disclaimerPlatinumBenefits =
-      'Included with paid Platinum subscription';
+      'VPN access included only with a paid Platinum subscription';
+
+  /// Home connect hint when user has no active subscription (Guideline 2.3.2).
+  static const String connectHelperText =
+      'Paid subscription required before connecting';
+
+  /// Home connect hint when user has an active subscription.
+  static const String connectHelperTextSubscribed =
+      'Tap the shield to connect';
 
   /// Shown on Premium screen below hero (Guideline 2.3.2).
   static const String disclaimerPremiumHero =
-      'VPN access requires a paid in-app subscription. Prices shown before purchase.';
+      'Paid in-app purchase required to connect. Prices shown before purchase.';
 
   /// Profile screen — expired subscription (Guideline 2.3.2).
   static const String profileExpiredTitle =

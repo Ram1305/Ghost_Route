@@ -251,7 +251,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Widget _buildPlanCard(Plan? plan, List<Plan>? plans) {
     final hasPlan = plan != null;
-    final accent = plan?.isPlatinumPlus == true ? NexusTheme.purple : NexusTheme.gold;
+    final accent = NexusTheme.gold;
     return InkWell(
       onTap: _changePlan,
       borderRadius: BorderRadius.circular(16),

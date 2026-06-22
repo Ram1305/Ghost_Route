@@ -210,7 +210,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ).createShader(bounds),
             blendMode: BlendMode.srcIn,
             child: Text(
-              'Platinum & Platinum+',
+              'Platinum',
               style: GoogleFonts.outfit(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
@@ -221,7 +221,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Choose your plan · Weekly, monthly or yearly · Multiple devices',
+            'Monthly or yearly · Up to 5 devices',
             textAlign: TextAlign.center,
             style: GoogleFonts.outfit(
               fontSize: 14,
@@ -532,7 +532,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 }
 
-/// Reusable plan picker (Platinum & Platinum+ with weekly/monthly/yearly). Used by PremiumScreen and SignupScreen.
+/// Reusable plan picker (Platinum monthly/yearly). Used by PremiumScreen and SignupScreen.
 /// [plans] come from backend (GET /api/payments/plans).
 class PlanSheet extends StatefulWidget {
   final List<Plan> plans;
@@ -553,10 +553,8 @@ class PlanSheet extends StatefulWidget {
 class _PlanSheetState extends State<PlanSheet> {
   late Plan _selected;
 
-  List<Plan> get _platinumPlans =>
-      widget.plans.where((p) => p.isPlatinum).toList()..sort((a, b) => a.index.compareTo(b.index));
-  List<Plan> get _platinumPlusPlans =>
-      widget.plans.where((p) => p.isPlatinumPlus).toList()..sort((a, b) => a.index.compareTo(b.index));
+  List<Plan> get _sortedPlans =>
+      List<Plan>.from(widget.plans)..sort((a, b) => a.index.compareTo(b.index));
 
   @override
   void initState() {
@@ -603,7 +601,7 @@ class _PlanSheetState extends State<PlanSheet> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Platinum or Platinum+ · Weekly, monthly or yearly',
+                  'Platinum · Monthly or yearly',
                   style: GoogleFonts.outfit(
                     fontSize: 13,
                     color: NexusTheme.text2,
@@ -618,24 +616,38 @@ class _PlanSheetState extends State<PlanSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_platinumPlans.isNotEmpty)
-                    _buildTierSection(
-                      context,
-                      tierName: 'Platinum',
-                      subtitle: 'Full speed · 50+ locations · Ad-free',
-                      accentColor: NexusTheme.gold,
-                      plans: _platinumPlans,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: NexusTheme.gold.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Platinum',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: NexusTheme.gold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Full speed · 50+ locations · Ad-free',
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      color: NexusTheme.text2,
                     ),
-                  if (_platinumPlans.isNotEmpty && _platinumPlusPlans.isNotEmpty)
-                    const SizedBox(height: 24),
-                  if (_platinumPlusPlans.isNotEmpty)
-                    _buildTierSection(
-                      context,
-                      tierName: 'Platinum +',
-                      subtitle: 'More devices · Priority support · 80+ locations',
-                      accentColor: NexusTheme.purple,
-                      plans: _platinumPlusPlans,
-                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._sortedPlans.map(
+                    (plan) => _buildPlanTile(context, plan, NexusTheme.gold),
+                  ),
                   const SizedBox(height: 12),
                   const SubscriptionLegalFooter(),
                   const SizedBox(height: 16),
@@ -678,50 +690,6 @@ class _PlanSheetState extends State<PlanSheet> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTierSection(
-    BuildContext context, {
-    required String tierName,
-    required String subtitle,
-    required Color accentColor,
-    required List<Plan> plans,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                tierName,
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: accentColor,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: GoogleFonts.outfit(
-            fontSize: 12,
-            color: NexusTheme.text2,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...plans.map((plan) => _buildPlanTile(context, plan, accentColor)),
-      ],
     );
   }
 

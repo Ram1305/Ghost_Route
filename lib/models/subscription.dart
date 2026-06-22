@@ -1,43 +1,58 @@
-/// Premium tier: Platinum (3–5 devices) or Platinum+ (5–10 devices).
-enum PremiumTier { platinum, platinumPlus }
+/// Premium tier: Platinum only.
+enum PremiumTier { platinum }
 
 /// Billing interval.
-enum PlanInterval { weekly, monthly, yearly }
+enum PlanInterval { monthly, yearly }
 
-/// Full plan = tier + interval. Used for storage and display.
+/// Platinum plans: monthly or yearly.
 enum PremiumPlan {
-  platinumWeekly,
   platinumMonthly,
   platinumYearly,
-  platinumPlusWeekly,
-  platinumPlusMonthly,
-  platinumPlusYearly,
 }
 
 extension PremiumPlanX on PremiumPlan {
-  PremiumTier get tier {
-    switch (this) {
-      case PremiumPlan.platinumWeekly:
-      case PremiumPlan.platinumMonthly:
-      case PremiumPlan.platinumYearly:
-        return PremiumTier.platinum;
-      case PremiumPlan.platinumPlusWeekly:
-      case PremiumPlan.platinumPlusMonthly:
-      case PremiumPlan.platinumPlusYearly:
-        return PremiumTier.platinumPlus;
+  /// Normalize legacy plan indices (old 2–5 scheme) to current index (0–1).
+  /// Indices 0–1 are used as-is (0 = monthly, 1 = yearly).
+  static int normalizeStoredIndex(int idx) {
+    if (idx >= 0 && idx < PremiumPlan.values.length) return idx;
+    switch (idx) {
+      case 2: // old yearly
+      case 5: // old platinum+ yearly
+        return 1;
+      case 3: // old platinum+ weekly
+      case 4: // old platinum+ monthly
+        return 0;
+      default:
+        return 1;
     }
   }
 
+  /// Map pre-migration stored indices (old 0–5) to current indices. Run once on backend DB.
+  static int migrateLegacyStoredIndex(int idx) {
+    switch (idx) {
+      case 0: // old weekly
+      case 1: // old monthly
+      case 3: // old platinum+ weekly
+      case 4: // old platinum+ monthly
+        return 0;
+      case 2: // old yearly
+      case 5: // old platinum+ yearly
+        return 1;
+      default:
+        return idx >= 0 && idx < PremiumPlan.values.length ? idx : 1;
+    }
+  }
+
+  static PremiumPlan fromStoredIndex(int idx) =>
+      PremiumPlan.values[normalizeStoredIndex(idx)];
+
+  PremiumTier get tier => PremiumTier.platinum;
+
   PlanInterval get interval {
     switch (this) {
-      case PremiumPlan.platinumWeekly:
-      case PremiumPlan.platinumPlusWeekly:
-        return PlanInterval.weekly;
       case PremiumPlan.platinumMonthly:
-      case PremiumPlan.platinumPlusMonthly:
         return PlanInterval.monthly;
       case PremiumPlan.platinumYearly:
-      case PremiumPlan.platinumPlusYearly:
         return PlanInterval.yearly;
     }
   }
@@ -45,8 +60,6 @@ extension PremiumPlanX on PremiumPlan {
   /// Duration of the plan in days (for expiry countdown).
   int get daysInPlan {
     switch (interval) {
-      case PlanInterval.weekly:
-        return 7;
       case PlanInterval.monthly:
         return 30;
       case PlanInterval.yearly:
@@ -54,11 +67,9 @@ extension PremiumPlanX on PremiumPlan {
     }
   }
 
-  /// Short title for list (e.g. "Weekly", "Monthly", "Yearly").
+  /// Short title for list (e.g. "Monthly", "Yearly").
   String get intervalLabel {
     switch (interval) {
-      case PlanInterval.weekly:
-        return 'Weekly';
       case PlanInterval.monthly:
         return 'Monthly';
       case PlanInterval.yearly:
@@ -67,65 +78,34 @@ extension PremiumPlanX on PremiumPlan {
   }
 
   /// Number of devices allowed for this plan.
-  int get devices {
-    switch (this) {
-      case PremiumPlan.platinumWeekly:
-        return 3;
-      case PremiumPlan.platinumMonthly:
-      case PremiumPlan.platinumYearly:
-        return 5;
-      case PremiumPlan.platinumPlusWeekly:
-        return 5;
-      case PremiumPlan.platinumPlusMonthly:
-      case PremiumPlan.platinumPlusYearly:
-        return 10;
-    }
-  }
+  int get devices => 5;
 
   /// Amount in smallest unit for payment (USD cents).
   int get amountInSmallestUnit {
     switch (this) {
-      case PremiumPlan.platinumWeekly:
-        return 499; // $4.99
       case PremiumPlan.platinumMonthly:
-        return 999; // $9.99
+        return 500; // $5.00
       case PremiumPlan.platinumYearly:
-        return 3999; // $39.99
-      case PremiumPlan.platinumPlusWeekly:
-        return 699; // $6.99
-      case PremiumPlan.platinumPlusMonthly:
-        return 1499; // $14.99
-      case PremiumPlan.platinumPlusYearly:
-        return 5999; // $59.99
+        return 3500; // $35.00
     }
   }
 
   /// Currency code for payment.
   String get currencyCode => 'USD';
 
-  /// Price string (e.g. "\$4.99").
+  /// Price string (e.g. "\$5.00").
   String get price {
     switch (this) {
-      case PremiumPlan.platinumWeekly:
-        return '\$4.99';
       case PremiumPlan.platinumMonthly:
-        return '\$9.99';
+        return '\$5.00';
       case PremiumPlan.platinumYearly:
-        return '\$39.99';
-      case PremiumPlan.platinumPlusWeekly:
-        return '\$6.99';
-      case PremiumPlan.platinumPlusMonthly:
-        return '\$14.99';
-      case PremiumPlan.platinumPlusYearly:
-        return '\$59.99';
+        return '\$35.00';
     }
   }
 
-  /// Period text (e.g. "per week", "per year").
+  /// Period text (e.g. "per month", "per year").
   String get period {
     switch (interval) {
-      case PlanInterval.weekly:
-        return 'per week';
       case PlanInterval.monthly:
         return 'per month';
       case PlanInterval.yearly:
@@ -138,8 +118,6 @@ extension PremiumPlanX on PremiumPlan {
     switch (this) {
       case PremiumPlan.platinumYearly:
         return 'Best value';
-      case PremiumPlan.platinumPlusYearly:
-        return 'Best value';
       default:
         return null;
     }
@@ -148,25 +126,15 @@ extension PremiumPlanX on PremiumPlan {
   /// One-line description for the plan card.
   String get description {
     switch (this) {
-      case PremiumPlan.platinumWeekly:
-        return 'Full speed · 50+ locations';
       case PremiumPlan.platinumMonthly:
         return 'Best for individuals & families';
       case PremiumPlan.platinumYearly:
-        return 'Save 67% · Full access';
-      case PremiumPlan.platinumPlusWeekly:
-        return 'Priority support · 80+ locations';
-      case PremiumPlan.platinumPlusMonthly:
-        return 'For power users & small teams';
-      case PremiumPlan.platinumPlusYearly:
-        return 'Save 71% · Family pack';
-      default:
-        return '';
+        return 'Save 42% · Full access';
     }
   }
 
   /// Full display label (e.g. "Platinum Yearly (5 devices)").
-  String get planLabel => '${tier == PremiumTier.platinum ? "Platinum" : "Platinum+"} $intervalLabel ($devices devices)';
+  String get planLabel => 'Platinum $intervalLabel ($devices devices)';
 }
 
 class Subscription {
@@ -256,10 +224,8 @@ class Subscription {
     final idx = json['plan'] is int
         ? json['plan'] as int
         : int.tryParse('${json['plan']}') ?? 0;
-    final planIndex =
-        idx >= 0 && idx < PremiumPlan.values.length ? idx : 2;
     return Subscription(
-      plan: PremiumPlan.values[planIndex],
+      plan: PremiumPlanX.fromStoredIndex(idx),
       date: _parseDate(json['date']),
       transactionId: _parseString(json['transactionId']),
       productId: _parseString(json['productId']),

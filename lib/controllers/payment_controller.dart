@@ -290,7 +290,7 @@ class PaymentController extends GetxController {
       '${purchase.productID}:${purchase.purchaseID ?? purchase.transactionDate ?? ''}';
 
   Future<void> _silentGuestActivation(int planIndex) async {
-    final plan = PremiumPlan.values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
+    final plan = PremiumPlanX.fromStoredIndex(planIndex);
     Pref.guestActivePlanIndex = planIndex;
     Pref.guestSubscriptionExpiresAt =
         DateTime.now().add(Duration(days: plan.daysInPlan));
@@ -343,8 +343,7 @@ class PaymentController extends GetxController {
         result.user!.copyWith(password: local?.password ?? ''),
       );
     } else {
-      final premiumPlan = PremiumPlan
-          .values[planIndex.clamp(0, PremiumPlan.values.length - 1)];
+      final premiumPlan = PremiumPlanX.fromStoredIndex(planIndex);
       await auth.updatePack(premiumPlan, showToast: showToast);
       if (result.subscriptionExpiresAt != null) {
         auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);

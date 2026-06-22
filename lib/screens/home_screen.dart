@@ -15,6 +15,7 @@ import '../widgets/count_down_timer.dart';
 import '../widgets/power_orb.dart';
 import '../widgets/secured_overlay.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
+import '../widgets/tools_bottom_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
@@ -204,6 +205,24 @@ class HomeScreen extends StatelessWidget {
               }),
               const SizedBox(width: 10),
               GestureDetector(
+                onTap: () => ToolsBottomSheet.show(context),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: NexusTheme.surface,
+                    border: Border.all(color: NexusTheme.border),
+                  ),
+                  child: const Icon(
+                    Icons.grid_view_rounded,
+                    size: 18,
+                    color: NexusTheme.text2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
                 onTap: () => MainNavController.switchTo(MainTab.premium),
                 child: Container(
                   width: 36,
@@ -283,6 +302,11 @@ class HomeScreen extends StatelessWidget {
           Obx(() {
             final connected =
                 _controller.vpnState.value == VpnEngine.vpnConnected;
+            final hint = connected
+                ? 'Connected via ${_controller.vpn.value.countryLong}'
+                : Pref.hasActiveSubscription
+                    ? AppConfig.connectHelperTextSubscribed
+                    : AppConfig.connectHelperText;
             return Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -292,13 +316,14 @@ class HomeScreen extends StatelessWidget {
                   color: connected ? NexusTheme.teal : NexusTheme.text2,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  connected
-                      ? 'Connected via ${_controller.vpn.value.countryLong}'
-                      : 'Tap the shield to connect',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: connected ? NexusTheme.teal : NexusTheme.text2,
+                Flexible(
+                  child: Text(
+                    hint,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: connected ? NexusTheme.teal : NexusTheme.text2,
+                    ),
                   ),
                 ),
               ],

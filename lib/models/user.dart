@@ -47,9 +47,8 @@ class User {
           .toList();
     }
     final activePlanRaw = json['activePlan'];
-    PremiumPlan? active =
-        activePlanRaw != null && activePlanRaw is int && activePlanRaw >= 0 && activePlanRaw < PremiumPlan.values.length
-            ? PremiumPlan.values[activePlanRaw]
+    PremiumPlan? active = activePlanRaw != null && activePlanRaw is int
+            ? PremiumPlanX.fromStoredIndex(activePlanRaw)
             : null;
     final expiresAtRaw = json['subscriptionExpiresAt'];
     final DateTime? expiresAt = expiresAtRaw is String

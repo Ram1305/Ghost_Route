@@ -35,8 +35,8 @@ Use this when updating App Store Connect before resubmission. Do not commit secr
 
 Minimum requirements:
 1. **Description** — First line must state **PAID SUBSCRIPTION REQUIRED** and that VPN is **not** included with the free download; separate free vs paid sections.
-2. **Subtitle** — Must not imply free VPN (use `VPN Access · Subscription`).
-3. **Screenshots** — Any image showing connect/secured/servers/benefits needs a visible **“Purchase required”** overlay; re-upload **iPad** set.
+2. **Subtitle** — Must not imply free VPN (use `VPN · Purchase Required`).
+3. **Screenshots** — Home must show banner **“Paid in-app purchase required to connect”** and helper **“Paid subscription required before connecting”** (not “Tap the shield to connect”); re-upload **iPad** set.
 4. **Promotional text** — Lead with paid purchase requirement.
 5. **Keywords** — No `free vpn`; see APP_STORE_METADATA.md section 4.
 6. **IAP localizations** — All 6 products + group names; see STORE_PRODUCTS.md.
@@ -89,7 +89,7 @@ Also confirm:
 
 Record on a **physical device** and attach URL in App Review Information → Notes:
 
-1. Login: `review@yencodetech.com` / `YencodeReview2026!`  
+1. Login: `yencodedeverloper@gmail.com` / `YencodeReview2026!`  
 2. Profile (Account) → **Delete account** → confirm  
 3. Show account removed and returned to logged-out state  
 

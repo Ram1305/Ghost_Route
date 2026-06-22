@@ -122,10 +122,10 @@ class Pref {
   /// Active plan for a guest (no backend account). Returns null if expired or not set.
   static PremiumPlan? get guestActivePlan {
     final idx = guestActivePlanIndex;
-    if (idx == null || idx < 0 || idx >= PremiumPlan.values.length) return null;
+    if (idx == null) return null;
     final expiry = guestSubscriptionExpiresAt;
     if (expiry != null && expiry.isBefore(DateTime.now())) return null;
-    return PremiumPlan.values[idx];
+    return PremiumPlanX.fromStoredIndex(idx);
   }
 
   /// Whether the user (logged-in or guest) has a non-expired subscription.

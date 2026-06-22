@@ -3,7 +3,7 @@ description: Ghost Route – secure VPN with account management and subscription
 publish_to: 'none'
 
 # App Version
-version: 1.0.7+7
+version: 1.0.8+8
  
 environment:
   sdk: ^3.6.1
@@ -51,6 +51,9 @@ dependencies:
 
   # OpenVPN for both Android and iOS
   openvpn_flutter: ^1.3.4
+
+  # In-app incognito browser
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_test:
