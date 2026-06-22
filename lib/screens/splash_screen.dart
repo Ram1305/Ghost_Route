@@ -8,6 +8,7 @@ import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
 import '../services/free_vpn_session_service.dart';
+import '../services/app_update_service.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import 'main_shell_screen.dart';
@@ -86,6 +87,8 @@ class _SplashScreenState extends State<SplashScreen>
       // require sign-in or subscription before showing any functionality.
       // The subscription gate fires only when the user taps the VPN toggle.
       if (!mounted) return;
+      final canContinue = await AppUpdateService.checkOnLaunch(context);
+      if (!canContinue || !mounted) return;
       Get.off(() => const MainShellScreen());
     });
   }

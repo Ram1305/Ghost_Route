@@ -53,6 +53,10 @@ dependencies:
   # For Remote Config
   firebase_remote_config: ^5.4.2
 
+  # App version + in-app updates (Play Store on Android)
+  package_info_plus: ^8.3.0
+  in_app_update: ^4.2.5
+
   # OpenVPN for both Android and iOS
   openvpn_flutter: ^1.3.4
 

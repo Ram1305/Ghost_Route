@@ -198,6 +198,14 @@ class Pref {
     freeVpnSessionStartedAt = null;
   }
 
+  /// Optional update prompt dismissed for this target version.
+  static String? get dismissedOptionalUpdateVersion =>
+      _box.get('dismissedOptionalUpdateVersion') as String?;
+
+  static set dismissedOptionalUpdateVersion(String? v) => v == null
+      ? _box.delete('dismissedOptionalUpdateVersion')
+      : _box.put('dismissedOptionalUpdateVersion', v);
+
   /// True when the resolved expiry calendar day is before today.
   static bool isSubscriptionExpired(User user, PremiumPlan plan) {
     return isUserSubscriptionExpired(user, plan);

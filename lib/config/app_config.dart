@@ -103,4 +103,16 @@ class AppConfig {
   static const String profileUpgradeSubtitle =
       'Purchase a paid plan for faster speeds and more locations';
   static const String profileRenewButton = 'Purchase to renew';
+
+  /// Google Play listing (package id).
+  static const String playStorePackageId = 'com.yencode.ghostroute';
+
+  /// Numeric App Store id — set in Firebase Remote Config `ios_app_store_id` when known.
+  static const String iosAppStoreId = '';
+
+  static String get playStoreUrl =>
+      'https://play.google.com/store/apps/details?id=$playStorePackageId';
+
+  static String appStoreUrlFor(String storeId) =>
+      'https://apps.apple.com/app/id$storeId';
 }

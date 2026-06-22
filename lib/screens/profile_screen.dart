@@ -11,6 +11,7 @@ import '../helpers/pref.dart';
 import '../helpers/subscription_expiry.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
+import '../services/app_update_service.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/purchase_invoice_sheet.dart';
@@ -30,10 +31,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Worker? _tabRefreshWorker;
+  String _appVersionLabel = '';
 
   @override
   void initState() {
     super.initState();
+    _loadAppVersion();
     if (widget.embedded && Get.isRegistered<MainNavController>()) {
       final nav = Get.find<MainNavController>();
       _tabRefreshWorker = ever<int>(nav.currentIndex, (index) {
@@ -63,6 +66,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (Pref.isLoggedIn) {
       Get.find<AuthController>().refreshCurrentUserFromBackend();
     }
+  }
+
+  Future<void> _loadAppVersion() async {
+    final label = await AppUpdateService.currentVersionLabel();
+    if (!mounted) return;
+    setState(() => _appVersionLabel = label);
   }
 
   @override
@@ -204,6 +213,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildRestorePurchasesButton(),
                           const SizedBox(height: 10),
                           _buildPrivacyPolicyButton(),
+                          const SizedBox(height: 10),
+                          _buildCheckForUpdatesButton(),
+                          const SizedBox(height: 10),
+                          _buildVersionFooter(),
                           const SizedBox(height: 10),
                           _buildLogoutButton(),
                           const SizedBox(height: 10),
@@ -352,6 +365,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 24),
+                          _buildCheckForUpdatesButton(),
+                          const SizedBox(height: 10),
+                          _buildVersionFooter(),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -646,6 +664,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCheckForUpdatesButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: () => AppUpdateService.checkManually(context),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: NexusTheme.teal,
+          side: BorderSide(color: NexusTheme.teal.withOpacity(0.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          'Check for updates',
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVersionFooter() {
+    if (_appVersionLabel.isEmpty) return const SizedBox.shrink();
+    return Text(
+      'Version $_appVersionLabel',
+      textAlign: TextAlign.center,
+      style: GoogleFonts.jetBrainsMono(
+        fontSize: 11,
+        color: NexusTheme.text3,
+        letterSpacing: 0.5,
       ),
     );
   }
