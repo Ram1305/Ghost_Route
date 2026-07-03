@@ -5,11 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../apis/apis.dart';
 import '../config/app_config.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';
 import '../models/vpn_config.dart';
+import '../services/server_speed_test.dart';
 import '../services/vpn_engine.dart';
 import '../services/free_vpn_session_service.dart';
 import '../screens/premium_screen.dart';
@@ -243,14 +245,14 @@ class HomeController extends GetxController {
       MyDialogs.info(msg: 'VPN is not supported on this device.');
       return;
     }
-    if (vpn.value.openVPNConfigDataBase64.isEmpty) {
-      debugPrint(
-          '[TronVPN] connectToVpn: No config - openVPNConfigDataBase64 is empty. Select a location first.');
-      MyDialogs.info(msg: 'Select a Location by clicking \'Change Location\'');
-      return;
-    }
-
     if (vpnState.value == VpnEngine.vpnDisconnected) {
+      if (vpn.value.openVPNConfigDataBase64.isEmpty) {
+        debugPrint(
+            '[TronVPN] connectToVpn: No config selected - auto-picking fastest server.');
+        final picked = await _autoSelectFastestServer();
+        if (picked == null) return;
+      }
+
       if (!Pref.hasActiveSubscription) {
         await FreeVpnSessionService.syncFromServer();
         if (!Pref.canStartFreeVpnSession) {
@@ -309,6 +311,49 @@ class HomeController extends GetxController {
       _connectTimeout = null;
       await VpnEngine.stopVpn();
       vpnState.value = VpnEngine.vpnDisconnected;
+    }
+  }
+
+  /// Auto-picks the lowest-latency server when the user taps Connect without
+  /// choosing a location first. Reuses vpnConnecting so the orb shows its
+  /// normal spinner while servers are probed. Returns the picked server, or
+  /// null if none could be found (or the user cancelled while this ran).
+  Future<Vpn?> _autoSelectFastestServer() async {
+    vpnState.value = VpnEngine.vpnConnecting;
+    try {
+      var servers = Pref.vpnList;
+      if (servers.isEmpty) {
+        servers = await APIs.getVPNServers();
+      }
+      servers = servers
+          .where((v) => v.openVPNConfigDataBase64.trim().isNotEmpty)
+          .toList();
+
+      if (vpnState.value != VpnEngine.vpnConnecting) return null;
+      if (servers.isEmpty) {
+        vpnState.value = VpnEngine.vpnDisconnected;
+        MyDialogs.info(msg: 'Select a Location by clicking \'Change Location\'');
+        return null;
+      }
+
+      final fastest = await ServerSpeedTest.findFastest(servers);
+      if (vpnState.value != VpnEngine.vpnConnecting) return null;
+      if (fastest == null) {
+        vpnState.value = VpnEngine.vpnDisconnected;
+        MyDialogs.info(msg: 'Select a Location by clicking \'Change Location\'');
+        return null;
+      }
+
+      vpn.value = fastest;
+      Pref.vpn = fastest;
+      debugPrint(
+          '[TronVPN] _autoSelectFastestServer: picked ${fastest.countryLong} (${fastest.hostname})');
+      return fastest;
+    } catch (e) {
+      debugPrint('[TronVPN] _autoSelectFastestServer: error $e');
+      vpnState.value = VpnEngine.vpnDisconnected;
+      MyDialogs.info(msg: 'Select a Location by clicking \'Change Location\'');
+      return null;
     }
   }
 

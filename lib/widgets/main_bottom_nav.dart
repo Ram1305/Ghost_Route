@@ -15,109 +15,83 @@ class MainBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 10,
-        bottom: MediaQuery.of(context).padding.bottom + 28,
-      ),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, NexusTheme.bg],
+        color: NexusTheme.bg2,
+        border: Border(
+          top: BorderSide(color: NexusTheme.border.withValues(alpha: 0.8)),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          Expanded(
-            child: MainNavBtn(
-              icon: Icons.shield_rounded,
-              label: 'Shield',
-              active: currentIndex == 0,
-              onTap: () => onTabSelected(0),
-            ),
-          ),
-          Expanded(
-            child: MainNavBtn(
-              icon: Icons.public_rounded,
-              label: 'Servers',
-              active: currentIndex == 1,
-              onTap: () => onTabSelected(1),
-            ),
-          ),
-          Expanded(
-            child: MainNavBtn(
-              icon: Icons.visibility_off_rounded,
-              label: 'Browser',
-              active: currentIndex == 2,
-              onTap: () => onTabSelected(2),
-            ),
-          ),
-          Expanded(
-            child: MainNavBtn(
-              icon: Icons.person_rounded,
-              label: 'Account',
-              active: currentIndex == 3,
-              onTap: () => onTabSelected(3),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class MainNavBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  const MainNavBtn({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: active ? NexusTheme.teal : NexusTheme.text2.withOpacity(0.35),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 9,
-                letterSpacing: 1.5,
-                color: active ? NexusTheme.teal : NexusTheme.text2.withOpacity(0.35),
+      child: SafeArea(
+        top: false,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            useMaterial3: true,
+            splashColor: NexusTheme.teal.withValues(alpha: 0.08),
+            highlightColor: NexusTheme.teal.withValues(alpha: 0.04),
+            navigationBarTheme: NavigationBarThemeData(
+              height: 72,
+              backgroundColor: NexusTheme.bg2,
+              surfaceTintColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              elevation: 0,
+              indicatorColor: NexusTheme.teal.withValues(alpha: 0.14),
+              indicatorShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                final selected = states.contains(WidgetState.selected);
+                return GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected ? NexusTheme.teal : NexusTheme.text2,
+                );
+              }),
+              iconTheme: WidgetStateProperty.resolveWith((states) {
+                final selected = states.contains(WidgetState.selected);
+                return IconThemeData(
+                  size: 24,
+                  color: selected
+                      ? NexusTheme.teal
+                      : NexusTheme.text2.withValues(alpha: 0.65),
+                );
+              }),
+              overlayColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.pressed)) {
+                  return NexusTheme.teal.withValues(alpha: 0.08);
+                }
+                return Colors.transparent;
+              }),
             ),
-            if (active)
-              Container(
-                width: 4,
-                height: 4,
-                margin: const EdgeInsets.only(top: 4),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: NexusTheme.teal,
-                ),
+          ),
+          child: NavigationBar(
+            selectedIndex: currentIndex,
+            onDestinationSelected: onTabSelected,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            animationDuration: const Duration(milliseconds: 350),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.shield_outlined),
+                selectedIcon: Icon(Icons.shield_rounded),
+                label: 'Shield',
               ),
-          ],
+              NavigationDestination(
+                icon: Icon(Icons.public_outlined),
+                selectedIcon: Icon(Icons.public_rounded),
+                label: 'Servers',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.visibility_off_outlined),
+                selectedIcon: Icon(Icons.visibility_off_rounded),
+                label: 'Browser',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline_rounded),
+                selectedIcon: Icon(Icons.person_rounded),
+                label: 'Account',
+              ),
+            ],
+          ),
         ),
       ),
     );

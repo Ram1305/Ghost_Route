@@ -21,12 +21,17 @@ class Config {
 
   static Future<void> initConfig() async {
     await _config.setConfigSettings(RemoteConfigSettings(
-        fetchTimeout: const Duration(minutes: 1),
+        fetchTimeout: const Duration(seconds: 10),
         minimumFetchInterval: const Duration(minutes: 30)));
 
     await _config.setDefaults(_defaultValues);
-    await _config.fetchAndActivate();
-    log('Remote Config Data: ${_config.getBool('show_ads')}');
+    try {
+      await _config.fetchAndActivate();
+      log('Remote Config Data: ${_config.getBool('show_ads')}');
+    } catch (e) {
+      // Defaults from setDefaults() above remain active; don't block/crash startup.
+      log('Remote Config fetch failed, using defaults: $e');
+    }
 
     _config.onConfigUpdated.listen((event) async {
       await _config.activate();

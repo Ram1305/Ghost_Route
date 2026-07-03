@@ -39,19 +39,17 @@ class AppConfig {
 
   /// Error when store products are not configured (iOS).
   static const String storeProductsNotFoundIos =
-      'Could not load App Store subscriptions. '
-      'On Simulator: open ios/Runner.xcworkspace in Xcode and use Product → Run (⌘R) — '
-      'flutter run does not load Products.storekit. '
-      'On a device: add both subscription IDs in App Store Connect and sign in with a Sandbox Apple ID.';
+      'Could not load subscription options. '
+      'Please check your internet connection and try again. '
+      'If the issue persists, restart the app.';
 
   /// Error when StoreKit returns no response (iOS).
   static const String storeKitNoResponseIos =
-      'App Store did not respond. On Simulator, run from Xcode (Product → Run), not flutter run. '
-      'On device, check App Store Connect products and Sandbox account.';
+      'The App Store did not respond. Please check your internet connection and try again.';
 
   /// Error when store products are not configured (Android).
   static const String storeProductsNotFoundAndroid =
-      'Subscription not found in the store. Ensure products are configured in Google Play Console.';
+      'Could not load subscription options. Please check your internet connection and try again.';
 
   /// User-Agent for public HTTP requests (VPN Gate requires a desktop-style UA).
   static const String userAgent =

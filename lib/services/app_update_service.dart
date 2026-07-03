@@ -160,7 +160,8 @@ class AppUpdateService {
 
   static Future<bool> _tryAndroidInAppUpdate({required bool force}) async {
     try {
-      final updateInfo = await InAppUpdate.checkForUpdate();
+      final updateInfo = await InAppUpdate.checkForUpdate()
+          .timeout(const Duration(seconds: 10));
       if (updateInfo.updateAvailability != UpdateAvailability.updateAvailable) {
         return false;
       }
