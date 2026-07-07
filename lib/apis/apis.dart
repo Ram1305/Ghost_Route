@@ -12,37 +12,49 @@ import '../models/ip_details.dart';
 import '../models/vpn.dart';
 
 class APIs {
-  /// Loads VPN servers from VPN Gate (large public list) and merges managed backend servers.
-  static Future<List<Vpn>> getVPNServers() async {
-    final List<Vpn> vpnList = [];
-
+  /// Free VPN servers from VPN Gate public API.
+  static Future<List<Vpn>> getFreeServers() async {
     try {
-      vpnList.addAll(await _fetchVpnGateServers());
-    } catch (e) {
-      log('\ngetVPNServers VPN Gate: $e');
-    }
+      final vpnList = await _fetchVpnGateServers();
+      _dedupeByHostname(vpnList);
+      vpnList.removeWhere((v) => v.openVPNConfigDataBase64.trim().isEmpty);
+      vpnList.shuffle();
 
-    try {
-      vpnList.addAll(await _fetchManagedServers());
-    } catch (e) {
-      log('\ngetVPNServers managed: $e');
-    }
+      if (vpnList.isNotEmpty) {
+        Pref.vpnListFree = vpnList;
+        Pref.vpnList = vpnList;
+      }
 
-    if (vpnList.isEmpty) {
-      MyDialogs.error(
-        msg:
-            'Could not load VPN servers. Check your internet connection and try again.',
-      );
       return vpnList;
+    } catch (e) {
+      log('\ngetFreeServers: $e');
+      final cached = Pref.vpnListFree;
+      if (cached.isEmpty) {
+        MyDialogs.error(
+          msg:
+              'Could not load free VPN servers. Check your internet connection and try again.',
+        );
+      }
+      return cached;
     }
+  }
 
-    _dedupeByHostname(vpnList);
-    vpnList.removeWhere((v) => v.openVPNConfigDataBase64.trim().isEmpty);
-    vpnList.shuffle();
+  /// Premium VPN servers from backend (premiumOnly=true).
+  static Future<List<Vpn>> getPremiumServers() async {
+    try {
+      final vpnList = await _fetchPremiumServers();
+      _dedupeByHostname(vpnList);
+      vpnList.removeWhere((v) => v.openVPNConfigDataBase64.trim().isEmpty);
 
-    if (vpnList.isNotEmpty) Pref.vpnList = vpnList;
+      if (vpnList.isNotEmpty) {
+        Pref.vpnListPremium = vpnList;
+      }
 
-    return vpnList;
+      return vpnList;
+    } catch (e) {
+      log('\ngetPremiumServers: $e');
+      return Pref.vpnListPremium;
+    }
   }
 
   static Future<List<Vpn>> _fetchVpnGateServers() async {
@@ -79,22 +91,22 @@ class APIs {
     return vpnList;
   }
 
-  static Future<List<Vpn>> _fetchManagedServers() async {
+  static Future<List<Vpn>> _fetchPremiumServers() async {
     final List<Vpn> vpnList = [];
 
     final res = await get(
-      Uri.parse(AppConfig.serversApiUrl),
+      Uri.parse(AppConfig.premiumServersApiUrl),
       headers: {
         'Accept': 'application/json',
         'User-Agent': AppConfig.userAgent,
       },
     );
     if (res.statusCode != 200) {
-      throw Exception('Server API returned ${res.statusCode}');
+      throw Exception('Premium server API returned ${res.statusCode}');
     }
     final decoded = jsonDecode(res.body);
     if (decoded is! List) {
-      throw Exception('Server API returned invalid JSON');
+      throw Exception('Premium server API returned invalid JSON');
     }
     for (final item in decoded) {
       if (item is Map<String, dynamic>) {

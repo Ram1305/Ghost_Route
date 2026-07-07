@@ -7,16 +7,19 @@ class Vpn {
   late final String countryShort;
   late final int numVpnSessions;
   late final String openVPNConfigDataBase64;
+  late final bool premiumOnly;
 
-  Vpn(
-      {required this.hostname,
-      required this.ip,
-      required this.ping,
-      required this.speed,
-      required this.countryLong,
-      required this.countryShort,
-      required this.numVpnSessions,
-      required this.openVPNConfigDataBase64});
+  Vpn({
+    required this.hostname,
+    required this.ip,
+    required this.ping,
+    required this.speed,
+    required this.countryLong,
+    required this.countryShort,
+    required this.numVpnSessions,
+    required this.openVPNConfigDataBase64,
+    this.premiumOnly = false,
+  });
 
   Vpn.fromJson(Map<String, dynamic> json) {
     hostname = (json['HostName'] ?? '').toString();
@@ -26,14 +29,24 @@ class Vpn {
     countryLong = (json['CountryLong'] ?? '').toString();
     countryShort = (json['CountryShort'] ?? '').toString();
     numVpnSessions = _parseInt(json['NumVpnSessions'], 0);
-
-    openVPNConfigDataBase64 = (json['OpenVPN_ConfigData_Base64'] ?? '').toString();
+    openVPNConfigDataBase64 =
+        (json['OpenVPN_ConfigData_Base64'] ?? '').toString();
+    premiumOnly = _parseBool(json['PremiumOnly'], false);
   }
 
   static int _parseInt(dynamic value, int defaultValue) {
     if (value == null) return defaultValue;
     if (value is int) return value;
     return int.tryParse(value.toString()) ?? defaultValue;
+  }
+
+  static bool _parseBool(dynamic value, bool defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    final s = value.toString().toLowerCase();
+    if (s == 'true' || s == '1') return true;
+    if (s == 'false' || s == '0') return false;
+    return defaultValue;
   }
 
   Map<String, dynamic> toJson() {
@@ -46,6 +59,7 @@ class Vpn {
     data['CountryShort'] = countryShort;
     data['NumVpnSessions'] = numVpnSessions;
     data['OpenVPN_ConfigData_Base64'] = openVPNConfigDataBase64;
+    data['PremiumOnly'] = premiumOnly;
     return data;
   }
 }

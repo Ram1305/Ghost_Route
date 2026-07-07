@@ -18,7 +18,7 @@ import '../screens/premium_screen.dart';
 import '../controllers/main_nav_controller.dart';
 import '../theme/nexus_theme.dart';
 
-class HomeController extends GetxController {
+class HomeController extends GetxController with WidgetsBindingObserver {
   final Rx<Vpn> vpn = Pref.vpn.obs;
 
   final vpnState = VpnEngine.vpnDisconnected.obs;
@@ -46,13 +46,60 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen(_onVpnStage);
     _initFreeSessionState();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncVpnStateFromEngine();
+    }
+  }
+
   Future<void> _initFreeSessionState() async {
     await FreeVpnSessionService.syncFromServer();
-    _restoreFreeSessionIfNeeded();
+    await _syncVpnStateFromEngine();
+  }
+
+  /// Seeds [vpnState] from the native tunnel when the app starts or resumes.
+  /// Stage-change events are not re-emitted for an already-running tunnel.
+  Future<void> _syncVpnStateFromEngine() async {
+    if (!VpnEngine.isVpnSupported) return;
+
+    try {
+      await VpnEngine.initialize();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[TronVPN] _syncVpnStateFromEngine: init failed $e');
+      }
+      return;
+    }
+
+    try {
+      final stage = await VpnEngine.stage();
+      if (stage == null) return;
+
+      final normalizedStage = stage.toLowerCase();
+
+      if (normalizedStage == VpnEngine.vpnConnected) {
+        if (vpnState.value != VpnEngine.vpnConnected) {
+          vpnState.value = VpnEngine.vpnConnected;
+        }
+        _restoreFreeSessionTimerIfNeeded();
+        return;
+      }
+
+      if (normalizedStage == VpnEngine.vpnDisconnected &&
+          !_isConnectingState(vpnState.value)) {
+        vpnState.value = VpnEngine.vpnDisconnected;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[TronVPN] _syncVpnStateFromEngine: stage query failed $e');
+      }
+    }
   }
 
   void _onVpnStage(String event) {
@@ -126,21 +173,18 @@ class HomeController extends GetxController {
     }
   }
 
-  void _restoreFreeSessionIfNeeded() {
+  /// Restores the free-session countdown when the native tunnel is still up.
+  void _restoreFreeSessionTimerIfNeeded() {
     if (Pref.hasActiveSubscription) return;
     if (Pref.freeVpnSessionStartedAt == null) return;
 
-    VpnEngine.stage().then((stage) {
-      if (stage?.toLowerCase() != VpnEngine.vpnConnected) return;
-      vpnState.value = VpnEngine.vpnConnected;
-      final remaining = Pref.freeSessionRemainingSeconds;
-      if (remaining <= 0) {
-        _endFreeSession();
-        return;
-      }
-      freeSecondsRemaining.value = remaining;
-      _startFreeSessionTimer();
-    });
+    final remaining = Pref.freeSessionRemainingSeconds;
+    if (remaining <= 0) {
+      _endFreeSession();
+      return;
+    }
+    freeSecondsRemaining.value = remaining;
+    _startFreeSessionTimer();
   }
 
   void _syncFreeSecondsRemaining() {
@@ -219,6 +263,7 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectTimeout?.cancel();
     _stopFreeSessionTimer();
     _vpnStageSubscription?.cancel();
@@ -251,6 +296,13 @@ class HomeController extends GetxController {
             '[TronVPN] connectToVpn: No config selected - auto-picking fastest server.');
         final picked = await _autoSelectFastestServer();
         if (picked == null) return;
+      }
+
+      if (vpn.value.premiumOnly && !Pref.hasActiveSubscription) {
+        debugPrint(
+            '[TronVPN] connectToVpn: Premium server requires subscription.');
+        Get.to(() => const PremiumScreen());
+        return;
       }
 
       if (!Pref.hasActiveSubscription) {
@@ -321,12 +373,13 @@ class HomeController extends GetxController {
   Future<Vpn?> _autoSelectFastestServer() async {
     vpnState.value = VpnEngine.vpnConnecting;
     try {
-      var servers = Pref.vpnList;
+      var servers = Pref.vpnListFree;
       if (servers.isEmpty) {
-        servers = await APIs.getVPNServers();
+        servers = await APIs.getFreeServers();
       }
       servers = servers
-          .where((v) => v.openVPNConfigDataBase64.trim().isNotEmpty)
+          .where((v) =>
+              !v.premiumOnly && v.openVPNConfigDataBase64.trim().isNotEmpty)
           .toList();
 
       if (vpnState.value != VpnEngine.vpnConnecting) return null;

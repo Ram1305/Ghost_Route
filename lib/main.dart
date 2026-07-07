@@ -40,7 +40,7 @@ Future<void> main() async {
     }
   }
 
-  // Remote config for ads (required before AdHelper when ads are restored)
+  // Remote config (app update checks, etc.)
   await Config.initConfig();
 
   await Pref.initializeHive();

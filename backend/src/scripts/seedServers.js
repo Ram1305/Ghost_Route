@@ -26,7 +26,7 @@ const defaultServers = [
     countryShort: 'JP',
     numVpnSessions: 12,
     openVPNConfigDataBase64: readOvpnBase64('assets/vpn/japan.ovpn'),
-    premiumOnly: false,
+    premiumOnly: true,
     sortOrder: 0,
   },
   {

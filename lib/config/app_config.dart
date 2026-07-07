@@ -16,6 +16,10 @@ class AppConfig {
   /// Managed VPN server list (Ghost Route backend; merged with VPN Gate).
   static String get serversApiUrl => '$apiBaseUrl/api/servers';
 
+  /// Premium-only servers from backend.
+  static String get premiumServersApiUrl =>
+      '$apiBaseUrl/api/servers?premiumOnly=true';
+
   /// IP geolocation API (free tier; use with User-Agent).
   static const String ipApiUrl = 'http://ip-api.com/json/';
 

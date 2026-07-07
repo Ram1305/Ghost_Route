@@ -7,6 +7,7 @@ import '../controllers/main_nav_controller.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
 import '../models/vpn.dart';
+import '../screens/premium_screen.dart';
 import '../services/vpn_engine.dart';
 import '../theme/nexus_theme.dart';
 
@@ -39,6 +40,12 @@ class VpnCard extends StatelessWidget {
               debugPrint(
                   '[TronVPN] VpnCard: Same server already selected, going home');
               _goToHomeShield();
+              return;
+            }
+            if (vpn.premiumOnly && !Pref.hasActiveSubscription) {
+              debugPrint(
+                  '[TronVPN] VpnCard: Premium server requires subscription');
+              Get.to(() => const PremiumScreen());
               return;
             }
             debugPrint(
@@ -102,6 +109,27 @@ class VpnCard extends StatelessWidget {
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (vpn.premiumOnly) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.workspace_premium_rounded,
+                              size: 12,
+                              color: NexusTheme.gold,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Premium',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: NexusTheme.gold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 2),
                       Text(
                         '${vpn.ip}.xx · ${vpn.numVpnSessions} users',

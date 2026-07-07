@@ -53,16 +53,31 @@ class Pref {
   static set vpn(Vpn v) => _box.put('vpn', jsonEncode(v));
 
   //for storing vpn servers details
-  static List<Vpn> get vpnList {
-    List<Vpn> temp = [];
-    final data = jsonDecode(_box.get('vpnList') ?? '[]');
-
-    for (var i in data) temp.add(Vpn.fromJson(i));
-
-    return temp;
+  static List<Vpn> _readVpnList(String key) {
+    final data = jsonDecode(_box.get(key) ?? '[]');
+    return [for (final i in data) Vpn.fromJson(i)];
   }
 
-  static set vpnList(List<Vpn> v) => _box.put('vpnList', jsonEncode(v));
+  static void _writeVpnList(String key, List<Vpn> v) =>
+      _box.put(key, jsonEncode(v.map((e) => e.toJson()).toList()));
+
+  static List<Vpn> get vpnListFree => _readVpnList('vpnListFree');
+  static set vpnListFree(List<Vpn> v) => _writeVpnList('vpnListFree', v);
+
+  static List<Vpn> get vpnListPremium => _readVpnList('vpnListPremium');
+  static set vpnListPremium(List<Vpn> v) => _writeVpnList('vpnListPremium', v);
+
+  /// Alias for free server list (backward compatibility).
+  static List<Vpn> get vpnList {
+    final free = vpnListFree;
+    if (free.isNotEmpty) return free;
+    return _readVpnList('vpnList');
+  }
+
+  static set vpnList(List<Vpn> v) {
+    vpnListFree = v;
+    _writeVpnList('vpnList', v);
+  }
 
   // --- Auth & users ---
   static List<User> get users {

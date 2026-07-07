@@ -2,7 +2,13 @@ import Server from '../models/server.model.js';
 
 export async function listServers(req, res) {
   try {
-    const servers = await Server.find({ active: true })
+    const { premiumOnly } = req.query;
+    const filter = { active: true };
+    if (premiumOnly === 'true' || premiumOnly === 'false') {
+      filter.premiumOnly = premiumOnly === 'true';
+    }
+
+    const servers = await Server.find(filter)
       .sort({ sortOrder: 1, countryLong: 1 })
       .select('-__v -createdAt -updatedAt')
       .lean();
