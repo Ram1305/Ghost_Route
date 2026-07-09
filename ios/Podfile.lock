@@ -46,15 +46,15 @@ PODS:
     - OrderedSet (~> 6.0.3)
   - flutter_secure_storage (6.0.0):
     - Flutter
-  - GoogleUtilities/Environment (8.1.2):
+  - GoogleUtilities/Environment (8.1.1):
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Logger (8.1.2):
+  - GoogleUtilities/Logger (8.1.1):
     - GoogleUtilities/Environment
     - GoogleUtilities/Privacy
-  - "GoogleUtilities/NSData+zlib (8.1.2)":
+  - "GoogleUtilities/NSData+zlib (8.1.1)":
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Privacy (8.1.2)
-  - GoogleUtilities/UserDefaults (8.1.2):
+  - GoogleUtilities/Privacy (8.1.1)
+  - GoogleUtilities/UserDefaults (8.1.1):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
   - in_app_purchase_storekit (0.0.1):
@@ -86,6 +86,9 @@ PODS:
     - Flutter
   - url_launcher_ios (0.0.1):
     - Flutter
+  - wireguard_flutter_plus (0.0.1):
+    - Flutter
+    - FlutterMacOS
 
 DEPENDENCIES:
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
@@ -101,6 +104,7 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
+  - wireguard_flutter_plus (from `.symlinks/plugins/wireguard_flutter_plus/darwin`)
 
 SPEC REPOS:
   trunk:
@@ -144,6 +148,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/share_plus/ios"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
+  wireguard_flutter_plus:
+    :path: ".symlinks/plugins/wireguard_flutter_plus/darwin"
 
 CHECKOUT OPTIONS:
   OpenVPNAdapter:
@@ -165,7 +171,7 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_inappwebview_ios: b89ba3482b96fb25e00c967aae065701b66e9b99
   flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
-  GoogleUtilities: 766ace00c6b10d8148408f329d10c4f051931850
+  GoogleUtilities: 4f2618a4a1e762a1ee134a1e2323bba9843e06da
   in_app_purchase_storekit: 22cca7d08eebca9babdf4d07d0baccb73325d3c8
   openvpn_flutter: 31bba88d4f9daf1bfba7d11e943f831c442fc1d1
   OpenVPNAdapter: 1d945f4528073ff641d4ed90d98e28f2b1c86d05
@@ -175,6 +181,7 @@ SPEC CHECKSUMS:
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
+  wireguard_flutter_plus: e2826ddcaf513fa79085c64659c6c1f69bf8748e
 
 PODFILE CHECKSUM: 4d1d4b70c14ed43cd360e45b100c825ad314c587
 

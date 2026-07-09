@@ -21,39 +21,41 @@ fi
 
 ACTION="$1"
 
-# Heuristic 1: Check standard DerivedData structure (3 levels up)
-CANDIDATE_1="$BUILD_DIR/../../SourcePackages/checkouts/wireguard-apple/Sources/WireGuardKitGo"
-# Heuristic 2: Check 4 levels up
-CANDIDATE_2="$BUILD_DIR/../../../SourcePackages/checkouts/wireguard-apple/Sources/WireGuardKitGo"
-# Heuristic 3: Check 2 levels up relative to SYMROOT
-CANDIDATE_3="$SYMROOT/../../SourcePackages/checkouts/wireguard-apple/Sources/WireGuardKitGo"
+find_wireguard_kit_go() {
+    local start_dir="$1"
+    local search_dir="$start_dir"
+    local depth=0
+    local max_depth=12
 
-echo "Candidate 1: $CANDIDATE_1" >> "$LOG_FILE"
-echo "Candidate 2: $CANDIDATE_2" >> "$LOG_FILE"
-echo "Candidate 3: $CANDIDATE_3" >> "$LOG_FILE"
+    while [ -n "$search_dir" ] && [ "$depth" -lt "$max_depth" ]; do
+        local candidate="$search_dir/SourcePackages/checkouts/wireguard-apple/Sources/WireGuardKitGo"
+        echo "Depth $depth: $candidate" >> "$LOG_FILE"
+        if [ -d "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+        local parent
+        parent="$(dirname "$search_dir")"
+        if [ "$parent" = "$search_dir" ]; then
+            break
+        fi
+        search_dir="$parent"
+        depth=$((depth + 1))
+    done
+    return 1
+}
 
-if [ -d "$CANDIDATE_1" ]; then
-    TARGET_DIR="$CANDIDATE_1"
-    echo "Selected Candidate 1" >> "$LOG_FILE"
-elif [ -d "$CANDIDATE_2" ]; then
-    TARGET_DIR="$CANDIDATE_2"
-    echo "Selected Candidate 2" >> "$LOG_FILE"
-elif [ -d "$CANDIDATE_3" ]; then
-    TARGET_DIR="$CANDIDATE_3"
-    echo "Selected Candidate 3" >> "$LOG_FILE"
-else
-    echo "Standard paths not found. Searching..." >> "$LOG_FILE"
-    # Fallback: Find command
-    # Search up from BUILD_DIR until we find SourcePackages or reach root (limit depth)
-    # Using a safer finder
-    
-    # Try finding 'SourcePackages' first
-    FOUND_PACKAGES=$(find "$BUILD_DIR/../../.." -type d -name "SourcePackages" -maxdepth 4 2>/dev/null | head -n 1)
-    if [ -n "$FOUND_PACKAGES" ]; then
-         TARGET_DIR="$FOUND_PACKAGES/checkouts/wireguard-apple/Sources/WireGuardKitGo"
-         echo "Found SourcePackages at: $FOUND_PACKAGES" >> "$LOG_FILE"
+TARGET_DIR=""
+for ROOT in "$BUILD_DIR" "$SYMROOT" "$SOURCE_ROOT"; do
+    if [ -n "$ROOT" ]; then
+        echo "Searching from: $ROOT" >> "$LOG_FILE"
+        if FOUND=$(find_wireguard_kit_go "$ROOT"); then
+            TARGET_DIR="$FOUND"
+            echo "Found WireGuardKitGo at: $TARGET_DIR" >> "$LOG_FILE"
+            break
+        fi
     fi
-fi
+done
 
 echo "Target Dir: $TARGET_DIR" >> "$LOG_FILE"
 
