@@ -31,8 +31,8 @@ class LocationController extends GetxController {
         APIs.getPremiumServers(),
         APIs.getPremiumWireguardServers(),
       ]);
-      final free = results[0];
-      final premium = results[1];
+      final free = results[0] as List<Vpn>;
+      final premium = results[1] as List<Vpn>;
       final premiumWireguard = results[2] as List<WireguardServer>;
 
       if (free.isNotEmpty) {

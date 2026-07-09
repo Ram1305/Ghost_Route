@@ -60,6 +60,13 @@ dependencies:
   # OpenVPN for both Android and iOS
   openvpn_flutter: ^1.3.4
 
+  # WireGuard in-app tunneling (Android + iOS with Network Extension setup)
+  wireguard_flutter_plus: ^1.0.6
+
+  # WireGuard handoff (generate config + open WireGuard app)
+  share_plus: ^10.0.2
+  path_provider: ^2.1.5
+
   # In-app incognito browser
   flutter_inappwebview: ^6.1.5
 

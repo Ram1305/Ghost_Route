@@ -5,11 +5,13 @@ import 'package:lottie/lottie.dart';
 
 import '../controllers/home_controller.dart';
 import '../controllers/location_controller.dart';
+import '../controllers/main_nav_controller.dart';
 import '../config/app_config.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
 import '../models/vpn.dart';
 import '../models/wireguard_server.dart';
+import '../screens/premium_screen.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
 import '../widgets/vpn_card.dart';
@@ -247,7 +249,28 @@ class _WireguardServerTab extends StatelessWidget {
         left: mq.width * .04,
         right: mq.width * .04,
       ),
-      itemBuilder: (ctx, i) => WireguardServerCard(server: list[i]),
+      itemBuilder: (ctx, i) {
+        final server = list[i];
+        return WireguardServerCard(
+          server: server,
+          onConnect: () {
+            if (!Pref.hasActiveSubscription) {
+              Get.to(() => const PremiumScreen());
+              return;
+            }
+            final home = Get.find<HomeController>();
+            Pref.selectedProtocol = 'wireguard';
+            home.selectedProtocol.value = 'wireguard';
+            home.wireguardServer.value = server;
+            Pref.wireguardServer = server;
+            MainNavController.switchTo(MainTab.home);
+            if (Get.key.currentState?.canPop() ?? false) {
+              Get.back();
+            }
+            home.connectToVpn();
+          },
+        );
+      },
     );
   }
 }

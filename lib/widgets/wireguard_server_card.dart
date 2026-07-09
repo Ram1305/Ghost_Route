@@ -6,23 +6,38 @@ import '../theme/nexus_theme.dart';
 
 class WireguardServerCard extends StatelessWidget {
   final WireguardServer server;
+  final VoidCallback onConnect;
 
-  const WireguardServerCard({super.key, required this.server});
+  const WireguardServerCard({
+    super.key,
+    required this.server,
+    required this.onConnect,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final label = server.city.isNotEmpty ? '${server.country} · ${server.city}' : server.country;
+    final endpoint = '${server.host}:${server.port}';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Material(
-        color: NexusTheme.surface,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          onTap: () => _showDetails(context),
+          onTap: onConnect,
           borderRadius: BorderRadius.circular(16),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border.all(color: NexusTheme.border),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  NexusTheme.surface2,
+                  NexusTheme.surface.withOpacity(0.02),
+                ],
+              ),
+              border: Border.all(color: NexusTheme.border2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -32,10 +47,11 @@ class WireguardServerCard extends StatelessWidget {
                   height: 46,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color: NexusTheme.surface2,
-                    border: Border.all(color: NexusTheme.border),
+                    color: NexusTheme.glowTeal.withOpacity(0.18),
+                    border: Border.all(color: NexusTheme.border2),
                   ),
-                  child: Icon(Icons.vpn_key_rounded, color: NexusTheme.teal, size: 22),
+                  child: Icon(Icons.workspace_premium_rounded,
+                      color: NexusTheme.gold, size: 22),
                 ),
                 const SizedBox(width: 13),
                 Expanded(
@@ -45,15 +61,15 @@ class WireguardServerCard extends StatelessWidget {
                       Text(
                         server.serverName,
                         style: GoogleFonts.outfit(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
                           color: NexusTheme.text,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${server.country}${server.city.isNotEmpty ? ' · ${server.city}' : ''}',
+                        label,
                         style: GoogleFonts.outfit(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -63,7 +79,7 @@ class WireguardServerCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${server.host}:${server.port}',
+                        endpoint,
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -75,100 +91,27 @@ class WireguardServerCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Icon(Icons.chevron_right_rounded, color: NexusTheme.text3),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: NexusTheme.surface2,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: NexusTheme.border),
+                  ),
+                  child: Text(
+                    'SETUP',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      color: NexusTheme.teal,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showDetails(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: NexusTheme.bg2,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: NexusTheme.border2),
-        ),
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: NexusTheme.text3.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                server.serverName,
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: NexusTheme.text,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${server.country}${server.city.isNotEmpty ? ' · ${server.city}' : ''}',
-                style: GoogleFonts.outfit(fontSize: 13, color: NexusTheme.text2),
-              ),
-              const SizedBox(height: 14),
-              _kv('Endpoint', '${server.host}:${server.port}'),
-              _kv('Address', server.address),
-              _kv('DNS', server.dns),
-              _kv('Allowed IPs', server.allowedIPs),
-              _kv('Persistent Keepalive', '${server.persistentKeepalive}s'),
-              const SizedBox(height: 8),
-              Text(
-                'This list is display-only (WireGuard connect is not enabled in this app yet).',
-                style: GoogleFonts.outfit(fontSize: 11, color: NexusTheme.text3, height: 1.3),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _kv(String k, String v) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              k,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 11,
-                color: NexusTheme.text3,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              v,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 11,
-                color: NexusTheme.text2,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

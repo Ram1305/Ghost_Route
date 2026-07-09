@@ -53,6 +53,16 @@ class Pref {
   static Vpn get vpn => Vpn.fromJson(jsonDecode(_box.get('vpn') ?? '{}'));
   static set vpn(Vpn v) => _box.put('vpn', jsonEncode(v));
 
+  // for storing single selected wireguard server details
+  static WireguardServer get wireguardServer =>
+      WireguardServer.fromJson(jsonDecode(_box.get('wireguardServer') ?? '{}'));
+  static set wireguardServer(WireguardServer v) =>
+      _box.put('wireguardServer', jsonEncode(v));
+
+  /// Selected protocol: 'openvpn' (default) or 'wireguard'.
+  static String get selectedProtocol => _box.get('selectedProtocol') ?? 'openvpn';
+  static set selectedProtocol(String v) => _box.put('selectedProtocol', v);
+
   //for storing vpn servers details
   static List<Vpn> _readVpnList(String key) {
     final data = jsonDecode(_box.get(key) ?? '[]');

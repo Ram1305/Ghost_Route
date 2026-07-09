@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,15 +12,20 @@ import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';
 import '../models/vpn_config.dart';
+import '../models/wireguard_server.dart';
 import '../services/server_speed_test.dart';
 import '../services/vpn_engine.dart';
 import '../services/free_vpn_session_service.dart';
+import '../services/wireguard_engine.dart';
+import '../services/wireguard_service.dart';
 import '../screens/premium_screen.dart';
 import '../controllers/main_nav_controller.dart';
 import '../theme/nexus_theme.dart';
 
 class HomeController extends GetxController with WidgetsBindingObserver {
   final Rx<Vpn> vpn = Pref.vpn.obs;
+  final Rx<WireguardServer> wireguardServer = Pref.wireguardServer.obs;
+  final selectedProtocol = Pref.selectedProtocol.obs; // 'openvpn' | 'wireguard'
 
   final vpnState = VpnEngine.vpnDisconnected.obs;
 
@@ -30,6 +36,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   final showSecuredOverlay = false.obs;
 
   StreamSubscription<String>? _vpnStageSubscription;
+  Worker? _protocolWorker;
   Timer? _connectTimeout;
   Timer? _freeSessionTimer;
   bool _userCancelledConnect = false;
@@ -47,8 +54,23 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen(_onVpnStage);
+    _attachStageListener();
+    _protocolWorker = ever<String>(selectedProtocol, (_) {
+      Pref.selectedProtocol = selectedProtocol.value;
+      _attachStageListener();
+      _syncVpnStateFromEngine();
+    });
     _initFreeSessionState();
+  }
+
+  void _attachStageListener() {
+    _vpnStageSubscription?.cancel();
+    if (selectedProtocol.value == 'wireguard') {
+      _vpnStageSubscription =
+          WireguardEngine.stageSnapshot().listen(_onVpnStage);
+    } else {
+      _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen(_onVpnStage);
+    }
   }
 
   @override
@@ -66,10 +88,20 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   /// Seeds [vpnState] from the native tunnel when the app starts or resumes.
   /// Stage-change events are not re-emitted for an already-running tunnel.
   Future<void> _syncVpnStateFromEngine() async {
-    if (!VpnEngine.isVpnSupported) return;
+    if (selectedProtocol.value != 'wireguard' && !VpnEngine.isVpnSupported) {
+      return;
+    }
 
     try {
-      await VpnEngine.initialize();
+      if (selectedProtocol.value == 'wireguard') {
+        await WireguardEngine.initialize(
+          interfaceName: 'wg0',
+          vpnName: 'Ghost Route',
+          iosAppGroup: 'group.com.yencode.ghostroute',
+        );
+      } else {
+        await VpnEngine.initialize();
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[TronVPN] _syncVpnStateFromEngine: init failed $e');
@@ -78,10 +110,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
 
     try {
-      final stage = await VpnEngine.stage();
-      if (stage == null) return;
-
-      final normalizedStage = stage.toLowerCase();
+      final stage = selectedProtocol.value == 'wireguard'
+          ? null
+          : await VpnEngine.stage();
+      final normalizedStage = (stage ?? vpnState.value).toLowerCase();
 
       if (normalizedStage == VpnEngine.vpnConnected) {
         if (vpnState.value != VpnEngine.vpnConnected) {
@@ -267,6 +299,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     _connectTimeout?.cancel();
     _stopFreeSessionTimer();
     _vpnStageSubscription?.cancel();
+    _protocolWorker?.dispose();
     super.onClose();
   }
 
@@ -285,20 +318,23 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   void connectToVpn() async {
     debugPrint('[TronVPN] connectToVpn() called. state=${vpnState.value}');
-    if (!VpnEngine.isVpnSupported) {
+    if (selectedProtocol.value != 'wireguard' && !VpnEngine.isVpnSupported) {
       debugPrint('[TronVPN] connectToVpn: VPN not supported on this device');
       MyDialogs.info(msg: 'VPN is not supported on this device.');
       return;
     }
     if (vpnState.value == VpnEngine.vpnDisconnected) {
-      if (vpn.value.openVPNConfigDataBase64.isEmpty) {
+      if (selectedProtocol.value == 'openvpn' &&
+          vpn.value.openVPNConfigDataBase64.isEmpty) {
         debugPrint(
             '[TronVPN] connectToVpn: No config selected - auto-picking fastest server.');
         final picked = await _autoSelectFastestServer();
         if (picked == null) return;
       }
 
-      if (vpn.value.premiumOnly && !Pref.hasActiveSubscription) {
+      if (selectedProtocol.value == 'openvpn' &&
+          vpn.value.premiumOnly &&
+          !Pref.hasActiveSubscription) {
         debugPrint(
             '[TronVPN] connectToVpn: Premium server requires subscription.');
         Get.to(() => const PremiumScreen());
@@ -319,8 +355,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         }
       }
 
-      debugPrint(
-          '[TronVPN] connectToVpn: Starting connect to ${vpn.value.countryLong} (${vpn.value.hostname})');
+      debugPrint('[TronVPN] connectToVpn: Starting connect protocol=${selectedProtocol.value}');
       _sawConnectingStageThisAttempt = false;
       _connectFailureNotified = false;
       _manualFreeDisconnect = false;
@@ -328,17 +363,33 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       _startConnectTimeout();
 
       try {
-        final data =
-            Base64Decoder().convert(vpn.value.openVPNConfigDataBase64);
-        final config = Utf8Decoder().convert(data);
-        final vpnConfig = VpnConfig(
-            country: vpn.value.countryLong,
-            username: 'vpn',
-            password: 'vpn',
-            config: config);
-        debugPrint('[TronVPN] connectToVpn: Calling VpnEngine.startVpn()');
-        await VpnEngine.startVpn(vpnConfig);
-        debugPrint('[TronVPN] connectToVpn: VpnEngine.startVpn() returned');
+        if (selectedProtocol.value == 'wireguard') {
+          // WireGuard servers are premium-only in this app.
+          if (!Pref.hasActiveSubscription) {
+            Get.to(() => const PremiumScreen());
+            return;
+          }
+          final s = wireguardServer.value;
+          final cfg = WireguardService.buildConfig(s);
+          await WireguardEngine.startVpn(
+            serverAddress: '${s.host}:${s.port}',
+            wgQuickConfig: cfg,
+            providerBundleIdentifier:
+                Platform.isIOS ? 'com.yencode.ghostroute.WGExtension' : null,
+          );
+        } else {
+          final data =
+              Base64Decoder().convert(vpn.value.openVPNConfigDataBase64);
+          final config = Utf8Decoder().convert(data);
+          final vpnConfig = VpnConfig(
+              country: vpn.value.countryLong,
+              username: 'vpn',
+              password: 'vpn',
+              config: config);
+          debugPrint('[TronVPN] connectToVpn: Calling VpnEngine.startVpn()');
+          await VpnEngine.startVpn(vpnConfig);
+          debugPrint('[TronVPN] connectToVpn: VpnEngine.startVpn() returned');
+        }
       } catch (e) {
         _connectTimeout?.cancel();
         _connectTimeout = null;
@@ -353,7 +404,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       if (!Pref.hasActiveSubscription) {
         _manualFreeDisconnect = true;
       }
-      await VpnEngine.stopVpn();
+      if (selectedProtocol.value == 'wireguard') {
+        await WireguardEngine.stopVpn();
+      } else {
+        await VpnEngine.stopVpn();
+      }
     } else {
       // Intermediate state (e.g. connecting, authenticating): tap cancels the connection.
       debugPrint(
@@ -361,7 +416,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       _userCancelledConnect = true;
       _connectTimeout?.cancel();
       _connectTimeout = null;
-      await VpnEngine.stopVpn();
+      if (selectedProtocol.value == 'wireguard') {
+        await WireguardEngine.stopVpn();
+      } else {
+        await VpnEngine.stopVpn();
+      }
       vpnState.value = VpnEngine.vpnDisconnected;
     }
   }
