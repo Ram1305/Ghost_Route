@@ -18,12 +18,9 @@ export async function upsertWireguardPremiumServers() {
   }
 }
 
-/** Seed WireGuard servers when the collection is empty (first deploy / fresh database). */
+/** Sync WireGuard servers from config into MongoDB on every startup. */
 export async function ensureWireguardServersSeeded() {
-  const count = await WireguardServer.countDocuments();
-  if (count > 0) return;
-
   await upsertWireguardPremiumServers();
-  console.log(`Seeded ${wireguardPremiumServers.length} WireGuard premium server(s)`);
+  console.log(`Synced ${wireguardPremiumServers.length} WireGuard premium server(s)`);
 }
 

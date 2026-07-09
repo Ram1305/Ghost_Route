@@ -17,6 +17,7 @@ class LocationController extends GetxController {
     super.onInit();
     freeVpnList.assignAll(Pref.vpnListFree);
     premiumVpnList.assignAll(Pref.vpnListPremium);
+    premiumWireguardList.assignAll(Pref.vpnListPremiumWireguard);
   }
 
   Future<void> getVpnData() async {

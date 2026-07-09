@@ -9,8 +9,9 @@
     "dev": "node --watch server.js",
     "seed:plans": "node src/scripts/seedPlans.js",
     "seed:servers": "node src/scripts/seedServers.js",
+    "seed:wireguard": "node src/scripts/seedWireguardServers.js",
     "seed:review": "node src/scripts/seedReviewAccount.js",
-    "seed:all": "node src/scripts/seedPlans.js && node src/scripts/seedServers.js && node src/scripts/seedReviewAccount.js"
+    "seed:all": "node src/scripts/seedPlans.js && node src/scripts/seedServers.js && node src/scripts/seedWireguardServers.js && node src/scripts/seedReviewAccount.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

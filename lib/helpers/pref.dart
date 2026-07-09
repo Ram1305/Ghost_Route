@@ -7,6 +7,7 @@ import 'subscription_expiry.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
 import '../models/vpn.dart';
+import '../models/wireguard_server.dart';
 
 class Pref {
   static late Box _box;
@@ -66,6 +67,19 @@ class Pref {
 
   static List<Vpn> get vpnListPremium => _readVpnList('vpnListPremium');
   static set vpnListPremium(List<Vpn> v) => _writeVpnList('vpnListPremium', v);
+
+  static List<WireguardServer> _readWireguardList(String key) {
+    final data = jsonDecode(_box.get(key) ?? '[]');
+    return [for (final i in data) WireguardServer.fromJson(i)];
+  }
+
+  static void _writeWireguardList(String key, List<WireguardServer> v) =>
+      _box.put(key, jsonEncode(v.map((e) => e.toJson()).toList()));
+
+  static List<WireguardServer> get vpnListPremiumWireguard =>
+      _readWireguardList('vpnListPremiumWireguard');
+  static set vpnListPremiumWireguard(List<WireguardServer> v) =>
+      _writeWireguardList('vpnListPremiumWireguard', v);
 
   /// Alias for free server list (backward compatibility).
   static List<Vpn> get vpnList {

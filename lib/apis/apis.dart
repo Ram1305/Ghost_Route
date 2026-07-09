@@ -61,10 +61,14 @@ class APIs {
   /// Premium WireGuard servers from backend (display-only list).
   static Future<List<WireguardServer>> getPremiumWireguardServers() async {
     try {
-      return await _fetchPremiumWireguardServers();
+      final list = await _fetchPremiumWireguardServers();
+      if (list.isNotEmpty) {
+        Pref.vpnListPremiumWireguard = list;
+      }
+      return list;
     } catch (e) {
       log('\ngetPremiumWireguardServers: $e');
-      return const <WireguardServer>[];
+      return Pref.vpnListPremiumWireguard;
     }
   }
 
