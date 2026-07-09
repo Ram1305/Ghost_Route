@@ -20,6 +20,10 @@ class AppConfig {
   static String get premiumServersApiUrl =>
       '$apiBaseUrl/api/servers?premiumOnly=true';
 
+  /// Premium WireGuard servers (display-only list).
+  static String get wireguardPremiumServersApiUrl =>
+      '$apiBaseUrl/api/premium-servers/wireguard';
+
   /// IP geolocation API (free tier; use with User-Agent).
   static const String ipApiUrl = 'http://ip-api.com/json/';
 

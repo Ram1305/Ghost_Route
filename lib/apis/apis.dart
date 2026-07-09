@@ -10,6 +10,7 @@ import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/ip_details.dart';
 import '../models/vpn.dart';
+import '../models/wireguard_server.dart';
 
 class APIs {
   /// Free VPN servers from VPN Gate public API.
@@ -54,6 +55,16 @@ class APIs {
     } catch (e) {
       log('\ngetPremiumServers: $e');
       return Pref.vpnListPremium;
+    }
+  }
+
+  /// Premium WireGuard servers from backend (display-only list).
+  static Future<List<WireguardServer>> getPremiumWireguardServers() async {
+    try {
+      return await _fetchPremiumWireguardServers();
+    } catch (e) {
+      log('\ngetPremiumWireguardServers: $e');
+      return const <WireguardServer>[];
     }
   }
 
@@ -117,6 +128,34 @@ class APIs {
     }
 
     return vpnList;
+  }
+
+  static Future<List<WireguardServer>> _fetchPremiumWireguardServers() async {
+    final List<WireguardServer> list = [];
+
+    final res = await get(
+      Uri.parse(AppConfig.wireguardPremiumServersApiUrl),
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': AppConfig.userAgent,
+      },
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Premium WireGuard API returned ${res.statusCode}');
+    }
+    final decoded = jsonDecode(res.body);
+    if (decoded is! List) {
+      throw Exception('Premium WireGuard API returned invalid JSON');
+    }
+    for (final item in decoded) {
+      if (item is Map<String, dynamic>) {
+        list.add(WireguardServer.fromJson(item));
+      } else if (item is Map) {
+        list.add(WireguardServer.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+
+    return list;
   }
 
   static void _dedupeByHostname(List<Vpn> vpnList) {

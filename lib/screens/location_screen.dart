@@ -9,9 +9,11 @@ import '../config/app_config.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
 import '../models/vpn.dart';
+import '../models/wireguard_server.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
 import '../widgets/vpn_card.dart';
+import '../widgets/wireguard_server_card.dart';
 
 class LocationScreen extends StatefulWidget {
   final bool embedded;
@@ -65,7 +67,7 @@ class _LocationScreenState extends State<LocationScreen> {
               ),
               tabs: [
                 Tab(text: 'Free (${controller.freeVpnList.length})'),
-                Tab(text: 'Premium (${controller.premiumVpnList.length})'),
+                Tab(text: 'Premium (${controller.premiumWireguardList.length})'),
               ],
             ),
           ),
@@ -88,9 +90,9 @@ class _LocationScreenState extends State<LocationScreen> {
                     ? AppConfig.disclaimerBrowseServers
                     : null,
               ),
-              _ServerTab(
+              _WireguardServerTab(
                 isLoading: controller.isLoading.value,
-                servers: controller.premiumVpnList,
+                servers: controller.premiumWireguardList,
                 disclaimer: !Pref.hasActiveSubscription
                     ? AppConfig.disclaimerPlatinumBenefits
                     : null,
@@ -192,6 +194,109 @@ class _ServerTab extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'VPNs Not Found',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: NexusTheme.text2,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _WireguardServerTab extends StatelessWidget {
+  final bool isLoading;
+  final List<WireguardServer> servers;
+  final String? disclaimer;
+
+  const _WireguardServerTab({
+    required this.isLoading,
+    required this.servers,
+    this.disclaimer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (disclaimer != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SubscriptionDisclaimerBanner(text: disclaimer!),
+          ),
+        Expanded(
+          child: isLoading && servers.isEmpty
+              ? const _LoadingServersWidget(label: 'Loading premium servers...')
+              : servers.isEmpty
+                  ? const _NoServersFoundWidget()
+                  : _serverList(servers),
+        ),
+      ],
+    );
+  }
+
+  Widget _serverList(List<WireguardServer> list) {
+    return ListView.builder(
+      itemCount: list.length,
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.only(
+        top: mq.height * .015,
+        bottom: mq.height * .1,
+        left: mq.width * .04,
+        right: mq.width * .04,
+      ),
+      itemBuilder: (ctx, i) => WireguardServerCard(server: list[i]),
+    );
+  }
+}
+
+class _LoadingServersWidget extends StatelessWidget {
+  final String label;
+  const _LoadingServersWidget({required this.label});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            LottieBuilder.asset(
+              'assets/lottie/loading.json',
+              width: mq.width * .7,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: NexusTheme.text2,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _NoServersFoundWidget extends StatelessWidget {
+  const _NoServersFoundWidget();
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: NexusTheme.text3,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Servers Not Found',
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,

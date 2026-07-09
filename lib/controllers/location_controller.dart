@@ -3,10 +3,12 @@ import 'package:get/get.dart';
 import '../apis/apis.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';
+import '../models/wireguard_server.dart';
 
 class LocationController extends GetxController {
   final RxList<Vpn> freeVpnList = <Vpn>[].obs;
   final RxList<Vpn> premiumVpnList = <Vpn>[].obs;
+  final RxList<WireguardServer> premiumWireguardList = <WireguardServer>[].obs;
 
   final RxBool isLoading = false.obs;
 
@@ -21,13 +23,16 @@ class LocationController extends GetxController {
     isLoading.value = true;
     final cachedFree = List<Vpn>.from(freeVpnList);
     final cachedPremium = List<Vpn>.from(premiumVpnList);
+    final cachedPremiumWireguard = List<WireguardServer>.from(premiumWireguardList);
     try {
       final results = await Future.wait([
         APIs.getFreeServers(),
         APIs.getPremiumServers(),
+        APIs.getPremiumWireguardServers(),
       ]);
       final free = results[0];
       final premium = results[1];
+      final premiumWireguard = results[2] as List<WireguardServer>;
 
       if (free.isNotEmpty) {
         freeVpnList.assignAll(free);
@@ -39,6 +44,12 @@ class LocationController extends GetxController {
         premiumVpnList.assignAll(premium);
       } else if (cachedPremium.isNotEmpty) {
         premiumVpnList.assignAll(cachedPremium);
+      }
+
+      if (premiumWireguard.isNotEmpty) {
+        premiumWireguardList.assignAll(premiumWireguard);
+      } else if (cachedPremiumWireguard.isNotEmpty) {
+        premiumWireguardList.assignAll(cachedPremiumWireguard);
       }
     } finally {
       isLoading.value = false;
