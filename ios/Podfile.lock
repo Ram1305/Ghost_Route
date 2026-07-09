@@ -86,9 +86,6 @@ PODS:
     - Flutter
   - url_launcher_ios (0.0.1):
     - Flutter
-  - wireguard_flutter_plus (0.0.1):
-    - Flutter
-    - FlutterMacOS
 
 DEPENDENCIES:
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
@@ -104,7 +101,6 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
-  - wireguard_flutter_plus (from `.symlinks/plugins/wireguard_flutter_plus/darwin`)
 
 SPEC REPOS:
   trunk:
@@ -148,8 +144,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/share_plus/ios"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
-  wireguard_flutter_plus:
-    :path: ".symlinks/plugins/wireguard_flutter_plus/darwin"
 
 CHECKOUT OPTIONS:
   OpenVPNAdapter:
@@ -181,7 +175,6 @@ SPEC CHECKSUMS:
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
-  wireguard_flutter_plus: e2826ddcaf513fa79085c64659c6c1f69bf8748e
 
 PODFILE CHECKSUM: 4d1d4b70c14ed43cd360e45b100c825ad314c587
 

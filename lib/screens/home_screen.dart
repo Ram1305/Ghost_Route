@@ -22,6 +22,34 @@ class HomeScreen extends StatelessWidget {
 
   final _controller = Get.put(HomeController());
 
+  String _flagEmojiForCountryName(String country) {
+    final c = country.trim().toLowerCase();
+    if (c.contains('united states') || c == 'usa' || c.contains('america')) {
+      return '🇺🇸';
+    }
+    if (c.contains('singapore')) return '🇸🇬';
+    if (c.contains('india')) return '🇮🇳';
+    if (c.contains('japan')) return '🇯🇵';
+    return '🌐';
+  }
+
+  String _maskHostLast2Digits(String input) {
+    int digits = 0;
+    final chars = input.split('');
+    for (int i = chars.length - 1; i >= 0; i--) {
+      final code = chars[i].codeUnitAt(0);
+      final isDigit = code >= 48 && code <= 57;
+      if (!isDigit) continue;
+      digits++;
+      if (digits <= 2) {
+        chars[i] = 'X';
+      } else {
+        break;
+      }
+    }
+    return chars.join();
+  }
+
   @override
   Widget build(BuildContext context) {
     mq = MediaQuery.sizeOf(context);
@@ -74,12 +102,22 @@ class HomeScreen extends StatelessWidget {
             return Positioned.fill(
               child: SecuredOverlay(
                 visible: true,
-                serverCode: _controller.vpn.value.countryShort.isNotEmpty
-                    ? _controller.vpn.value.countryShort
-                    : '—',
-                ping: _controller.vpn.value.ping.isNotEmpty
-                    ? '${_controller.vpn.value.ping}ms'
-                    : '—',
+                serverCode: _controller.selectedProtocol.value == 'wireguard'
+                    ? (_controller.wireguardServer.value.country.isNotEmpty
+                        ? _controller.wireguardServer.value.country
+                            .trim()
+                            .split(RegExp(r'\s+'))
+                            .take(2)
+                            .join(' ')
+                        : '—')
+                    : (_controller.vpn.value.countryShort.isNotEmpty
+                        ? _controller.vpn.value.countryShort
+                        : '—'),
+                ping: _controller.selectedProtocol.value == 'wireguard'
+                    ? '—'
+                    : (_controller.vpn.value.ping.isNotEmpty
+                        ? '${_controller.vpn.value.ping}ms'
+                        : '—'),
                 onDismiss: () => _controller.dismissSecuredOverlay(),
               ),
             );
@@ -378,10 +416,120 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Obx(() {
+            // Show "taking long" only for free users while connecting.
+            // Always touch an Rx inside Obx to avoid GetX "improper use" warnings
+            // when this subtree is hidden by non-reactive conditions.
+            final state = _controller.vpnState.value;
+            if (Pref.hasActiveSubscription) return const SizedBox.shrink();
+            final connecting = state != VpnEngine.vpnConnected &&
+                state != VpnEngine.vpnDisconnected;
+            if (!connecting) return const SizedBox.shrink();
+            final secs = _controller.connectElapsedSeconds.value;
+            if (secs < 12) return const SizedBox.shrink();
+
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: NexusTheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: NexusTheme.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.hourglass_bottom_rounded,
+                        size: 18,
+                        color: NexusTheme.gold,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Taking longer than usual (${secs}s)',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: NexusTheme.text,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Try switching location or toggling Airplane mode. Some networks block VPN handshakes.',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 10.5,
+                      height: 1.35,
+                      color: NexusTheme.text2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      _QuickActionButton(
+                        label: 'Retry',
+                        icon: Icons.refresh_rounded,
+                        onTap: () => _controller.retryConnection(),
+                      ),
+                      _QuickActionButton(
+                        label: 'Change location',
+                        icon: Icons.public_rounded,
+                        onTap: () => MainNavController.switchTo(MainTab.servers),
+                      ),
+                      _QuickActionButton(
+                        label: 'Troubleshoot',
+                        icon: Icons.help_outline_rounded,
+                        onTap: () {
+                          Get.dialog(
+                            AlertDialog(
+                              backgroundColor: NexusTheme.bg2,
+                              title: const Text(
+                                'Connection is slow',
+                                style: TextStyle(color: NexusTheme.text),
+                              ),
+                              content: Text(
+                                'Try these quick fixes:\n\n'
+                                '1) Switch Wi‑Fi ↔ Mobile data\n'
+                                '2) Toggle Airplane mode (10 seconds)\n'
+                                '3) Disable Data Saver / Battery Saver\n'
+                                '4) Change to another free location\n'
+                                '5) If it still fails, try again later (free servers can be congested).',
+                                style: const TextStyle(color: NexusTheme.text2),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Get.back(),
+                                  child: const Text(
+                                    'Close',
+                                    style: TextStyle(color: NexusTheme.text2),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            barrierDismissible: true,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+          Obx(() {
             final connected =
                 _controller.vpnState.value == VpnEngine.vpnConnected;
+            final isWireguard = _controller.selectedProtocol.value == 'wireguard';
             final hint = connected
-                ? 'Connected via ${_controller.vpn.value.countryLong}'
+                ? (isWireguard
+                    ? 'Connected via ${_controller.wireguardServer.value.country}'
+                    : 'Connected via ${_controller.vpn.value.countryLong}')
                 : Pref.hasActiveSubscription
                     ? AppConfig.connectHelperTextSubscribed
                     : AppConfig.connectHelperText;
@@ -438,10 +586,18 @@ class HomeScreen extends StatelessWidget {
               child: Obx(() {
                 final connected =
                     _controller.vpnState.value == VpnEngine.vpnConnected;
+                final isWireguard =
+                    _controller.selectedProtocol.value == 'wireguard';
                 return _IpCell(
                   label: 'VPN IP',
                   value: connected
-                      ? '${_controller.vpn.value.ip}.xx'
+                      ? (isWireguard
+                          ? (_controller.wireguardServer.value.address.isNotEmpty
+                              ? _controller.wireguardServer.value.address
+                                  .split('/')
+                                  .first
+                              : '—')
+                          : '${_controller.vpn.value.ip}.xx')
                       : '—',
                   showDot: connected,
                 );
@@ -456,10 +612,14 @@ class HomeScreen extends StatelessWidget {
               child: Obx(() {
                 final connected =
                     _controller.vpnState.value == VpnEngine.vpnConnected;
+                final isWireguard =
+                    _controller.selectedProtocol.value == 'wireguard';
                 return _IpCell(
                   label: 'Location',
                   value: connected
-                      ? _controller.vpn.value.countryShort
+                      ? (isWireguard
+                          ? _controller.wireguardServer.value.country
+                          : _controller.vpn.value.countryShort)
                       : '—',
                 );
               }),
@@ -531,21 +691,45 @@ class HomeScreen extends StatelessWidget {
           if (Pref.hasActiveSubscription) const SizedBox(height: 13),
           GestureDetector(
             onTap: () => MainNavController.switchTo(MainTab.servers),
-            child: _ServerCard(
-              country: _controller.vpn.value.countryLong.isEmpty
-                  ? 'Select Server'
-                  : _controller.vpn.value.countryLong,
-              flag: _controller.vpn.value.countryShort.isEmpty
-                  ? '🌐'
-                  : _controller.vpn.value.countryShort,
-              meta: _controller.vpn.value.ip.isEmpty
-                  ? 'Tap to choose'
-                  : '${_controller.vpn.value.ip}.xx · ${_controller.vpn.value.numVpnSessions} users',
-              ping: _controller.vpn.value.ping.isEmpty
-                  ? '—'
-                  : '${_controller.vpn.value.ping}ms',
-              selected: true,
-            ),
+            child: Obx(() {
+              final isWireguard = _controller.selectedProtocol.value == 'wireguard';
+              if (isWireguard) {
+                final s = _controller.wireguardServer.value;
+                final country =
+                    s.country.trim().isEmpty ? 'Select Server' : s.country.trim();
+                final city = s.city.trim();
+                final hostRaw = s.host.trim();
+                final hostMasked =
+                    hostRaw.isEmpty ? '' : _maskHostLast2Digits(hostRaw);
+                final hostLine = hostMasked.isEmpty
+                    ? 'Tap to choose'
+                    : (s.port > 0 ? '$hostMasked:XXXXX' : hostMasked);
+                final meta = city.isEmpty ? hostLine : '$city · $hostLine';
+                return _ServerCard(
+                  country: country,
+                  flag: _flagEmojiForCountryName(country),
+                  meta: meta,
+                  ping: '10ms',
+                  selected: _controller.vpnState.value == VpnEngine.vpnConnected,
+                );
+              }
+
+              return _ServerCard(
+                country: _controller.vpn.value.countryLong.isEmpty
+                    ? 'Select Server'
+                    : _controller.vpn.value.countryLong,
+                flag: _controller.vpn.value.countryShort.isEmpty
+                    ? '🌐'
+                    : _controller.vpn.value.countryShort,
+                meta: _controller.vpn.value.ip.isEmpty
+                    ? 'Tap to choose'
+                    : '${_controller.vpn.value.ip}.xx · ${_controller.vpn.value.numVpnSessions} users',
+                ping: _controller.vpn.value.ping.isEmpty
+                    ? '—'
+                    : '${_controller.vpn.value.ping}ms',
+                selected: _controller.vpnState.value == VpnEngine.vpnConnected,
+              );
+            }),
           ),
         ],
       ),
@@ -600,18 +784,16 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 11),
-          StreamBuilder<VpnStatus?>(
-            initialData: VpnStatus(),
-            stream: VpnEngine.vpnStatusSnapshot(),
-            builder: (context, snapshot) {
-              final byteIn = snapshot.data?.byteIn ?? '0 kbps';
-              final byteOut = snapshot.data?.byteOut ?? '0 kbps';
+          Obx(() {
+            final isWireguard =
+                _controller.selectedProtocol.value == 'wireguard';
+            if (isWireguard) {
               return Row(
                 children: [
                   Expanded(
                     child: _StatTile(
                       icon: Icons.arrow_downward_rounded,
-                      value: byteIn,
+                      value: _controller.wgDownload.value,
                       label: 'DOWNLOAD',
                       color: NexusTheme.blue,
                     ),
@@ -620,15 +802,45 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: _StatTile(
                       icon: Icons.arrow_upward_rounded,
-                      value: byteOut,
+                      value: _controller.wgUpload.value,
                       label: 'UPLOAD',
                       color: NexusTheme.teal,
                     ),
                   ),
                 ],
               );
-            },
-          ),
+            }
+
+            return StreamBuilder<VpnStatus?>(
+              initialData: VpnStatus(),
+              stream: VpnEngine.vpnStatusSnapshot(),
+              builder: (context, snapshot) {
+                final byteIn = snapshot.data?.byteIn ?? '0 kbps';
+                final byteOut = snapshot.data?.byteOut ?? '0 kbps';
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _StatTile(
+                        icon: Icons.arrow_downward_rounded,
+                        value: byteIn,
+                        label: 'DOWNLOAD',
+                        color: NexusTheme.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: _StatTile(
+                        icon: Icons.arrow_upward_rounded,
+                        value: byteOut,
+                        label: 'UPLOAD',
+                        color: NexusTheme.teal,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          }),
         ],
       ),
     );
@@ -739,6 +951,52 @@ class _ProtocolPill extends StatelessWidget {
           fontSize: 11,
           letterSpacing: 0.5,
           color: active ? NexusTheme.teal : NexusTheme.text2,
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _QuickActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: NexusTheme.surface2,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: NexusTheme.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: NexusTheme.text2),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: NexusTheme.text,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

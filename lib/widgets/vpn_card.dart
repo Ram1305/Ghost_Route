@@ -50,6 +50,9 @@ class VpnCard extends StatelessWidget {
             }
             debugPrint(
                 '[TronVPN] VpnCard: Selected ${vpn.countryLong} (${vpn.hostname}), saving and connecting');
+            // Ensure Free/OpenVPN selection switches protocol back from WireGuard.
+            Pref.selectedProtocol = 'openvpn';
+            controller.selectedProtocol.value = 'openvpn';
             controller.vpn.value = vpn;
             Pref.vpn = vpn;
             _goToHomeShield();

@@ -122,109 +122,125 @@ class _SecuredOverlayState extends State<SecuredOverlay>
               ),
             ),
             if (widget.visible)
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _ShieldWithRipples(
-                      ripple1: _ripple1Controller,
-                      ripple2: _ripple2Controller,
-                      ripple3: _ripple3Controller,
-                      ripple4: _ripple4Controller,
-                      shieldPulse: _shieldPulseController,
+              SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
                     ),
-                    const SizedBox(height: 32),
-                    ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white,
-                          NexusTheme.teal,
-                        ],
-                        stops: [0.3, 1],
-                      ).createShader(bounds),
-                      blendMode: BlendMode.srcIn,
-                      child: Text(
-                        "You're Secured",
-                        style: GoogleFonts.outfit(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -1,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: SubscriptionDisclaimerBanner(
-                        text: Pref.hasActiveSubscription
-                            ? AppConfig.connectHelperTextSubscribed
-                            : AppConfig.disclaimerSecuredOverlayFree,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Ghost Route · Encrypted tunnel',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12,
-                        color: NexusTheme.text2,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _SecStat(label: 'Server', value: widget.serverCode),
-                        const SizedBox(width: 32),
-                        _SecStat(label: 'Latency', value: widget.ping),
-                        const SizedBox(width: 32),
-                        const _SecStat(label: 'AES Bit', value: '256'),
-                        const SizedBox(width: 32),
-                        const _SecStat(label: 'DNS Leaks', value: '0'),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: widget.onDismiss,
-                        borderRadius: BorderRadius.circular(50),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 14,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _ShieldWithRipples(
+                            ripple1: _ripple1Controller,
+                            ripple2: _ripple2Controller,
+                            ripple3: _ripple3Controller,
+                            ripple4: _ripple4Controller,
+                            shieldPulse: _shieldPulseController,
                           ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
+                          const SizedBox(height: 32),
+                          ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [NexusTheme.teal, NexusTheme.blue],
-                            ),
-                            borderRadius: BorderRadius.circular(50),
-                            boxShadow: [
-                              BoxShadow(
-                                color: NexusTheme.teal.withOpacity(0.3),
-                                blurRadius: 32,
-                                offset: const Offset(0, 8),
+                              colors: [
+                                Colors.white,
+                                NexusTheme.teal,
+                              ],
+                              stops: [0.3, 1],
+                            ).createShader(bounds),
+                            blendMode: BlendMode.srcIn,
+                            child: Text(
+                              "You're Secured",
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.outfit(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -1,
+                                color: Colors.white,
                               ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SubscriptionDisclaimerBanner(
+                            text: Pref.hasActiveSubscription
+                                ? AppConfig.connectHelperTextSubscribed
+                                : AppConfig.disclaimerSecuredOverlayFree,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Ghost Route · Encrypted tunnel',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12,
+                              color: NexusTheme.text2,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            runAlignment: WrapAlignment.center,
+                            spacing: 28,
+                            runSpacing: 16,
+                            children: [
+                              _SecStat(
+                                label: 'Server',
+                                value: widget.serverCode,
+                              ),
+                              _SecStat(
+                                label: 'Latency',
+                                value: widget.ping,
+                              ),
+                              const _SecStat(label: 'AES Bit', value: '256'),
+                              const _SecStat(label: 'DNS Leaks', value: '0'),
                             ],
                           ),
-                          child: Text(
-                            'Continue',
-                            style: GoogleFonts.outfit(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                              letterSpacing: 0.5,
+                          const SizedBox(height: 40),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: widget.onDismiss,
+                              borderRadius: BorderRadius.circular(50),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 40,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [NexusTheme.teal, NexusTheme.blue],
+                                  ),
+                                  borderRadius: BorderRadius.circular(50),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: NexusTheme.teal.withOpacity(0.3),
+                                      blurRadius: 32,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  'Continue',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
           ],

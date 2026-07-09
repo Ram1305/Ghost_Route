@@ -120,6 +120,7 @@ class _ServerTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final home = Get.find<HomeController>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -128,6 +129,83 @@ class _ServerTab extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: SubscriptionDisclaimerBanner(text: disclaimer!),
           ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Material(
+            color: NexusTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => home.connectToFastestFreeServer(),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: NexusTheme.border),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      NexusTheme.teal.withOpacity(0.10),
+                      NexusTheme.surface.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: NexusTheme.teal.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: NexusTheme.teal.withOpacity(0.25),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.flash_on_rounded,
+                        color: NexusTheme.teal,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Fastest Free Server',
+                            style: GoogleFonts.outfit(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: NexusTheme.text,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Auto-selects the lowest latency location and connects',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10.5,
+                              color: NexusTheme.text2,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: NexusTheme.text2,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         Expanded(
           child: isLoading && servers.isEmpty
               ? _loadingWidget()
