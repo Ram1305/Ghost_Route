@@ -97,7 +97,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         await WireguardEngine.initialize(
           interfaceName: 'wg0',
           vpnName: 'Ghost Route',
-          iosAppGroup: 'group.com.yencode.ghostroute',
+          iosAppGroup: AppConfig.iosAppGroup,
         );
       } else {
         await VpnEngine.initialize();
@@ -370,12 +370,23 @@ class HomeController extends GetxController with WidgetsBindingObserver {
             return;
           }
           final s = wireguardServer.value;
+          if (!s.isConnectable) {
+            _connectTimeout?.cancel();
+            _connectTimeout = null;
+            vpnState.value = VpnEngine.vpnDisconnected;
+            MyDialogs.info(
+              msg:
+                  'This WireGuard location is not configured yet. Choose US New Jersey or Singapore, or pick an OpenVPN server.',
+            );
+            return;
+          }
           final cfg = WireguardService.buildConfig(s);
           await WireguardEngine.startVpn(
             serverAddress: '${s.host}:${s.port}',
             wgQuickConfig: cfg,
-            providerBundleIdentifier:
-                Platform.isIOS ? 'com.yencode.ghostroute.WGExtension' : null,
+            providerBundleIdentifier: Platform.isIOS
+                ? AppConfig.iosWireguardExtensionBundleId
+                : null,
           );
         } else {
           final data =

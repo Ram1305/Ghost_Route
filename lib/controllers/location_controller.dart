@@ -48,9 +48,13 @@ class LocationController extends GetxController {
       }
 
       if (premiumWireguard.isNotEmpty) {
-        premiumWireguardList.assignAll(premiumWireguard);
+        premiumWireguardList.assignAll(
+          premiumWireguard.where((s) => s.isConnectable).toList(),
+        );
       } else if (cachedPremiumWireguard.isNotEmpty) {
-        premiumWireguardList.assignAll(cachedPremiumWireguard);
+        premiumWireguardList.assignAll(
+          cachedPremiumWireguard.where((s) => s.isConnectable).toList(),
+        );
       }
     } finally {
       isLoading.value = false;

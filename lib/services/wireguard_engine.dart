@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:wireguard_flutter_plus/wireguard_flutter_plus.dart';
 import 'package:wireguard_flutter_plus/wireguard_flutter_platform_interface.dart';
 
+import '../config/app_config.dart';
+
 /// Wraps wireguard_flutter_plus for in-app WireGuard tunnels.
 class WireguardEngine {
   static final WireGuardFlutterInterface _wg = WireGuardFlutter.instance;
@@ -32,7 +34,7 @@ class WireguardEngine {
     await _wg.initialize(
       interfaceName: interfaceName,
       vpnName: vpnName,
-      iosAppGroup: iosAppGroup,
+      iosAppGroup: iosAppGroup ?? (Platform.isIOS ? AppConfig.iosAppGroup : null),
     );
 
     _stageSub = _wg.vpnStageSnapshot.listen((event) {
@@ -64,7 +66,7 @@ class WireguardEngine {
       await initialize(
         interfaceName: 'wg0',
         vpnName: 'Ghost Route',
-        iosAppGroup: Platform.isIOS ? 'group.com.yencode.ghostroute' : null,
+        iosAppGroup: Platform.isIOS ? AppConfig.iosAppGroup : null,
       );
     }
 

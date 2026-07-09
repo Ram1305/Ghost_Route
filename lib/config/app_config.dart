@@ -24,6 +24,17 @@ class AppConfig {
   static String get wireguardPremiumServersApiUrl =>
       '$apiBaseUrl/api/premium-servers/wireguard';
 
+  /// iOS App Group shared with VPN/WireGuard extensions.
+  static const String iosAppGroup = 'group.com.yencode.ghostroute';
+
+  /// iOS OpenVPN Network Extension bundle id.
+  static const String iosOpenVpnExtensionBundleId =
+      'com.yencode.ghostroute.VPNExtension';
+
+  /// iOS WireGuard Network Extension bundle id (WGExtension target).
+  static const String iosWireguardExtensionBundleId =
+      'com.yencode.ghostroute.WGExtension';
+
   /// IP geolocation API (free tier; use with User-Agent).
   static const String ipApiUrl = 'http://ip-api.com/json/';
 

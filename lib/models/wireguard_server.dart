@@ -59,6 +59,29 @@ class WireguardServer {
         'persistentKeepalive': persistentKeepalive,
       };
 
+  /// True when the server has real connection credentials (not placeholders).
+  bool get isConnectable {
+    final h = host.trim();
+    final pk = publicKey.trim();
+    final ck = clientPrivateKey.trim();
+    if (h.isEmpty || port <= 0) return false;
+    if (pk.isEmpty || ck.isEmpty) return false;
+    if (_looksLikePlaceholder(h) ||
+        _looksLikePlaceholder(pk) ||
+        _looksLikePlaceholder(ck)) {
+      return false;
+    }
+    return true;
+  }
+
+  static bool _looksLikePlaceholder(String value) {
+    final upper = value.toUpperCase();
+    return upper.contains('_SERVER_') ||
+        upper.contains('_PUBLIC_') ||
+        upper.contains('_PRIVATE_') ||
+        upper.contains('_KEY');
+  }
+
   static int _parseInt(dynamic value, int defaultValue) {
     if (value == null) return defaultValue;
     if (value is int) return value;
