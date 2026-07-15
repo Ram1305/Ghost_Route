@@ -67,6 +67,16 @@ fi
 cd "$TARGET_DIR"
 echo "Current Directory: $(pwd)" >> "$LOG_FILE"
 
+# WireGuardKitGo's Makefile only maps GOOS for iphoneos, not iphonesimulator.
+# Without this, simulator builds use host GOOS and fail at link time with:
+#   Undefined symbol: _darwin_arm_init_mach_exception_handler
+if ! grep -q 'GOOS_iphonesimulator' Makefile; then
+    sed -i '' '/^GOOS_iphoneos := ios/a\
+GOOS_iphonesimulator := ios
+' Makefile
+    echo "Patched Makefile: added GOOS_iphonesimulator := ios" >> "$LOG_FILE"
+fi
+
 # Run make
 if [ "$ACTION" == "build" ] || [ -z "$ACTION" ]; then
     echo "Running make..." >> "$LOG_FILE"

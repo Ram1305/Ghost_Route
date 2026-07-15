@@ -3,7 +3,7 @@ description: Ghost Route – secure VPN with account management and subscription
 publish_to: 'none'
 
 # App Version
-version: 4.0.4+4
+version: 5.0.5+5
  
 environment:
   sdk: ^3.6.1
@@ -91,6 +91,14 @@ flutter_launcher_icons:
 flutter:
   # Enabling material design
   uses-material-design: true
+
+  fonts:
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-Regular.ttf
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
 
   # App assets
   assets:

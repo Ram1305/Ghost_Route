@@ -8,14 +8,16 @@ import 'package:get/get.dart';
 
 import '../apis/apis.dart';
 import '../config/app_config.dart';
+import '../helpers/connection_history.dart';
 import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';
 import '../models/vpn_config.dart';
+import '../models/vpn_connection_session.dart';
 import '../models/wireguard_server.dart';
+import '../services/ios_vpn_status.dart';
 import '../services/server_speed_test.dart';
 import '../services/vpn_engine.dart';
-import '../services/free_vpn_session_service.dart';
 import '../services/wireguard_engine.dart';
 import '../services/wireguard_service.dart';
 import '../screens/premium_screen.dart';
@@ -34,27 +36,38 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   /// Seconds elapsed since the current connect attempt started (0 when not connecting).
   final connectElapsedSeconds = 0.obs;
 
-  /// Seconds left in today's free VPN session (non-subscribers only).
-  final freeSecondsRemaining = 0.obs;
-
   /// Whether to show the "You're Secured" overlay (set on connect, dismissed by user).
   final showSecuredOverlay = false.obs;
+
+  /// Local connection history — reactive so the home section updates immediately.
+  final connectionHistory = <VpnConnectionSession>[].obs;
+
+  /// Live active-session fields for the history UI while connected.
+  final activeSessionStartedAt = Rxn<DateTime>();
+  final activeSessionCountry = ''.obs;
+  final activeSessionElapsedSeconds = 0.obs;
+
+  /// Bumps when connection history is updated so UI can react.
+  final connectionHistoryRevision = 0.obs;
 
   StreamSubscription<String>? _vpnStageSubscription;
   StreamSubscription<Map<String, dynamic>?>? _wgTrafficSubscription;
   Worker? _protocolWorker;
   Timer? _connectTimeout;
+  Timer? _disconnectTimeout;
   Timer? _connectElapsedTimer;
-  Timer? _freeSessionTimer;
+  Timer? _activeSessionTicker;
   bool _userCancelledConnect = false;
-  bool _freeSessionEnding = false;
-  bool _manualFreeDisconnect = false;
   DateTime? _connectStartedAt;
   bool _pickingFastestFree = false;
   /// True once we've seen a non-disconnected stage this connect attempt (avoids false "connection failed" on plugin cleanup).
   bool _sawConnectingStageThisAttempt = false;
   /// Avoids spamming "connection failed" during VPN reconnect/disconnect cycles.
   bool _connectFailureNotified = false;
+  /// True while [_syncVpnStateFromEngine] is polling native state.
+  bool _syncingVpnState = false;
+  /// True while the user tapped Disconnect and we await native confirmation.
+  bool _disconnecting = false;
 
   /// Max time to wait for "connected" before showing timeout error.
   static const Duration _connectTimeoutDuration = Duration(seconds: 60);
@@ -63,13 +76,52 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
+    _reloadConnectionHistory();
+    _syncActiveSessionUi();
     _attachStageListener();
     _protocolWorker = ever<String>(selectedProtocol, (_) {
       Pref.selectedProtocol = selectedProtocol.value;
       _attachStageListener();
       _syncVpnStateFromEngine();
     });
-    _initFreeSessionState();
+    _syncVpnStateFromEngine();
+  }
+
+  void _reloadConnectionHistory() {
+    connectionHistory.assignAll(Pref.connectionHistory);
+    connectionHistoryRevision.value++;
+  }
+
+  void _syncActiveSessionUi() {
+    activeSessionStartedAt.value = Pref.activeConnectionSessionStart;
+    activeSessionCountry.value = Pref.activeConnectionCountry ?? '';
+    final start = Pref.activeConnectionSessionStart;
+    if (start != null && vpnState.value == VpnEngine.vpnConnected) {
+      activeSessionElapsedSeconds.value =
+          DateTime.now().difference(start).inSeconds.clamp(0, 86400 * 7);
+      _startActiveSessionTicker();
+    } else {
+      activeSessionElapsedSeconds.value = 0;
+      _stopActiveSessionTicker();
+    }
+  }
+
+  void _startActiveSessionTicker() {
+    if (_activeSessionTicker != null) return;
+    _activeSessionTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      final start = Pref.activeConnectionSessionStart;
+      if (start == null || vpnState.value != VpnEngine.vpnConnected) {
+        _stopActiveSessionTicker();
+        return;
+      }
+      activeSessionElapsedSeconds.value =
+          DateTime.now().difference(start).inSeconds.clamp(0, 86400 * 7);
+    });
+  }
+
+  void _stopActiveSessionTicker() {
+    _activeSessionTicker?.cancel();
+    _activeSessionTicker = null;
   }
 
   void _attachStageListener() {
@@ -79,7 +131,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     if (selectedProtocol.value == 'wireguard') {
       _vpnStageSubscription =
           WireguardEngine.stageSnapshot().listen(_onVpnStage);
-      _attachWireguardTrafficListener();
+      if (vpnState.value == VpnEngine.vpnConnected) {
+        _attachWireguardTrafficListener();
+      }
     } else {
       _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen(_onVpnStage);
       wgDownload.value = '0 kbps';
@@ -87,7 +141,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  void _detachWireguardTrafficListener() {
+    _wgTrafficSubscription?.cancel();
+    _wgTrafficSubscription = null;
+  }
+
   void _attachWireguardTrafficListener() {
+    if (_wgTrafficSubscription != null) return;
     int? lastRx;
     int? lastTx;
     int? lastAtMs;
@@ -217,13 +277,50 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _syncVpnStateFromEngine();
+      _syncVpnStateFromEngine().then((_) {
+        _ensureActiveSessionIfConnected();
+        _syncActiveSessionUi();
+      });
     }
   }
 
-  Future<void> _initFreeSessionState() async {
-    await FreeVpnSessionService.syncFromServer();
-    await _syncVpnStateFromEngine();
+  String _currentConnectionCountry() {
+    if (selectedProtocol.value == 'wireguard') {
+      final s = wireguardServer.value;
+      final country = s.country.trim();
+      if (country.isNotEmpty) return country;
+      final name = s.serverName.trim();
+      return name.isNotEmpty ? name : 'Unknown';
+    }
+    final country = vpn.value.countryLong.trim();
+    return country.isNotEmpty ? country : 'Unknown';
+  }
+
+  void _ensureActiveSessionIfConnected() {
+    if (vpnState.value != VpnEngine.vpnConnected) return;
+    startActiveConnectionSession(
+      country: _currentConnectionCountry(),
+      protocol: selectedProtocol.value,
+    );
+    _syncActiveSessionUi();
+  }
+
+  void _beginConnectionSession() {
+    startActiveConnectionSession(
+      country: _currentConnectionCountry(),
+      protocol: selectedProtocol.value,
+    );
+    _syncActiveSessionUi();
+  }
+
+  void _endConnectionSession() {
+    if (Pref.activeConnectionSessionStart == null) {
+      _syncActiveSessionUi();
+      return;
+    }
+    finalizeActiveConnectionSession();
+    _reloadConnectionHistory();
+    _syncActiveSessionUi();
   }
 
   /// Seeds [vpnState] from the native tunnel when the app starts or resumes.
@@ -232,73 +329,233 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     if (selectedProtocol.value != 'wireguard' && !VpnEngine.isVpnSupported) {
       return;
     }
+    // Never re-promote UI to connected while a user-initiated disconnect is
+    // still tearing the native tunnel down — that is the main "Disconnect takes
+    // forever" feel (UI flips back to Connected until the tunnel fully dies).
+    if (_disconnecting) return;
 
+    _syncingVpnState = true;
     try {
-      if (selectedProtocol.value == 'wireguard') {
-        await WireguardEngine.initialize(
-          interfaceName: 'wg0',
-          vpnName: 'Ghost Route',
-          iosAppGroup: AppConfig.iosAppGroup,
-        );
-      } else {
-        await VpnEngine.initialize();
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[TronVPN] _syncVpnStateFromEngine: init failed $e');
-      }
-      return;
-    }
-
-    try {
-      final stage = selectedProtocol.value == 'wireguard'
-          ? null
-          : await VpnEngine.stage();
-      final normalizedStage = (stage ?? vpnState.value).toLowerCase();
-
-      if (normalizedStage == VpnEngine.vpnConnected) {
-        if (vpnState.value != VpnEngine.vpnConnected) {
-          vpnState.value = VpnEngine.vpnConnected;
+      if (Platform.isIOS) {
+        final tunnel = await IosVpnStatus.activeTunnel();
+        if (_disconnecting) return;
+        if (tunnel != null) {
+          if (tunnel.protocol != null &&
+              IosVpnStatus.isActiveStatus(tunnel.status)) {
+            await _prepareEngineForProtocol(tunnel.protocol!);
+            if (_disconnecting) return;
+            _adoptProtocol(tunnel.protocol!);
+            _applyConnectedRestoreState();
+            return;
+          }
+          if (tunnel.protocol != null &&
+              IosVpnStatus.isConnectingStatus(tunnel.status)) {
+            await _prepareEngineForProtocol(tunnel.protocol!);
+            if (_disconnecting) return;
+            _adoptProtocol(tunnel.protocol!);
+            if (vpnState.value == VpnEngine.vpnDisconnected) {
+              vpnState.value = VpnEngine.vpnConnecting;
+            }
+            return;
+          }
         }
-        _restoreFreeSessionTimerIfNeeded();
+      }
+
+      final activeProtocol = await _probeConnectedProtocol();
+      if (_disconnecting) return;
+      if (activeProtocol != null) {
+        _adoptProtocol(activeProtocol);
+        _applyConnectedRestoreState();
         return;
       }
 
-      if (normalizedStage == VpnEngine.vpnDisconnected &&
-          !_isConnectingState(vpnState.value)) {
+      final isWireguard = selectedProtocol.value == 'wireguard';
+      await _prepareEngineForProtocol(selectedProtocol.value);
+      if (_disconnecting) return;
+
+      final stage =
+          isWireguard ? await WireguardEngine.stage() : await VpnEngine.stage();
+      final normalizedStage =
+          (stage ?? VpnEngine.vpnDisconnected).toLowerCase();
+
+      if (normalizedStage == VpnEngine.vpnConnected) {
+        _applyConnectedRestoreState();
+        return;
+      }
+
+      if (_isConnectingState(normalizedStage) &&
+          normalizedStage != 'disconnecting') {
+        if (vpnState.value == VpnEngine.vpnDisconnected) {
+          vpnState.value = normalizedStage;
+        }
+        return;
+      }
+
+      if (!_isConnectingState(vpnState.value)) {
+        // Tunnel is gone — finalize any dangling active session so history
+        // survives app restarts / background kills.
+        if (Pref.activeConnectionSessionStart != null) {
+          _endConnectionSession();
+        }
         vpnState.value = VpnEngine.vpnDisconnected;
+        _resetSpeedStats();
+        _syncActiveSessionUi();
       }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[TronVPN] _syncVpnStateFromEngine: stage query failed $e');
       }
+    } finally {
+      _syncingVpnState = false;
+    }
+  }
+
+  Future<void> _prepareEngineForProtocol(String protocol) async {
+    if (protocol == 'wireguard') {
+      await WireguardEngine.initialize(
+        interfaceName: 'wg0',
+        vpnName: 'Ghost Route',
+        iosAppGroup: AppConfig.iosAppGroup,
+      );
+      return;
+    }
+    await VpnEngine.initialize();
+  }
+
+  void _adoptProtocol(String protocol) {
+    if (selectedProtocol.value == protocol) return;
+    selectedProtocol.value = protocol;
+    Pref.selectedProtocol = protocol;
+    _attachStageListener();
+  }
+
+  Future<String?> _probeConnectedProtocol() async {
+    Future<String?> checkWireguard() async {
+      try {
+        await WireguardEngine.initialize(
+          interfaceName: 'wg0',
+          vpnName: 'Ghost Route',
+          iosAppGroup: AppConfig.iosAppGroup,
+        );
+        if (await WireguardEngine.isConnected()) return 'wireguard';
+        final stage = await WireguardEngine.stage();
+        if (stage == VpnEngine.vpnConnected) return 'wireguard';
+      } catch (_) {}
+      return null;
+    }
+
+    Future<String?> checkOpenvpn() async {
+      try {
+        await VpnEngine.initialize();
+        if (await VpnEngine.isConnected()) return 'openvpn';
+        final raw = await VpnEngine.stageRaw();
+        if (VpnEngine.isTunnelActiveStage(raw)) return 'openvpn';
+        final stage = await VpnEngine.stage();
+        if (stage == VpnEngine.vpnConnected) return 'openvpn';
+      } catch (_) {}
+      return null;
+    }
+
+    if (selectedProtocol.value == 'wireguard') {
+      return await checkWireguard() ?? await checkOpenvpn();
+    }
+    return await checkOpenvpn() ?? await checkWireguard();
+  }
+
+  void _applyConnectedRestoreState() {
+    if (_disconnecting) return;
+    if (vpnState.value != VpnEngine.vpnConnected) {
+      vpnState.value = VpnEngine.vpnConnected;
+    }
+    _ensureActiveSessionIfConnected();
+    if (selectedProtocol.value == 'wireguard') {
+      _attachWireguardTrafficListener();
+    }
+  }
+
+  void _applyDisconnectedUi() {
+    _endConnectionSession();
+    showSecuredOverlay.value = false;
+    vpnState.value = VpnEngine.vpnDisconnected;
+    if (selectedProtocol.value == 'wireguard') {
+      _detachWireguardTrafficListener();
+    }
+    _resetSpeedStats();
+    _stopConnectElapsedTimer(reset: true);
+  }
+
+  Future<void> _stopActiveVpn() async {
+    try {
+      if (selectedProtocol.value == 'wireguard') {
+        await WireguardEngine.stopVpn();
+      } else {
+        await VpnEngine.stopVpn();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[TronVPN] _stopActiveVpn: $e');
+      }
     }
   }
 
   void _onVpnStage(String event) {
+    // Always accept real disconnects — dropping them during sync left the UI
+    // stuck on Connected while native was already disconnected.
+    if (_syncingVpnState && _isConnectingState(event) && !_disconnecting) {
+      return;
+    }
+
+    if (_disconnecting && event == VpnEngine.vpnConnected) {
+      return;
+    }
+
+    final userDisconnecting = _disconnecting;
+    // WireGuard emits "disconnecting" as its own stage; treat it as done for UI,
+    // but keep `_disconnecting` until fully disconnected so sync cannot flip back.
+    final isGone = event == VpnEngine.vpnDisconnected || event == 'disconnecting';
+
     _connectTimeout?.cancel();
     _connectTimeout = null;
+    if (event == VpnEngine.vpnDisconnected) {
+      _disconnectTimeout?.cancel();
+      _disconnectTimeout = null;
+      _disconnecting = false;
+    }
     _stopConnectElapsedTimer(reset: true);
     final wasConnecting = _isConnectingState(vpnState.value);
     final wasConnected = vpnState.value == VpnEngine.vpnConnected;
-    if (event != VpnEngine.vpnDisconnected) {
+    if (!isGone && !userDisconnecting) {
       _sawConnectingStageThisAttempt = true;
     }
-    vpnState.value = event;
 
-    if (event == VpnEngine.vpnConnected) {
-      showSecuredOverlay.value = true;
-      MainNavController.switchTo(MainTab.home);
-      _onVpnConnected();
+    if (isGone || userDisconnecting) {
+      _applyDisconnectedUi();
+    } else {
+      vpnState.value = event;
     }
 
-    if (event == VpnEngine.vpnDisconnected) {
-      if (wasConnected) {
-        _onVpnDisconnectedAfterConnect();
+    if (event == VpnEngine.vpnConnected && !userDisconnecting) {
+      if (!wasConnected) {
+        showSecuredOverlay.value = true;
+        _beginConnectionSession();
       }
+      if (selectedProtocol.value == 'wireguard') {
+        _attachWireguardTrafficListener();
+      }
+      MainNavController.switchTo(MainTab.home);
+    } else if (_isConnectingState(event) && !userDisconnecting && !isGone) {
+      // Re-arm the recovery timeout for ANY transient/terminal-ish stage
+      // (reconnect, denied, no_connection, etc), not just the stage right
+      // after connectToVpn() first fires it. Without this, a stray stage
+      // arriving after the initial timer was cancelled leaves the UI stuck
+      // on "Connecting..." forever with no self-healing.
+      _startConnectTimeout();
+    }
+
+    if (isGone) {
       if (wasConnecting &&
+          !userDisconnecting &&
           !_userCancelledConnect &&
-          !_freeSessionEnding &&
           _sawConnectingStageThisAttempt &&
           !_connectFailureNotified) {
         _connectFailureNotified = true;
@@ -309,126 +566,19 @@ class HomeController extends GetxController with WidgetsBindingObserver {
           );
         });
       }
-      _sawConnectingStageThisAttempt = false; 
+      _sawConnectingStageThisAttempt = false;
     }
     _userCancelledConnect = false;
-  }
-
-  void _onVpnConnected() {
-    if (Pref.hasActiveSubscription) return;
-    if (!Pref.hasUsedFreeVpnSessionToday) {
-      Pref.markFreeVpnSessionUsed();
-      FreeVpnSessionService.markUsedOnServer(
-        startedAt: Pref.freeVpnSessionStartedAt,
-      );
-    }
-    _syncFreeSecondsRemaining();
-    _startFreeSessionTimer();
-  }
-
-  void _onVpnDisconnectedAfterConnect() {
-    _stopFreeSessionTimer();
-    Pref.clearFreeVpnSessionStart();
-    freeSecondsRemaining.value = 0;
-
-    if (_freeSessionEnding) {
-      _freeSessionEnding = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showFreeSessionEndedDialog();
-      });
-      return;
-    }
-
-    if (_manualFreeDisconnect && !Pref.hasActiveSubscription) {
-      _manualFreeDisconnect = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        MyDialogs.info(msg: AppConfig.freeSessionUsedMessage);
-      });
-    }
-  }
-
-  /// Restores the free-session countdown when the native tunnel is still up.
-  void _restoreFreeSessionTimerIfNeeded() {
-    if (Pref.hasActiveSubscription) return;
-    if (Pref.freeVpnSessionStartedAt == null) return;
-
-    final remaining = Pref.freeSessionRemainingSeconds;
-    if (remaining <= 0) {
-      _endFreeSession();
-      return;
-    }
-    freeSecondsRemaining.value = remaining;
-    _startFreeSessionTimer();
-  }
-
-  void _syncFreeSecondsRemaining() {
-    freeSecondsRemaining.value = Pref.freeSessionRemainingSeconds;
-  }
-
-  void _startFreeSessionTimer() {
-    _freeSessionTimer?.cancel();
-    _syncFreeSecondsRemaining();
-    if (freeSecondsRemaining.value <= 0) {
-      _endFreeSession();
-      return;
-    }
-    _freeSessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (Pref.hasActiveSubscription) {
-        _stopFreeSessionTimer();
-        return;
-      }
-      _syncFreeSecondsRemaining();
-      if (freeSecondsRemaining.value <= 0) {
-        _endFreeSession();
-      }
-    });
-  }
-
-  void _stopFreeSessionTimer() {
-    _freeSessionTimer?.cancel();
-    _freeSessionTimer = null;
-  }
-
-  Future<void> _endFreeSession() async {
-    if (_freeSessionEnding) return;
-    _freeSessionEnding = true;
-    _stopFreeSessionTimer();
-    await VpnEngine.stopVpn();
-  }
-
-  void _showFreeSessionEndedDialog() {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: NexusTheme.bg2,
-        title: const Text(
-          'Free session ended',
-          style: TextStyle(color: NexusTheme.text),
-        ),
-        content: Text(
-          AppConfig.freeSessionEndedMessage,
-          style: const TextStyle(color: NexusTheme.text2),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('OK', style: TextStyle(color: NexusTheme.text2)),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              Get.to(() => const PremiumScreen());
-            },
-            child: const Text('Subscribe', style: TextStyle(color: NexusTheme.teal)),
-          ),
-        ],
-      ),
-      barrierDismissible: true,
-    );
   }
 
   bool _isConnectingState(String state) {
     return state != VpnEngine.vpnConnected &&
         state != VpnEngine.vpnDisconnected;
+  }
+
+  void _resetSpeedStats() {
+    wgDownload.value = '0 kbps';
+    wgUpload.value = '0 kbps';
   }
 
   void dismissSecuredOverlay() {
@@ -439,8 +589,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
     _connectTimeout?.cancel();
+    _disconnectTimeout?.cancel();
     _connectElapsedTimer?.cancel();
-    _stopFreeSessionTimer();
+    _stopActiveSessionTicker();
     _vpnStageSubscription?.cancel();
     _wgTrafficSubscription?.cancel();
     _protocolWorker?.dispose();
@@ -486,19 +637,31 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     });
   }
 
+  /// Brief grace period after an optimistic disconnect so a stale "connected"
+  /// stage / sync probe cannot flip the UI back while the tunnel is dying.
+  static const Duration _disconnectTimeoutDuration = Duration(seconds: 3);
+
+  void _startDisconnectTimeout() {
+    _disconnectTimeout?.cancel();
+    _disconnectTimeout = Timer(_disconnectTimeoutDuration, () {
+      _disconnectTimeout = null;
+      if (!_disconnecting) return;
+      _disconnecting = false;
+      _applyDisconnectedUi();
+    });
+  }
+
   /// Cancels any in-progress connection attempt (if connecting).
   Future<void> cancelConnecting() async {
     if (!_isConnectingState(vpnState.value)) return;
     _userCancelledConnect = true;
+    _disconnecting = true;
     _connectTimeout?.cancel();
     _connectTimeout = null;
-    _stopConnectElapsedTimer(reset: true);
-    if (selectedProtocol.value == 'wireguard') {
-      await WireguardEngine.stopVpn();
-    } else {
-      await VpnEngine.stopVpn();
-    }
-    vpnState.value = VpnEngine.vpnDisconnected;
+    _applyDisconnectedUi();
+    _startDisconnectTimeout();
+    // Native stop can be slow — do not block UI on it.
+    unawaited(_stopActiveVpn());
   }
 
   /// Convenience: cancel and then start a fresh connect.
@@ -510,8 +673,12 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   /// Picks the lowest-latency free OpenVPN server and connects immediately.
-  /// Intended for a "Fastest Free Server" one-tap UX.
+  /// Intended for a "Fastest Free Server" one-tap UX (still requires subscription).
   Future<void> connectToFastestFreeServer() async {
+    if (!Pref.hasActiveSubscription) {
+      Get.to(() => const PremiumScreen());
+      return;
+    }
     if (_pickingFastestFree) return;
     _pickingFastestFree = true;
     try {
@@ -546,6 +713,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       return;
     }
     if (vpnState.value == VpnEngine.vpnDisconnected) {
+      if (!Pref.hasActiveSubscription) {
+        debugPrint(
+            '[TronVPN] connectToVpn: Active subscription required — opening Premium.');
+        Get.to(() => const PremiumScreen());
+        return;
+      }
+
       if (selectedProtocol.value == 'openvpn' &&
           vpn.value.openVPNConfigDataBase64.isEmpty) {
         debugPrint(
@@ -554,44 +728,16 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         if (picked == null) return;
       }
 
-      if (selectedProtocol.value == 'openvpn' &&
-          vpn.value.premiumOnly &&
-          !Pref.hasActiveSubscription) {
-        debugPrint(
-            '[TronVPN] connectToVpn: Premium server requires subscription.');
-        Get.to(() => const PremiumScreen());
-        return;
-      }
-
-      if (!Pref.hasActiveSubscription) {
-        await FreeVpnSessionService.syncFromServer();
-        if (!Pref.canStartFreeVpnSession) {
-          if (kDebugMode) {
-            debugPrint(
-              '[TronVPN] connectToVpn: Free session used today — opening Premium.',
-            );
-          }
-          MyDialogs.info(msg: AppConfig.freeSessionExhaustedMessage);
-          Get.to(() => const PremiumScreen());
-          return;
-        }
-      }
-
       debugPrint('[TronVPN] connectToVpn: Starting connect protocol=${selectedProtocol.value}');
       _sawConnectingStageThisAttempt = false;
       _connectFailureNotified = false;
-      _manualFreeDisconnect = false;
+      _disconnecting = false;
       vpnState.value = VpnEngine.vpnConnecting;
       _startConnectTimeout();
       _startConnectElapsedTimer();
 
       try {
         if (selectedProtocol.value == 'wireguard') {
-          // WireGuard servers are premium-only in this app.
-          if (!Pref.hasActiveSubscription) {
-            Get.to(() => const PremiumScreen());
-            return;
-          }
           final s = wireguardServer.value;
           if (!s.isConnectable) {
             _connectTimeout?.cancel();
@@ -635,14 +781,15 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       }
     } else if (vpnState.value == VpnEngine.vpnConnected) {
       debugPrint('[TronVPN] connectToVpn: Disconnecting (stopVpn)');
-      if (!Pref.hasActiveSubscription) {
-        _manualFreeDisconnect = true;
-      }
-      if (selectedProtocol.value == 'wireguard') {
-        await WireguardEngine.stopVpn();
-      } else {
-        await VpnEngine.stopVpn();
-      }
+      _disconnecting = true;
+      _sawConnectingStageThisAttempt = false;
+      _connectTimeout?.cancel();
+      _connectTimeout = null;
+      // Optimistic UI: flip to disconnected immediately. Native teardown can
+      // take several seconds on iOS; awaiting it made Disconnect feel broken.
+      _applyDisconnectedUi();
+      _startDisconnectTimeout();
+      unawaited(_stopActiveVpn());
     } else {
       // Intermediate state (e.g. connecting, authenticating): tap cancels the connection.
       debugPrint(

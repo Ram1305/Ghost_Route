@@ -42,9 +42,9 @@ class VpnCard extends StatelessWidget {
               _goToHomeShield();
               return;
             }
-            if (vpn.premiumOnly && !Pref.hasActiveSubscription) {
+            if (!Pref.hasActiveSubscription) {
               debugPrint(
-                  '[TronVPN] VpnCard: Premium server requires subscription');
+                  '[TronVPN] VpnCard: Active subscription required to connect');
               Get.to(() => const PremiumScreen());
               return;
             }

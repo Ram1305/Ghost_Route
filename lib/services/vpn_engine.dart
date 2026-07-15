@@ -10,6 +10,10 @@ import '../models/vpn_status.dart' as app_models;
 
 /// Wraps openvpn_flutter for cross-platform VPN (Android + iOS).
 class VpnEngine {
+  static const MethodChannel _channelControl = MethodChannel(
+    'id.laskarmedia.openvpn_flutter/vpncontrol',
+  );
+
   static OpenVPN? _openVpn;
   static final _stageController = StreamController<String>.broadcast();
   static final _statusController =
@@ -29,9 +33,9 @@ class VpnEngine {
         _statusController.add(_mapVpnStatus(status));
       },
       onVpnStageChanged: (stage, rawStage) {
-        final stageStr = _mapStageToString(stage);
+        final stageStr = _mapStageToString(stage, rawStage);
         if (kDebugMode) {
-          debugPrint('[TronVPN] VPN stage: $stageStr (raw: ${stage.name})');
+          debugPrint('[TronVPN] VPN stage: $stageStr (raw: $rawStage, enum: ${stage.name})');
         }
         _stageController.add(stageStr);
       },
@@ -135,16 +139,40 @@ class VpnEngine {
     } catch (_) {}
   }
 
+  /// Native stage string before plugin enum mapping (e.g. iOS "reasserting").
+  static Future<String?> stageRaw() async {
+    if (!isVpnSupported) return vpnDisconnected;
+    if (_openVpn == null || !_initialized) return null;
+    try {
+      final raw = await _channelControl.invokeMethod<String>('stage');
+      return raw?.trim().toLowerCase();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Get latest connection stage.
   static Future<String?> stage() async {
     if (!isVpnSupported) return vpnDisconnected;
+    final raw = await stageRaw();
+    if (raw == null || raw.isEmpty) {
+      final s = await _openVpn?.stage();
+      return s != null ? _mapStageToString(s) : vpnDisconnected;
+    }
     final s = await _openVpn?.stage();
-    return s != null ? _mapStageToString(s) : vpnDisconnected;
+    return s != null
+        ? _mapStageToString(s, raw)
+        : _mapRawStageString(raw);
   }
 
   /// Check if VPN is connected.
-  static Future<bool> isConnected() =>
-      stage().then((value) => value?.toLowerCase() == vpnConnected);
+  static Future<bool> isConnected() async {
+    if (!isVpnSupported) return false;
+    final raw = await stageRaw();
+    if (raw != null && _isActiveTunnelRawStage(raw)) return true;
+    final s = await stage();
+    return s?.toLowerCase() == vpnConnected;
+  }
 
   /// Stage constants.
   static const String vpnConnected = 'connected';
@@ -157,7 +185,45 @@ class VpnEngine {
   static const String vpnPrepare = 'prepare';
   static const String vpnDenied = 'denied';
 
-  static String _mapStageToString(VPNStage stage) {
+  static bool isTunnelActiveStage(String? raw) {
+    if (raw == null || raw.isEmpty) return false;
+    final normalized = raw.trim().toLowerCase();
+    if (normalized == vpnConnected) return true;
+    return normalized.contains('reassert') || normalized.contains('reconnect');
+  }
+
+  static bool _isActiveTunnelRawStage(String raw) => isTunnelActiveStage(raw);
+
+  static String _mapRawStageString(String raw) {
+    if (_isActiveTunnelRawStage(raw)) {
+      return raw.contains('reconnect') && !raw.contains('reassert')
+          ? vpnConnecting
+          : vpnConnected;
+    }
+    if (raw == vpnDisconnected ||
+        raw == 'idle' ||
+        raw == 'invalid' ||
+        raw == 'disconnecting') {
+      return vpnDisconnected;
+    }
+    if (raw == vpnConnecting || raw == vpnPrepare) return vpnConnecting;
+    return vpnConnecting;
+  }
+
+  static String _mapStageToString(VPNStage stage, [String? rawStage]) {
+    // The plugin's VPNStage enum has no "reasserting" case, so a native
+    // mid-session reassert (network handoff, keepalive blip — see
+    // PacketTunnelProvider's .reconnecting case) falls through its
+    // substring-based matcher to `unknown`, which we'd otherwise treat as a
+    // hard disconnect. Catch it here from the raw string before that happens,
+    // since a reconnect is not a failure.
+    final raw = rawStage?.trim().toLowerCase() ?? '';
+    if (raw.contains('reassert')) {
+      return vpnConnected;
+    }
+    if (raw.contains('reconnect')) {
+      return vpnConnecting;
+    }
     switch (stage) {
       case VPNStage.connected:
         return vpnConnected;
@@ -178,8 +244,10 @@ class VpnEngine {
       case VPNStage.exiting:
         return vpnDisconnected;
       default:
-        // Unknown = native reported failure (often after get_config: wrong credentials, server drop, or config issue).
         if (stage.name == 'unknown') {
+          if (_isActiveTunnelRawStage(raw)) {
+            return raw.contains('reassert') ? vpnConnected : vpnConnecting;
+          }
           if (kDebugMode) {
             debugPrint(
               '[TronVPN] VPN stage unknown (connection failed). '

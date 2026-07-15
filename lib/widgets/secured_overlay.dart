@@ -168,7 +168,7 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                           SubscriptionDisclaimerBanner(
                             text: Pref.hasActiveSubscription
                                 ? AppConfig.connectHelperTextSubscribed
-                                : AppConfig.disclaimerSecuredOverlayFree,
+                                : AppConfig.disclaimerSecuredOverlay,
                           ),
                           const SizedBox(height: 12),
                           Text(

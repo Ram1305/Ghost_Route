@@ -76,33 +76,21 @@ class AppConfig {
 
   /// Visible paid-content labels for VPN-related screens (App Store Guideline 2.3.2).
   static const String disclaimerConnectRequired =
-      '5 min free daily · Subscribe for unlimited VPN';
+      'Subscription required to connect';
   static const String disclaimerActiveSubRequired =
-      'Free session active · Subscribe for unlimited VPN';
-  static const String disclaimerSecuredOverlayFree =
-      'Free 5-minute session · Subscribe for unlimited VPN';
+      'Active subscription · Unlimited VPN';
+  static const String disclaimerSecuredOverlay =
+      'Encrypted tunnel · Active subscription';
   static const String disclaimerSubscribeToServers =
-      '5 min free daily · Subscribe for unlimited VPN';
+      'Subscription required to connect';
   static const String disclaimerBrowseServers =
-      'Browse free · 5 min VPN daily · Subscribe for unlimited';
+      'Browse locations · Subscribe to connect';
   static const String disclaimerPlatinumBenefits =
       'Unlimited VPN access with a paid Platinum subscription';
 
   /// Home connect hint when user has no active subscription (Guideline 2.3.2).
   static const String connectHelperText =
-      'One free 5-min session per day · Subscribe for unlimited';
-
-  /// Shown when free daily session has already been used.
-  static const String freeSessionExhaustedMessage =
-      'Your free session for today is used. Subscribe for unlimited VPN.';
-
-  /// Shown when the 5-minute free session timer reaches zero.
-  static const String freeSessionEndedMessage =
-      'Your free 5-minute session has ended. Subscribe for unlimited VPN.';
-
-  /// Shown after manual disconnect during a free session.
-  static const String freeSessionUsedMessage =
-      'Today\'s free session is used. Subscribe for unlimited VPN.';
+      'Subscribe to connect to VPN';
 
   /// Home connect hint when user has an active subscription.
   static const String connectHelperTextSubscribed =

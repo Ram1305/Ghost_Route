@@ -28,6 +28,7 @@ class WireguardEngine {
     required String interfaceName,
     required String vpnName,
     String? iosAppGroup,
+    String? extensionBundleId,
   }) async {
     if (_initialized) return;
 
@@ -35,6 +36,8 @@ class WireguardEngine {
       interfaceName: interfaceName,
       vpnName: vpnName,
       iosAppGroup: iosAppGroup ?? (Platform.isIOS ? AppConfig.iosAppGroup : null),
+      extensionBundleId: extensionBundleId ??
+          (Platform.isIOS ? AppConfig.iosWireguardExtensionBundleId : null),
     );
 
     _stageSub = _wg.vpnStageSnapshot.listen((event) {
@@ -56,6 +59,31 @@ class WireguardEngine {
 
   static Stream<Map<String, dynamic>?> trafficSnapshot() =>
       _trafficController.stream;
+
+  /// Queries the native tunnel for its current stage (for app start/resume sync).
+  static Future<String?> stage() async {
+    if (!_initialized) return null;
+    try {
+      await _wg.refreshStage();
+      final s = await _wg.stage();
+      return s.code.toLowerCase();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Whether the native WireGuard tunnel is currently connected.
+  static Future<bool> isConnected() async {
+    if (!_initialized) return false;
+    try {
+      await _wg.refreshStage();
+      final s = await _wg.stage();
+      final code = s.code.toLowerCase();
+      return code == 'connected' || code.contains('reassert');
+    } catch (_) {
+      return false;
+    }
+  }
 
   static Future<void> startVpn({
     required String serverAddress,

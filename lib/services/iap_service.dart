@@ -175,6 +175,7 @@ class IapService {
 
   Future<bool> buy(ProductDetails product) async {
     invalidateReceiptCache();
+    await drainPendingTransactions(forProductId: product.id);
     final param = PurchaseParam(productDetails: product);
     return _iap.buyNonConsumable(purchaseParam: param);
   }
@@ -184,7 +185,10 @@ class IapService {
   }
 
   /// Clears unfinished StoreKit / Play transactions so a new purchase can start.
-  Future<void> drainPendingTransactions({bool includeRestore = false}) async {
+  Future<void> drainPendingTransactions({
+    bool includeRestore = false,
+    String? forProductId,
+  }) async {
     if (!isSupported) return;
     try {
       if (includeRestore) {
@@ -192,27 +196,51 @@ class IapService {
         await Future<void>.delayed(const Duration(milliseconds: 700));
       }
       if (Platform.isIOS) {
-        await _finishStuckIosTransactions();
+        await _finishStuckIosTransactions(forProductId: forProductId);
       }
     } catch (e) {
       debugPrint('IAP drain pending transactions: $e');
     }
   }
 
-  Future<void> _finishStuckIosTransactions() async {
+  Future<void> _finishStuckIosTransactions({String? forProductId}) async {
     final queue = SKPaymentQueueWrapper();
     final transactions = await queue.transactions();
+    final normalizedTarget = forProductId?.trim();
+    final toFinish = <SKPaymentTransactionWrapper>[];
+
     for (final tx in transactions) {
       final state = tx.transactionState;
       if (state == SKPaymentTransactionStateWrapper.purchasing ||
           state == SKPaymentTransactionStateWrapper.deferred) {
         continue;
       }
+      toFinish.add(tx);
+    }
+
+    // Finish stale transactions for other product IDs first.
+    toFinish.sort((a, b) {
+      final aId = a.payment.productIdentifier.trim();
+      final bId = b.payment.productIdentifier.trim();
+      final aIsTarget = normalizedTarget != null && aId == normalizedTarget;
+      final bIsTarget = normalizedTarget != null && bId == normalizedTarget;
+      if (aIsTarget == bIsTarget) return 0;
+      return aIsTarget ? 1 : -1;
+    });
+
+    for (final tx in toFinish) {
+      final productId = tx.payment.productIdentifier;
+      if (kDebugMode) {
+        debugPrint(
+          '[IapService] Finishing stuck transaction: $productId '
+          '(state=${tx.transactionState})',
+        );
+      }
       try {
         await queue.finishTransaction(tx);
       } catch (e) {
         debugPrint(
-          'IAP finish stuck transaction ${tx.payment.productIdentifier}: $e',
+          'IAP finish stuck transaction $productId: $e',
         );
       }
     }

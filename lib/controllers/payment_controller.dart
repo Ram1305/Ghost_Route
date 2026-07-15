@@ -25,15 +25,23 @@ class PaymentController extends GetxController {
   bool _guestMode = false;
   bool _iapReady = false;
   bool _isRestoring = false;
+  bool _restoreInProgress = false;
   int _restoredCount = 0;
   int _restoreFailedCount = 0;
   String? _restoreLastError;
   int _restoreHandlersInFlight = 0;
   DateTime? _lastRestoreHandlerFinishedAt;
+  bool _restoreEventsSeen = false;
+  final Set<int> _restoreVerifiedPlanIndexes = {};
   final Set<String> _handledPurchaseKeys = {};
+  String? _pendingPurchaseProductId;
 
-  static const Duration _restoreMaxWait = Duration(seconds: 15);
-  static const Duration _restoreIdleWindow = Duration(milliseconds: 800);
+  /// Overall hard cap for restore wait (handlers may still finish via HTTP timeout).
+  static const Duration _restoreMaxWait = Duration(seconds: 12);
+  /// After platform restore returns, wait this long for the first stream event.
+  static const Duration _restoreFirstEventGrace = Duration(seconds: 3);
+  /// Quiet period after in-flight handlers hit zero before ending the wait.
+  static const Duration _restoreIdleWindow = Duration(milliseconds: 300);
 
   static const String _iosReceiptUnavailableMessage =
       'Could not verify purchase with App Store. If testing in Xcode, disable '
@@ -162,16 +170,19 @@ class PaymentController extends GetxController {
 
     _fromSignup = fromSignup;
     isPurchasing.value = true;
+    _pendingPurchaseProductId = product.id;
     try {
-      await _iap.drainPendingTransactions();
+      await _iap.drainPendingTransactions(forProductId: product.id);
       final started = await _tryBuy(product);
       if (!started) {
         isPurchasing.value = false;
+        _pendingPurchaseProductId = null;
         MyDialogs.error(msg: 'Could not start purchase');
         _clearPending(fromSignup: fromSignup);
       }
     } catch (e) {
       isPurchasing.value = false;
+      _pendingPurchaseProductId = null;
       MyDialogs.error(msg: _purchaseStartErrorMessage(e));
       _clearPending(fromSignup: fromSignup);
     }
@@ -215,6 +226,12 @@ class PaymentController extends GetxController {
       }
       return;
     }
+    if (_restoreInProgress) {
+      if (kDebugMode) {
+        debugPrint('[PaymentController] Restore already in progress; ignoring');
+      }
+      return;
+    }
     if (!_iapReady) {
       _iapReady = await _iap.initialize(
         onPurchase: _handlePurchase,
@@ -223,19 +240,42 @@ class PaymentController extends GetxController {
       );
       if (!_iapReady) return;
     }
+    _restoreInProgress = true;
     if (showUi) {
       MyDialogs.showProgress();
     }
+    final startedAt = DateTime.now();
     _isRestoring = true;
     _restoredCount = 0;
     _restoreFailedCount = 0;
     _restoreLastError = null;
     _restoreHandlersInFlight = 0;
     _lastRestoreHandlerFinishedAt = null;
+    _restoreEventsSeen = false;
+    _restoreVerifiedPlanIndexes.clear();
+    if (kDebugMode) {
+      debugPrint('[PaymentController] Restore started');
+    }
     try {
       await _iap.restorePurchases();
-      _lastRestoreHandlerFinishedAt = DateTime.now();
-      await _waitForRestoreEvents();
+      if (kDebugMode) {
+        debugPrint(
+          '[PaymentController] Platform restore returned '
+          '(+${DateTime.now().difference(startedAt).inMilliseconds}ms)',
+        );
+      }
+      await _waitForRestoreEvents(startedAt: startedAt);
+
+      // Do not clear _isRestoring while handlers are still verifying.
+      if (_restoreHandlersInFlight > 0) {
+        if (kDebugMode) {
+          debugPrint(
+            '[PaymentController] Waiting for $_restoreHandlersInFlight '
+            'in-flight restore handler(s)',
+          );
+        }
+        await _waitForInFlightRestoreHandlers();
+      }
 
       if (showUi) {
         if (Get.isDialogOpen ?? false) {
@@ -270,24 +310,70 @@ class PaymentController extends GetxController {
     } finally {
       _isRestoring = false;
       _restoreHandlersInFlight = 0;
+      _restoreInProgress = false;
+      if (kDebugMode) {
+        debugPrint(
+          '[PaymentController] Restore finished '
+          '(+${DateTime.now().difference(startedAt).inMilliseconds}ms, '
+          'restored=$_restoredCount failed=$_restoreFailedCount)',
+        );
+      }
     }
   }
 
-  Future<void> _waitForRestoreEvents() async {
-    final deadline = DateTime.now().add(_restoreMaxWait);
+  /// Wait for first store event (grace), then for handlers to settle (idle).
+  Future<void> _waitForRestoreEvents({required DateTime startedAt}) async {
+    final deadline = startedAt.add(_restoreMaxWait);
+    final firstEventDeadline = DateTime.now().add(_restoreFirstEventGrace);
+
     while (DateTime.now().isBefore(deadline)) {
-      final idleSince = _lastRestoreHandlerFinishedAt;
-      if (_restoreHandlersInFlight == 0 &&
-          idleSince != null &&
-          DateTime.now().difference(idleSince) >= _restoreIdleWindow) {
-        return;
+      if (!_restoreEventsSeen) {
+        if (DateTime.now().isAfter(firstEventDeadline) &&
+            _restoreHandlersInFlight == 0) {
+          if (kDebugMode) {
+            debugPrint(
+              '[PaymentController] Restore wait exit: no events '
+              '(+${DateTime.now().difference(startedAt).inMilliseconds}ms)',
+            );
+          }
+          return;
+        }
+      } else {
+        final idleSince = _lastRestoreHandlerFinishedAt;
+        if (_restoreHandlersInFlight == 0 &&
+            idleSince != null &&
+            DateTime.now().difference(idleSince) >= _restoreIdleWindow) {
+          if (kDebugMode) {
+            debugPrint(
+              '[PaymentController] Restore wait exit: idle '
+              '(+${DateTime.now().difference(startedAt).inMilliseconds}ms)',
+            );
+          }
+          return;
+        }
       }
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (kDebugMode) {
+      debugPrint(
+        '[PaymentController] Restore wait exit: max wait '
+        '(+${DateTime.now().difference(startedAt).inMilliseconds}ms, '
+        'inFlight=$_restoreHandlersInFlight)',
+      );
+    }
+  }
+
+  /// After max wait, keep polling until handlers finish (HTTP timeouts bound this).
+  Future<void> _waitForInFlightRestoreHandlers() async {
+    final hardStop = DateTime.now().add(const Duration(seconds: 12));
+    while (_restoreHandlersInFlight > 0 && DateTime.now().isBefore(hardStop)) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
     }
   }
 
   void _handlePurchaseError(PurchaseDetails purchase) {
     isPurchasing.value = false;
+    _pendingPurchaseProductId = null;
     if (Get.isDialogOpen ?? false) {
       Get.back();
     }
@@ -302,6 +388,7 @@ class PaymentController extends GetxController {
 
   void _handlePurchaseCancelled() {
     isPurchasing.value = false;
+    _pendingPurchaseProductId = null;
     if (Get.isDialogOpen ?? false) {
       Get.back();
     }
@@ -382,18 +469,28 @@ class PaymentController extends GetxController {
         synced = synced.copyWith(subscriptionExpiresAt: expiry);
       }
       auth.applyBackendUser(synced);
-    } else {
-      final premiumPlan = PremiumPlanX.fromStoredIndex(planIndex);
-      await auth.updatePack(
-        premiumPlan,
-        showToast: showToast,
-        addToHistory: false,
-      );
-      if (result.subscriptionExpiresAt != null) {
-        auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
-      }
+      // Verify already returned the user — skip redundant login refresh.
+      return;
+    }
+    final premiumPlan = PremiumPlanX.fromStoredIndex(planIndex);
+    await auth.updatePack(
+      premiumPlan,
+      showToast: showToast,
+      addToHistory: false,
+    );
+    if (result.subscriptionExpiresAt != null) {
+      auth.setSubscriptionExpiresAt(result.subscriptionExpiresAt);
     }
     await auth.refreshCurrentUserFromBackend();
+  }
+
+  void _markRestoreEventSeen() {
+    if (!_restoreEventsSeen) {
+      _restoreEventsSeen = true;
+      if (kDebugMode) {
+        debugPrint('[PaymentController] Restore first event received');
+      }
+    }
   }
 
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
@@ -405,25 +502,47 @@ class PaymentController extends GetxController {
     final restoring = _isRestoring;
     final userInitiated = isPurchasing.value || restoring;
     if (restoring) {
+      _markRestoreEventSeen();
       _restoreHandlersInFlight++;
     }
 
-    final productId = purchase.productID;
+    final productId = purchase.productID.trim();
     final planIndex = IapProducts.planIndexForProductId(productId);
     if (planIndex == null) {
-      isPurchasing.value = false;
       if (restoring) {
         _restoreHandlersInFlight--;
         _lastRestoreHandlerFinishedAt = DateTime.now();
+        if (kDebugMode) {
+          debugPrint(
+            '[PaymentController] Ignoring unknown product during restore: "$productId"',
+          );
+        }
+        return;
       }
-      if (!restoring) {
-        MyDialogs.error(msg: 'Unknown subscription product');
+
+      final isPendingProduct = _pendingPurchaseProductId != null &&
+          _pendingPurchaseProductId == productId;
+      if (!isPendingProduct) {
+        if (kDebugMode) {
+          debugPrint(
+            '[PaymentController] Ignoring stale unknown product: "$productId" '
+            '(pending=${_pendingPurchaseProductId})',
+          );
+        }
+        return;
       }
+
+      isPurchasing.value = false;
+      _pendingPurchaseProductId = null;
+      MyDialogs.error(msg: 'Unknown subscription product: "$productId"');
+      _clearPending(fromSignup: _fromSignup);
       return;
     }
 
     if (restoring &&
-        (_isKnownPurchaseTransaction(purchase) || _alreadyHasActivePlan(planIndex))) {
+        (_isKnownPurchaseTransaction(purchase) ||
+            _alreadyHasActivePlan(planIndex) ||
+            _restoreVerifiedPlanIndexes.contains(planIndex))) {
       _handledPurchaseKeys.add(purchaseKey);
       _restoredCount++;
       isPurchasing.value = false;
@@ -447,7 +566,9 @@ class PaymentController extends GetxController {
       _handledPurchaseKeys.add(purchaseKey);
       _guestMode = false;
       isPurchasing.value = false;
+      _pendingPurchaseProductId = null;
       if (restoring) {
+        _restoreVerifiedPlanIndexes.add(planIndex);
         _restoredCount++;
         _restoreHandlersInFlight--;
         _lastRestoreHandlerFinishedAt = DateTime.now();
@@ -477,6 +598,7 @@ class PaymentController extends GetxController {
       final token = purchase.verificationData.serverVerificationData;
       final forceReceiptRefresh =
           purchase.status == PurchaseStatus.purchased;
+      final verifyStartedAt = DateTime.now();
       final receiptData = platform == 'ios'
           ? await _iap.receiptDataForServerVerification(
               purchase,
@@ -495,6 +617,13 @@ class PaymentController extends GetxController {
         receiptData: receiptData,
         transactionId: purchase.purchaseID,
       );
+      if (kDebugMode) {
+        debugPrint(
+          '[PaymentController] Store verify took '
+          '${DateTime.now().difference(verifyStartedAt).inMilliseconds}ms '
+          '(product=$productId restoring=$restoring)',
+        );
+      }
 
       if (result == null || !result.verified) {
         if (restoring) {
@@ -515,12 +644,14 @@ class PaymentController extends GetxController {
       );
 
       if (restoring) {
+        _restoreVerifiedPlanIndexes.add(planIndex);
         _restoredCount++;
         _handledPurchaseKeys.add(purchaseKey);
         return;
       }
 
       _fromSignup = false;
+      _pendingPurchaseProductId = null;
       _handledPurchaseKeys.add(purchaseKey);
       Get.offAll(() => const PaymentSuccessScreen());
       MyDialogs.success(msg: 'Subscription active');
@@ -547,6 +678,7 @@ class PaymentController extends GetxController {
   void _clearPending({required bool fromSignup}) {
     _fromSignup = false;
     _guestMode = false;
+    _pendingPurchaseProductId = null;
     if (fromSignup) {
       Get.offAll(() => const MainShellScreen());
     }

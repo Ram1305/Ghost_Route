@@ -57,7 +57,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
 
         let configuration = OpenVPNConfiguration()
         configuration.fileContent = ovpnFileContent
-        configuration.tunPersist = false
+        configuration.tunPersist = true
 
         let properties: OpenVPNConfigurationEvaluation
         do {
@@ -84,7 +84,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         vpnReachability.startTracking { [weak self] status in
-            guard status == .reachableViaWiFi else { return }
+            guard status != .notReachable else { return }
             self?.vpnAdapter.reconnect(afterTimeInterval: 5)
         }
         startHandler = completionHandler

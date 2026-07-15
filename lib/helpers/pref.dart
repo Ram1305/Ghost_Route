@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'free_vpn_session.dart';
 import 'subscription_expiry.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
 import '../models/vpn.dart';
+import '../models/vpn_connection_session.dart';
 import '../models/wireguard_server.dart';
 
 class Pref {
@@ -186,57 +186,6 @@ class Pref {
     return plan;
   }
 
-  // --- Free VPN daily session (non-subscribers) ---
-
-  static const Duration freeSessionLimit = FreeVpnSession.limit;
-
-  static String? get freeVpnSessionDate => _box.get('freeVpnSessionDate') as String?;
-
-  static set freeVpnSessionDate(String? v) =>
-      v == null ? _box.delete('freeVpnSessionDate') : _box.put('freeVpnSessionDate', v);
-
-  static DateTime? get freeVpnSessionStartedAt {
-    final ms = _box.get('freeVpnSessionStartedAt') as int?;
-    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
-  }
-
-  static set freeVpnSessionStartedAt(DateTime? v) => v == null
-      ? _box.delete('freeVpnSessionStartedAt')
-      : _box.put('freeVpnSessionStartedAt', v.millisecondsSinceEpoch);
-
-  static bool get hasUsedFreeVpnSessionToday =>
-      FreeVpnSession.hasUsedSessionToday(freeVpnSessionDate);
-
-  static bool get canStartFreeVpnSession =>
-      FreeVpnSession.canStartSession(freeVpnSessionDate);
-
-  static Duration get freeSessionRemaining =>
-      FreeVpnSession.remainingFromStart(freeVpnSessionStartedAt);
-
-  static int get freeSessionRemainingSeconds =>
-      FreeVpnSession.remainingSecondsFromStart(freeVpnSessionStartedAt);
-
-  static void markFreeVpnSessionUsed() {
-    final now = DateTime.now();
-    freeVpnSessionDate = FreeVpnSession.localDateKey(now);
-    freeVpnSessionStartedAt = now;
-  }
-
-  /// Apply server state after reinstall or cross-device sync.
-  static void applyRemoteFreeSession({
-    required String sessionDate,
-    DateTime? startedAt,
-  }) {
-    freeVpnSessionDate = sessionDate;
-    if (startedAt != null) {
-      freeVpnSessionStartedAt = startedAt;
-    }
-  }
-
-  static void clearFreeVpnSessionStart() {
-    freeVpnSessionStartedAt = null;
-  }
-
   /// Optional update prompt dismissed for this target version.
   static String? get dismissedOptionalUpdateVersion =>
       _box.get('dismissedOptionalUpdateVersion') as String?;
@@ -249,4 +198,51 @@ class Pref {
   static bool isSubscriptionExpired(User user, PremiumPlan plan) {
     return isUserSubscriptionExpired(user, plan);
   }
+
+  // --- VPN connection history ---
+
+  static List<VpnConnectionSession> get connectionHistory {
+    try {
+      final raw = _box.get('connectionHistory');
+      if (raw == null) return [];
+      final data = raw is String
+          ? jsonDecode(raw) as List
+          : (raw is List ? raw : <dynamic>[]);
+      return data
+          .map((e) => VpnConnectionSession.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static set connectionHistory(List<VpnConnectionSession> v) => _box.put(
+        'connectionHistory',
+        jsonEncode(v.map((e) => e.toJson()).toList()),
+      );
+
+  static DateTime? get activeConnectionSessionStart {
+    final ms = _box.get('activeConnectionSessionStart') as int?;
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  static set activeConnectionSessionStart(DateTime? v) => v == null
+      ? _box.delete('activeConnectionSessionStart')
+      : _box.put('activeConnectionSessionStart', v.millisecondsSinceEpoch);
+
+  static String? get activeConnectionCountry =>
+      _box.get('activeConnectionCountry') as String?;
+
+  static set activeConnectionCountry(String? v) => v == null
+      ? _box.delete('activeConnectionCountry')
+      : _box.put('activeConnectionCountry', v);
+
+  static String? get activeConnectionProtocol =>
+      _box.get('activeConnectionProtocol') as String?;
+
+  static set activeConnectionProtocol(String? v) => v == null
+      ? _box.delete('activeConnectionProtocol')
+      : _box.put('activeConnectionProtocol', v);
 }

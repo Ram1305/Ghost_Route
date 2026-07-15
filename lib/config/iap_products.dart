@@ -18,7 +18,7 @@ class IapProducts {
 
   /// PremiumPlan index 0–1 for backend [Plan.index], or null if unknown.
   static int? planIndexForProductId(String productId) =>
-      _planIndexByProductId[productId];
+      _planIndexByProductId[productId.trim()];
 
   static String? productIdForPlanIndex(int index) {
     switch (index) {

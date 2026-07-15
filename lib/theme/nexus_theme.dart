@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Tron VPN design system - dark theme
 class NexusTheme {
   NexusTheme._();
+
+  static const String outfitFamily = 'Outfit';
+  static const String jetBrainsMonoFamily = 'JetBrainsMono';
 
   // Colors from HTML CSS variables
   static const Color bg = Color(0xFF03060A);
@@ -24,6 +26,40 @@ class NexusTheme {
   static const Color glowTeal = Color(0x5900F5C3);
   static const Color glowBlue = Color(0x4D0095FF);
   static const Color glowGold = Color(0x59FFB830);
+
+  static TextStyle outfit({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return TextStyle(
+      fontFamily: outfitFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+  }
+
+  static TextStyle jetBrainsMono({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return TextStyle(
+      fontFamily: jetBrainsMonoFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+  }
 
   static ThemeData get darkTheme {
     return ThemeData(
@@ -46,39 +82,39 @@ class NexusTheme {
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: text,
-        titleTextStyle: GoogleFonts.outfit(
+        titleTextStyle: outfit(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: text,
         ),
       ),
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.outfit(
+        displayLarge: outfit(
           fontSize: 30,
           fontWeight: FontWeight.w900,
           color: text,
         ),
-        displayMedium: GoogleFonts.outfit(
+        displayMedium: outfit(
           fontSize: 22,
           fontWeight: FontWeight.w800,
           color: text,
         ),
-        bodyLarge: GoogleFonts.outfit(
+        bodyLarge: outfit(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: text,
         ),
-        bodyMedium: GoogleFonts.outfit(
+        bodyMedium: outfit(
           fontSize: 13,
           color: text2,
         ),
-        labelLarge: GoogleFonts.jetBrainsMono(
+        labelLarge: jetBrainsMono(
           fontSize: 11,
           letterSpacing: 2,
           color: text2,
         ),
       ),
-      fontFamily: GoogleFonts.outfit().fontFamily,
+      fontFamily: outfitFamily,
     );
   }
 

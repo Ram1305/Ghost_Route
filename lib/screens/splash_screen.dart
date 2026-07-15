@@ -7,7 +7,6 @@ import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../helpers/pref.dart';
 import '../main.dart';
-import '../services/free_vpn_session_service.dart';
 import '../services/app_update_service.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
@@ -75,9 +74,6 @@ class _SplashScreenState extends State<SplashScreen>
       }
       // Re-sync App Store / Play entitlements if local state has no active sub
       if (!Pref.hasActiveSubscription) {
-        try {
-          await FreeVpnSessionService.syncFromServer();
-        } catch (_) {}
         try {
           Get.put(PaymentController(), permanent: true);
           await Get.find<PaymentController>().syncSubscriptionFromStore();

@@ -13,6 +13,9 @@ import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/count_down_timer.dart';
 import '../widgets/power_orb.dart';
+import '../helpers/country_flag.dart';
+import '../widgets/connection_history_section.dart';
+import '../widgets/privacy_score_card.dart';
 import '../widgets/secured_overlay.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
 import 'premium_screen.dart';
@@ -22,16 +25,8 @@ class HomeScreen extends StatelessWidget {
 
   final _controller = Get.put(HomeController());
 
-  String _flagEmojiForCountryName(String country) {
-    final c = country.trim().toLowerCase();
-    if (c.contains('united states') || c == 'usa' || c.contains('america')) {
-      return '🇺🇸';
-    }
-    if (c.contains('singapore')) return '🇸🇬';
-    if (c.contains('india')) return '🇮🇳';
-    if (c.contains('japan')) return '🇯🇵';
-    return '🌐';
-  }
+  String _flagEmojiForCountryName(String country) =>
+      flagEmojiForCountryName(country);
 
   String _maskHostLast2Digits(String input) {
     int digits = 0;
@@ -76,7 +71,6 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildFreeSessionBanner(context),
                   _buildHeader(context),
                   const SizedBox(height: 10),
                   _buildPowerSection(context),
@@ -88,6 +82,10 @@ class HomeScreen extends StatelessWidget {
                   _buildServerSection(context),
                   const SizedBox(height: 22),
                   _buildStatsSection(context),
+                  const SizedBox(height: 22),
+                  ConnectionHistorySection(controller: _controller),
+                  const SizedBox(height: 22),
+                  PrivacyScoreCard(controller: _controller),
                   SizedBox(height: mq.height * 0.12),
                 ],
               ),
@@ -98,7 +96,10 @@ class HomeScreen extends StatelessWidget {
     ),
           // Secured overlay
           Obx(() {
-            if (!_controller.showSecuredOverlay.value) return const SizedBox();
+            if (!_controller.showSecuredOverlay.value ||
+                _controller.vpnState.value != VpnEngine.vpnConnected) {
+              return const SizedBox();
+            }
             return Positioned.fill(
               child: SecuredOverlay(
                 visible: true,
@@ -125,101 +126,6 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Widget _buildFreeSessionBanner(BuildContext context) {
-    if (Pref.hasActiveSubscription) {
-      return const SizedBox.shrink();
-    }
-
-    return Obx(() {
-      final connected =
-          _controller.vpnState.value == VpnEngine.vpnConnected;
-      final canStart = Pref.canStartFreeVpnSession;
-      final remaining = connected
-          ? _controller.freeSecondsRemaining.value
-          : canStart
-              ? Pref.freeSessionLimit.inSeconds
-              : 0;
-
-      if (!connected && !canStart) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: NexusTheme.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: NexusTheme.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.timer_off_outlined,
-                  size: 18,
-                  color: NexusTheme.text2,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Free session used today',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      letterSpacing: 0.5,
-                      color: NexusTheme.text2,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: NexusTheme.teal.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: NexusTheme.teal.withOpacity(0.35)),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.timer_outlined,
-                size: 18,
-                color: NexusTheme.teal,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Free minutes left',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
-                    letterSpacing: 1,
-                    color: NexusTheme.teal,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                formatSessionMmSs(remaining),
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: NexusTheme.text,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -416,11 +322,9 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Obx(() {
-            // Show "taking long" only for free users while connecting.
             // Always touch an Rx inside Obx to avoid GetX "improper use" warnings
             // when this subtree is hidden by non-reactive conditions.
             final state = _controller.vpnState.value;
-            if (Pref.hasActiveSubscription) return const SizedBox.shrink();
             final connecting = state != VpnEngine.vpnConnected &&
                 state != VpnEngine.vpnDisconnected;
             if (!connecting) return const SizedBox.shrink();
@@ -499,7 +403,7 @@ class HomeScreen extends StatelessWidget {
                                 '2) Toggle Airplane mode (10 seconds)\n'
                                 '3) Disable Data Saver / Battery Saver\n'
                                 '4) Change to another free location\n'
-                                '5) If it still fails, try again later (free servers can be congested).',
+                                '5) If it still fails, try again later (servers can be congested).',
                                 style: const TextStyle(color: NexusTheme.text2),
                               ),
                               actions: [
@@ -785,6 +689,8 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 11),
           Obx(() {
+            final isConnected =
+                _controller.vpnState.value == VpnEngine.vpnConnected;
             final isWireguard =
                 _controller.selectedProtocol.value == 'wireguard';
             if (isWireguard) {
@@ -793,7 +699,9 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: _StatTile(
                       icon: Icons.arrow_downward_rounded,
-                      value: _controller.wgDownload.value,
+                      value: isConnected
+                          ? _controller.wgDownload.value
+                          : '0 kbps',
                       label: 'DOWNLOAD',
                       color: NexusTheme.blue,
                     ),
@@ -802,7 +710,9 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: _StatTile(
                       icon: Icons.arrow_upward_rounded,
-                      value: _controller.wgUpload.value,
+                      value: isConnected
+                          ? _controller.wgUpload.value
+                          : '0 kbps',
                       label: 'UPLOAD',
                       color: NexusTheme.teal,
                     ),
@@ -815,8 +725,12 @@ class HomeScreen extends StatelessWidget {
               initialData: VpnStatus(),
               stream: VpnEngine.vpnStatusSnapshot(),
               builder: (context, snapshot) {
-                final byteIn = snapshot.data?.byteIn ?? '0 kbps';
-                final byteOut = snapshot.data?.byteOut ?? '0 kbps';
+                final byteIn = isConnected
+                    ? (snapshot.data?.byteIn ?? '0 kbps')
+                    : '0 kbps';
+                final byteOut = isConnected
+                    ? (snapshot.data?.byteOut ?? '0 kbps')
+                    : '0 kbps';
                 return Row(
                   children: [
                     Expanded(

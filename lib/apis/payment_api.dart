@@ -111,7 +111,7 @@ class PaymentApi {
         if (receiptData != null && receiptData.isNotEmpty) 'receiptData': receiptData,
         if (transactionId != null) 'transactionId': transactionId,
       }),
-    );
+    ).timeout(const Duration(seconds: 10));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200) {
       throw Exception(data['error'] ?? 'Store verification failed');
