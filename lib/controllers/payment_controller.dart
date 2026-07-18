@@ -591,6 +591,23 @@ class PaymentController extends GetxController {
           purchase: purchase,
         );
         isPurchasing.value = false;
+        // This transaction wasn't tied to an active openCheckout() session
+        // (e.g. the native purchase confirmation — Face ID / side-button —
+        // took long enough over a slow connection to Apple's servers that
+        // this controller's `isPurchasing` flag had already reset by the
+        // time the purchase was delivered). Since we only reach here for a
+        // brand-new subscription (the active-subscription check above
+        // already returned), always surface an outcome — otherwise the
+        // purchase can succeed or fail with the user seeing nothing at all.
+        if (Pref.hasActiveSubscription) {
+          Get.offAll(() => const PaymentSuccessScreen());
+          MyDialogs.success(msg: 'Subscription active');
+        } else {
+          MyDialogs.error(
+            msg: 'Could not confirm your purchase yet. If you were charged, '
+                'tap "Restore purchases" on the Profile screen.',
+          );
+        }
         return;
       }
 

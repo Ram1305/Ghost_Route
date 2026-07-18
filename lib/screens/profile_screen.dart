@@ -214,8 +214,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 10),
                           _buildPrivacyPolicyButton(),
                           const SizedBox(height: 10),
-                          _buildCheckForUpdatesButton(),
-                          const SizedBox(height: 10),
                           _buildVersionFooter(),
                           const SizedBox(height: 10),
                           _buildLogoutButton(),
@@ -366,8 +364,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          _buildCheckForUpdatesButton(),
-                          const SizedBox(height: 10),
                           _buildVersionFooter(),
                           const SizedBox(height: 24),
                         ],
@@ -659,30 +655,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         child: Text(
           'Privacy policy',
-          style: GoogleFonts.outfit(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCheckForUpdatesButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton(
-        onPressed: () => AppUpdateService.checkManually(context),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: NexusTheme.teal,
-          side: BorderSide(color: NexusTheme.teal.withOpacity(0.5)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: Text(
-          'Check for updates',
           style: GoogleFonts.outfit(
             fontSize: 16,
             fontWeight: FontWeight.w600,

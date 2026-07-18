@@ -672,13 +672,61 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     connectToVpn();
   }
 
-  /// Picks the lowest-latency free OpenVPN server and connects immediately.
-  /// Intended for a "Fastest Free Server" one-tap UX (still requires subscription).
-  Future<void> connectToFastestFreeServer() async {
-    if (!Pref.hasActiveSubscription) {
-      Get.to(() => const PremiumScreen());
-      return;
+  /// Tears down whatever tunnel is currently active (on its own protocol
+  /// engine) and waits for native teardown to actually finish before
+  /// returning. The UI flips to disconnected immediately (optimistic), but
+  /// unlike a plain "tap Disconnect" — where nothing follows, so a
+  /// fire-and-forget stop is fine — a switch immediately starts a NEW
+  /// tunnel afterward. Starting before the old tunnel has actually closed
+  /// races the OS VPN layer (NetworkExtension/VpnService can't run two
+  /// tunnels at once), which silently drops the new connect: the UI shows
+  /// "disconnected then connecting" but never reaches "connected".
+  Future<void> _disconnectActiveIfNeeded() async {
+    if (vpnState.value == VpnEngine.vpnConnected) {
+      _disconnecting = true;
+      _sawConnectingStageThisAttempt = false;
+      _connectTimeout?.cancel();
+      _connectTimeout = null;
+      _applyDisconnectedUi();
+      _startDisconnectTimeout();
+      await _stopActiveVpn();
+      // Give the OS VPN layer a moment to fully release the old tunnel
+      // before a new startVpn() is accepted.
+      await Future.delayed(const Duration(milliseconds: 500));
+    } else if (_isConnectingState(vpnState.value)) {
+      await cancelConnecting();
+      await Future.delayed(const Duration(milliseconds: 400));
     }
+  }
+
+  /// Switches to a different OpenVPN server: disconnects whatever is
+  /// currently active first, then starts connecting to [newVpn]. Safe to
+  /// call while connected, connecting, or disconnected.
+  Future<void> switchToServer(Vpn newVpn) async {
+    await _disconnectActiveIfNeeded();
+    Pref.selectedProtocol = 'openvpn';
+    selectedProtocol.value = 'openvpn';
+    vpn.value = newVpn;
+    Pref.vpn = newVpn;
+    connectToVpn();
+  }
+
+  /// Switches to a different WireGuard server: disconnects whatever is
+  /// currently active first, then starts connecting to [newServer]. Safe to
+  /// call while connected, connecting, or disconnected.
+  Future<void> switchToWireguardServer(WireguardServer newServer) async {
+    await _disconnectActiveIfNeeded();
+    Pref.selectedProtocol = 'wireguard';
+    selectedProtocol.value = 'wireguard';
+    wireguardServer.value = newServer;
+    Pref.wireguardServer = newServer;
+    connectToVpn();
+  }
+
+  /// Picks the lowest-latency free OpenVPN server and connects immediately.
+  /// Intended for a "Fastest Free Server" one-tap UX. Works for non-subscribers
+  /// too — connectToVpn() below applies the usual daily free-session gate.
+  Future<void> connectToFastestFreeServer() async {
     if (_pickingFastestFree) return;
     _pickingFastestFree = true;
     try {
@@ -697,6 +745,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
       final picked = await _autoSelectFastestServer();
       if (picked == null) return;
+
+      // _autoSelectFastestServer() leaves vpnState as "connecting" (to keep
+      // the spinner running through the probe phase). connectToVpn() below
+      // treats any non-disconnected/non-connected state as "cancel the
+      // in-progress attempt" — without resetting here it would immediately
+      // cancel instead of starting the real tunnel connect to the picked
+      // server.
+      vpnState.value = VpnEngine.vpnDisconnected;
 
       // Start the actual tunnel connect using the picked server.
       connectToVpn();

@@ -3,7 +3,7 @@ description: Ghost Route – secure VPN with account management and subscription
 publish_to: 'none'
 
 # App Version
-version: 5.0.5+5
+version: 6.0.6+6
  
 environment:
   sdk: ^3.6.1

@@ -114,22 +114,6 @@ class AppUpdateService {
     }
   }
 
-  static Future<void> checkManually(BuildContext context) async {
-    final status = await evaluate();
-    if (!context.mounted) return;
-
-    if (!status.updateAvailable) {
-      final version = await currentVersionLabel();
-      MyDialogs.success(msg: 'You are on the latest version ($version).');
-      return;
-    }
-
-    await _showUpdateFlow(
-      context,
-      status: status,
-    );
-  }
-
   static Future<void> _showUpdateFlow(
     BuildContext context, {
     required AppUpdateStatus status,

@@ -337,15 +337,13 @@ class _WireguardServerTab extends StatelessWidget {
               return;
             }
             final home = Get.find<HomeController>();
-            Pref.selectedProtocol = 'wireguard';
-            home.selectedProtocol.value = 'wireguard';
-            home.wireguardServer.value = server;
-            Pref.wireguardServer = server;
             MainNavController.switchTo(MainTab.home);
             if (Get.key.currentState?.canPop() ?? false) {
               Get.back();
             }
-            home.connectToVpn();
+            // Disconnects whatever's active (any protocol) before connecting
+            // to this server.
+            home.switchToWireguardServer(server);
           },
         );
       },

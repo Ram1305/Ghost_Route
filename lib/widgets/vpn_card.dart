@@ -8,7 +8,6 @@ import '../helpers/pref.dart';
 import '../main.dart';
 import '../models/vpn.dart';
 import '../screens/premium_screen.dart';
-import '../services/vpn_engine.dart';
 import '../theme/nexus_theme.dart';
 
 /// Tron VPN-style server card
@@ -42,30 +41,20 @@ class VpnCard extends StatelessWidget {
               _goToHomeShield();
               return;
             }
-            if (!Pref.hasActiveSubscription) {
+            if (vpn.premiumOnly && !Pref.hasActiveSubscription) {
               debugPrint(
                   '[TronVPN] VpnCard: Active subscription required to connect');
               Get.to(() => const PremiumScreen());
               return;
             }
             debugPrint(
-                '[TronVPN] VpnCard: Selected ${vpn.countryLong} (${vpn.hostname}), saving and connecting');
-            // Ensure Free/OpenVPN selection switches protocol back from WireGuard.
-            Pref.selectedProtocol = 'openvpn';
-            controller.selectedProtocol.value = 'openvpn';
-            controller.vpn.value = vpn;
-            Pref.vpn = vpn;
+                '[TronVPN] VpnCard: Selected ${vpn.countryLong} (${vpn.hostname}), switching');
             _goToHomeShield();
-
-            if (controller.vpnState.value == VpnEngine.vpnConnected) {
-              debugPrint(
-                  '[TronVPN] VpnCard: Was connected, stopping then will reconnect in 2s');
-              VpnEngine.stopVpn();
-              Future.delayed(
-                  const Duration(seconds: 2), () => controller.connectToVpn());
-            } else {
-              controller.connectToVpn();
-            }
+            // Disconnects whatever's active (any protocol) before connecting
+            // to this server — avoids racing a fixed delay against native
+            // teardown, which could leave the old tunnel disconnected with
+            // no reconnect ever firing.
+            controller.switchToServer(vpn);
           },
           borderRadius: BorderRadius.circular(16),
           child: Container(

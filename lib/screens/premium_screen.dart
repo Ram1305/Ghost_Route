@@ -338,11 +338,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildBenefits(BuildContext context) {
-    const benefits = [
-      _Benefit(Icons.public_rounded, '50+ countries', NexusTheme.teal),
-      _Benefit(Icons.block_rounded, 'Ad-free', NexusTheme.teal),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -360,16 +355,43 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
         ),
         const SizedBox(height: 14),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 1.35,
-          children: benefits
-              .map((b) => _BenefitTile(icon: b.icon, label: b.label, color: b.color))
-              .toList(),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: NexusTheme.surface,
+            border: Border.all(color: NexusTheme.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      NexusTheme.teal.withOpacity(0.25),
+                      NexusTheme.teal.withOpacity(0.08),
+                    ],
+                  ),
+                ),
+                child: const Icon(Icons.block_rounded, color: NexusTheme.teal, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                'Ad-free',
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: NexusTheme.text,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -422,10 +444,18 @@ class _PremiumScreenState extends State<PremiumScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.rocket_launch_rounded, size: 20, color: Color(0xFF001A14)),
+                          Icon(
+                            Pref.hasActiveSubscription
+                                ? Icons.upgrade_rounded
+                                : Icons.rocket_launch_rounded,
+                            size: 20,
+                            color: const Color(0xFF001A14),
+                          ),
                           const SizedBox(width: 10),
                           Text(
-                            'Get Platinum',
+                            Pref.hasActiveSubscription
+                                ? 'Upgrade Platinum Plan'
+                                : 'Get Platinum',
                             style: GoogleFonts.outfit(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
@@ -753,62 +783,6 @@ class _PricingPreviewCard extends StatelessWidget {
   }
 }
 
-class _Benefit {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _Benefit(this.icon, this.label, this.color);
-}
-
-class _BenefitTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _BenefitTile({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: NexusTheme.surface,
-        border: Border.all(color: NexusTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [color.withOpacity(0.25), color.withOpacity(0.08)],
-              ),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const Spacer(),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: NexusTheme.text,
-              height: 1.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Reusable plan picker (Platinum monthly/yearly). Used by PremiumScreen.
 class PlanSheet extends StatefulWidget {
