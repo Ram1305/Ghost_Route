@@ -2,3 +2,7 @@ node_modules/
 .env
 *.log
 .DS_Store
+
+# Google Play service-account keys — never commit
+secrets/**
+!secrets/.gitkeep
