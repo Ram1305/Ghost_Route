@@ -6,6 +6,7 @@ import '../apis/apis.dart';
 import '../main.dart';
 import '../models/ip_details.dart';
 import '../models/network_data.dart';
+import '../widgets/desktop_content_bound.dart';
 import '../widgets/network_card.dart';
 
 class NetworkTestScreen extends StatefulWidget {
@@ -53,7 +54,8 @@ class _NetworkTestScreenState extends State<NetworkTestScreen> {
       ),
 
       body: Obx(
-        () => ListView(
+        () => DesktopContentBound(
+          child: ListView(
             physics: BouncingScrollPhysics(),
             padding: EdgeInsets.only(
                 left: mq.width * .04,
@@ -99,7 +101,9 @@ class _NetworkTestScreenState extends State<NetworkTestScreen> {
                       title: 'Timezone',
                       subtitle: ipData.value.timezone,
                       icon: Icon(CupertinoIcons.time, color: Colors.green))),
-            ]),
+            ],
+          ),
+        ),
       ),
     );
   }

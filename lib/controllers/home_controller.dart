@@ -703,6 +703,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   /// currently active first, then starts connecting to [newVpn]. Safe to
   /// call while connected, connecting, or disconnected.
   Future<void> switchToServer(Vpn newVpn) async {
+    if (Platform.isWindows) {
+      MyDialogs.info(
+        msg: 'OpenVPN servers aren\'t available on Windows yet. '
+            'Please choose a Premium (WireGuard) server from the Premium tab instead.',
+      );
+      return;
+    }
     await _disconnectActiveIfNeeded();
     Pref.selectedProtocol = 'openvpn';
     selectedProtocol.value = 'openvpn';
@@ -727,6 +734,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   /// Intended for a "Fastest Free Server" one-tap UX. Works for non-subscribers
   /// too — connectToVpn() below applies the usual daily free-session gate.
   Future<void> connectToFastestFreeServer() async {
+    if (Platform.isWindows) {
+      MyDialogs.info(
+        msg: 'Free OpenVPN servers aren\'t available on Windows yet. '
+            'Please choose a Premium (WireGuard) server from the Premium tab instead.',
+      );
+      return;
+    }
     if (_pickingFastestFree) return;
     _pickingFastestFree = true;
     try {
@@ -765,7 +779,12 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     debugPrint('[TronVPN] connectToVpn() called. state=${vpnState.value}');
     if (selectedProtocol.value != 'wireguard' && !VpnEngine.isVpnSupported) {
       debugPrint('[TronVPN] connectToVpn: VPN not supported on this device');
-      MyDialogs.info(msg: 'VPN is not supported on this device.');
+      MyDialogs.info(
+        msg: Platform.isWindows
+            ? 'OpenVPN servers aren\'t available on Windows yet. '
+                'Please choose a Premium (WireGuard) server from the Premium tab instead.'
+            : 'VPN is not supported on this device.',
+      );
       return;
     }
     if (vpnState.value == VpnEngine.vpnDisconnected) {

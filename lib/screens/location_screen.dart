@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,6 +15,7 @@ import '../models/vpn.dart';
 import '../models/wireguard_server.dart';
 import '../screens/premium_screen.dart';
 import '../theme/nexus_theme.dart';
+import '../widgets/desktop_content_bound.dart';
 import '../widgets/subscription_disclaimer_banner.dart';
 import '../widgets/vpn_card.dart';
 import '../widgets/wireguard_server_card.dart';
@@ -83,23 +86,26 @@ class _LocationScreenState extends State<LocationScreen> {
               child: const Icon(Icons.refresh_rounded),
             ),
           ),
-          body: TabBarView(
-            children: [
-              _ServerTab(
-                isLoading: controller.isLoading.value,
-                servers: controller.freeVpnList,
-                disclaimer: !Pref.hasActiveSubscription
-                    ? AppConfig.disclaimerBrowseServers
-                    : null,
-              ),
-              _WireguardServerTab(
-                isLoading: controller.isLoading.value,
-                servers: controller.premiumWireguardList,
-                disclaimer: !Pref.hasActiveSubscription
-                    ? AppConfig.disclaimerPlatinumBenefits
-                    : null,
-              ),
-            ],
+          body: DesktopContentBound(
+            maxWidth: 640,
+            child: TabBarView(
+              children: [
+                _ServerTab(
+                  isLoading: controller.isLoading.value,
+                  servers: controller.freeVpnList,
+                  disclaimer: !Pref.hasActiveSubscription
+                      ? AppConfig.disclaimerBrowseServers
+                      : null,
+                ),
+                _WireguardServerTab(
+                  isLoading: controller.isLoading.value,
+                  servers: controller.premiumWireguardList,
+                  disclaimer: !Pref.hasActiveSubscription
+                      ? AppConfig.disclaimerPlatinumBenefits
+                      : null,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -121,22 +127,38 @@ class _ServerTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final home = Get.find<HomeController>();
+    // OpenVPN (the "Free" tier's backend) has no Windows implementation;
+    // WireGuard (Premium tab) is the only working VPN backend on Windows.
+    final unavailableOnWindows = Platform.isWindows;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (disclaimer != null)
+        if (unavailableOnWindows)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SubscriptionDisclaimerBanner(
+              text:
+                  'Free OpenVPN servers aren\'t available on Windows yet — use a Premium (WireGuard) server instead.',
+              accentColor: NexusTheme.text2,
+            ),
+          )
+        else if (disclaimer != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: SubscriptionDisclaimerBanner(text: disclaimer!),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Material(
+          child: Opacity(
+            opacity: unavailableOnWindows ? 0.5 : 1,
+            child: Material(
             color: NexusTheme.surface,
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              onTap: () => home.connectToFastestFreeServer(),
+              onTap: unavailableOnWindows
+                  ? null
+                  : () => home.connectToFastestFreeServer(),
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -205,6 +227,7 @@ class _ServerTab extends StatelessWidget {
               ),
             ),
           ),
+          ),
         ),
         Expanded(
           child: isLoading && servers.isEmpty
@@ -230,10 +253,13 @@ class _ServerTab extends StatelessWidget {
       itemBuilder: (ctx, i) {
         final controller = Get.find<HomeController>();
         final vpn = list[i];
-        return VpnCard(
-          vpn: vpn,
-          selected: controller.vpn.value.countryShort == vpn.countryShort &&
-              controller.vpn.value.hostname == vpn.hostname,
+        return Opacity(
+          opacity: Platform.isWindows ? 0.5 : 1,
+          child: VpnCard(
+            vpn: vpn,
+            selected: controller.vpn.value.countryShort == vpn.countryShort &&
+                controller.vpn.value.hostname == vpn.hostname,
+          ),
         );
       },
     );

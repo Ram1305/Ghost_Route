@@ -12,6 +12,7 @@ import '../services/vpn_engine.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/count_down_timer.dart';
+import '../widgets/desktop_content_bound.dart';
 import '../widgets/power_orb.dart';
 import '../helpers/country_flag.dart';
 import '../widgets/connection_history_section.dart';
@@ -68,7 +69,8 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Column(
+                    child: DesktopContentBound(
+                      child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildHeader(context),
@@ -88,9 +90,10 @@ class HomeScreen extends StatelessWidget {
                   PrivacyScoreCard(controller: _controller),
                   SizedBox(height: mq.height * 0.12),
                 ],
-              ),
-            ),
-          ),
+                      ),
+                    ),
+                  ),
+                ),
         ],
       ),
     ),
