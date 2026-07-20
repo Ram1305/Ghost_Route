@@ -93,9 +93,9 @@ class _LocationScreenState extends State<LocationScreen> {
                 _ServerTab(
                   isLoading: controller.isLoading.value,
                   servers: controller.freeVpnList,
-                  disclaimer: !Pref.hasActiveSubscription
-                      ? AppConfig.disclaimerBrowseServers
-                      : null,
+                  // Free tab: hide the “Browse locations · Subscribe to connect”
+                  // banner per UI request.
+                  disclaimer: null,
                 ),
                 _WireguardServerTab(
                   isLoading: controller.isLoading.value,

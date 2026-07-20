@@ -18,7 +18,6 @@ import '../helpers/country_flag.dart';
 import '../widgets/connection_history_section.dart';
 import '../widgets/privacy_score_card.dart';
 import '../widgets/secured_overlay.dart';
-import '../widgets/subscription_disclaimer_banner.dart';
 import 'premium_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -290,19 +289,6 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 22),
       child: Column(
         children: [
-          Obx(() {
-            final connected =
-                _controller.vpnState.value == VpnEngine.vpnConnected;
-            if (Pref.hasActiveSubscription) {
-              return const SizedBox.shrink();
-            }
-            return SubscriptionDisclaimerBanner(
-              text: connected
-                  ? AppConfig.disclaimerActiveSubRequired
-                  : AppConfig.disclaimerConnectRequired,
-            );
-          }),
-          const SizedBox(height: 14),
           GestureDetector(
             onTap: () {
               debugPrint('[TronVPN] Connect button (power orb) tapped');
@@ -437,9 +423,7 @@ class HomeScreen extends StatelessWidget {
                 ? (isWireguard
                     ? 'Connected via ${_controller.wireguardServer.value.country}'
                     : 'Connected via ${_controller.vpn.value.countryLong}')
-                : Pref.hasActiveSubscription
-                    ? AppConfig.connectHelperTextSubscribed
-                    : AppConfig.connectHelperText;
+                : AppConfig.connectHelperTextSubscribed;
             return Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -588,14 +572,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (!Pref.hasActiveSubscription)
-            const SubscriptionDisclaimerBanner(
-              text: AppConfig.disclaimerSubscribeToServers,
-              compact: true,
-            ),
-          if (!Pref.hasActiveSubscription) const SizedBox(height: 13),
-          if (Pref.hasActiveSubscription) const SizedBox(height: 13),
+          const SizedBox(height: 13),
           GestureDetector(
             onTap: () => MainNavController.switchTo(MainTab.servers),
             child: Obx(() {
