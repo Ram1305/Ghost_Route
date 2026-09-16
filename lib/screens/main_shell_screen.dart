@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/main_nav_controller.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/main_bottom_nav.dart';
+import '../widgets/main_nav_rail.dart';
 import 'home_screen.dart';
 import 'location_screen.dart';
 import 'incognito_browser_screen.dart';
@@ -32,23 +35,45 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => Scaffold(
+    // Windows is a resizable desktop window, not a phone: a bottom tab bar
+    // wastes horizontal space and reads as a mobile pattern. Use a side rail
+    // instead. Android/iOS keep MainBottomNav untouched.
+    final useSideRail = Platform.isWindows;
+
+    return Obx(() {
+      final content = IndexedStack(
+        index: _nav.currentIndex.value,
+        children: [
+          HomeScreen(),
+          const LocationScreen(embedded: true),
+          const IncognitoBrowserScreen(embedded: true),
+          const ProfileScreen(embedded: true),
+        ],
+      );
+
+      if (useSideRail) {
+        return Scaffold(
+          backgroundColor: NexusTheme.bg,
+          body: Row(
+            children: [
+              MainNavRail(
+                currentIndex: _nav.currentIndex.value,
+                onTabSelected: _nav.goToTab,
+              ),
+              Expanded(child: content),
+            ],
+          ),
+        );
+      }
+
+      return Scaffold(
         backgroundColor: NexusTheme.bg,
-        body: IndexedStack(
-          index: _nav.currentIndex.value,
-          children: [
-            HomeScreen(),
-            const LocationScreen(embedded: true),
-            const IncognitoBrowserScreen(embedded: true),
-            const ProfileScreen(embedded: true),
-          ],
-        ),
+        body: content,
         bottomNavigationBar: MainBottomNav(
           currentIndex: _nav.currentIndex.value,
           onTabSelected: _nav.goToTab,
         ),
-      ),
-    );
+      );
+    });
   }
 }

@@ -58,7 +58,9 @@ class AppUpdateService {
   }
 
   static Future<AppUpdateStatus> evaluate() async {
-    if (kIsWeb) return AppUpdateStatus.none;
+    // firebase_remote_config has no Windows implementation; Config's getters
+    // would throw MissingPluginException there.
+    if (kIsWeb || Platform.isWindows) return AppUpdateStatus.none;
 
     final info = await PackageInfo.fromPlatform();
     final current = info.version;

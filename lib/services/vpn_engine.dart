@@ -87,8 +87,19 @@ class VpnEngine {
       await initialize();
     }
 
+    // VPN Gate configs often list many remotes; pick one to avoid handshake failures.
+    // filteredConfig() throws a RangeError when the config has only a single
+    // remote (Random().nextInt(0)), so fall back to the raw config in that case.
+    String config;
+    try {
+      config = await OpenVPN.filteredConfig(vpnConfig.config) ?? vpnConfig.config;
+    } catch (_) {
+      config = vpnConfig.config;
+    }
+    if (!config.endsWith('\n')) config += '\n';
+
     Future<void> doConnect() => _openVpn!.connect(
-          vpnConfig.config,
+          config,
           vpnConfig.country,
           username: vpnConfig.username,
           password: vpnConfig.password,
@@ -194,11 +205,41 @@ class VpnEngine {
 
   static bool _isActiveTunnelRawStage(String raw) => isTunnelActiveStage(raw);
 
+  static bool _isTerminalFailureRawStage(String raw) {
+    return raw == vpnNoConnection ||
+        raw == 'error' ||
+        raw == vpnDenied ||
+        raw == 'denied';
+  }
+
+  static bool _isInProgressRawStage(String raw) {
+    if (raw.isEmpty) return false;
+    if (_isTerminalFailureRawStage(raw)) return false;
+    if (raw == vpnDisconnected ||
+        raw == 'idle' ||
+        raw == 'invalid' ||
+        raw == 'disconnecting') {
+      return false;
+    }
+    return raw == 'noprocess' ||
+        raw == vpnConnecting ||
+        raw == vpnPrepare ||
+        raw.contains('config') ||
+        raw.contains('connect') ||
+        raw.contains('resolve') ||
+        raw.contains('assign') ||
+        raw.contains('auth') ||
+        raw.contains('wait');
+  }
+
   static String _mapRawStageString(String raw) {
     if (_isActiveTunnelRawStage(raw)) {
       return raw.contains('reconnect') && !raw.contains('reassert')
           ? vpnConnecting
           : vpnConnected;
+    }
+    if (_isTerminalFailureRawStage(raw)) {
+      return vpnDisconnected;
     }
     if (raw == vpnDisconnected ||
         raw == 'idle' ||
@@ -206,7 +247,11 @@ class VpnEngine {
         raw == 'disconnecting') {
       return vpnDisconnected;
     }
-    if (raw == vpnConnecting || raw == vpnPrepare) return vpnConnecting;
+    if (_isInProgressRawStage(raw) ||
+        raw == vpnConnecting ||
+        raw == vpnPrepare) {
+      return vpnConnecting;
+    }
     return vpnConnecting;
   }
 
@@ -243,18 +288,34 @@ class VpnEngine {
       case VPNStage.error:
       case VPNStage.exiting:
         return vpnDisconnected;
+      case VPNStage.vpn_generate_config:
+      case VPNStage.get_config:
+      case VPNStage.tcp_connect:
+      case VPNStage.udp_connect:
+      case VPNStage.assign_ip:
+      case VPNStage.resolve:
+        return vpnConnecting;
       default:
         if (stage.name == 'unknown') {
           if (_isActiveTunnelRawStage(raw)) {
             return raw.contains('reassert') ? vpnConnected : vpnConnecting;
           }
-          if (kDebugMode) {
-            debugPrint(
-              '[TronVPN] VPN stage unknown (connection failed). '
-              'Check credentials (username/password), server, and network.',
-            );
+          if (_isInProgressRawStage(raw)) {
+            return vpnConnecting;
           }
-          return vpnDisconnected;
+          if (_isTerminalFailureRawStage(raw)) {
+            if (kDebugMode) {
+              debugPrint(
+                '[TronVPN] VPN connection failed (stage: $raw). '
+                'Try another location or check your network.',
+              );
+            }
+            return vpnDisconnected;
+          }
+          if (kDebugMode) {
+            debugPrint('[TronVPN] VPN stage unknown: $raw — treating as connecting');
+          }
+          return vpnConnecting;
         }
         // Any other in-progress stage (get_config, assign_ip, resolve, tcp_connect, etc.) show as connecting.
         return vpnConnecting;

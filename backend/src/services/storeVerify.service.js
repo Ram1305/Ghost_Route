@@ -81,10 +81,22 @@ async function verifyAppleReceipt(receiptData, sharedSecret) {
   return { valid: false, error: lastError || 'Apple verification failed' };
 }
 
-async function verifyGoogleSubscription({ packageName, productId, purchaseToken }) {
+/** paymentState: 0 pending, 1 received, 2 free trial, 3 deferred upgrade/downgrade */
+function isGooglePaymentAccepted(paymentState) {
+  return paymentState === 1 || paymentState === 2;
+}
+
+/**
+ * Call Play Developer API for a subscription purchase token.
+ * Exported for RTDN webhook re-verification.
+ */
+export async function verifyGoogleSubscription({ packageName, productId, purchaseToken }) {
   const keyPath = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH;
   if (!keyPath || !fs.existsSync(keyPath)) {
     return { valid: false, skipped: true, error: 'Google Play service account not configured' };
+  }
+  if (!purchaseToken) {
+    return { valid: false, error: 'Missing Google Play purchase token' };
   }
   const google = await loadGoogleApis();
   const auth = new google.auth.GoogleAuth({
@@ -93,13 +105,43 @@ async function verifyGoogleSubscription({ packageName, productId, purchaseToken 
   });
   const androidPublisher = google.androidpublisher({ version: 'v3', auth });
   const res = await androidPublisher.purchases.subscriptions.get({
-    packageName,
+    packageName: packageName || process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.yencode.ghostroute',
     subscriptionId: productId,
     token: purchaseToken,
   });
-  const paymentState = res.data.paymentState;
-  const valid = paymentState === 1 || paymentState === 2;
-  return { valid, data: res.data };
+  const data = res.data || {};
+  const paymentState = data.paymentState;
+  const expiresAtMs = Number(data.expiryTimeMillis);
+  const expiresAt = !isNaN(expiresAtMs) ? new Date(expiresAtMs) : null;
+  const now = new Date();
+
+  if (expiresAt && expiresAt < now) {
+    return {
+      valid: false,
+      data,
+      expiresAt,
+      orderId: data.orderId || null,
+      error: 'Subscription has expired',
+      isExpired: true,
+    };
+  }
+
+  if (!isGooglePaymentAccepted(paymentState)) {
+    return {
+      valid: false,
+      data,
+      expiresAt,
+      orderId: data.orderId || null,
+      error: `Google Play payment not accepted (paymentState=${paymentState})`,
+    };
+  }
+
+  return {
+    valid: true,
+    data,
+    expiresAt,
+    orderId: data.orderId || null,
+  };
 }
 
 /**
@@ -200,28 +242,26 @@ export async function verifyStorePurchase({
 
   if (platform === 'android') {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.yencode.ghostroute';
-    if (purchaseToken && process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH) {
+    const keyPath = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH;
+    if (purchaseToken && keyPath) {
       try {
         const result = await verifyGoogleSubscription({
           packageName,
           productId,
           purchaseToken,
         });
-        if (result.valid && result.data) {
-          const expiresAtMs = Number(result.data.expiryTimeMillis);
-          if (isNaN(expiresAtMs)) {
+        if (result.valid) {
+          if (!result.expiresAt || isNaN(result.expiresAt.getTime())) {
             return { valid: false, planIndex, error: 'Invalid expiration date from Google Play' };
-          }
-          const expiresAt = new Date(expiresAtMs);
-          const now = new Date();
-          if (expiresAt < now) {
-            return { valid: false, planIndex, error: 'Subscription has expired', isExpired: true };
           }
           return {
             valid: true,
             planIndex,
             platform,
-            expiresAt,
+            expiresAt: result.expiresAt,
+            // Play orderId for invoices/history; purchaseToken is the durable Android identity
+            transactionId: result.orderId || null,
+            purchaseToken,
           };
         }
         return { ...result, planIndex, platform };
@@ -231,7 +271,7 @@ export async function verifyStorePurchase({
     }
     if (!STRICT && productId && purchaseToken) {
       console.warn('IAP: Google verify skipped; dev accept token present');
-      return { valid: true, planIndex, platform, devBypass: true };
+      return { valid: true, planIndex, platform, purchaseToken, devBypass: true };
     }
     return { valid: false, planIndex, error: 'Google Play verification not configured' };
   }

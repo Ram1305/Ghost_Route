@@ -7,6 +7,7 @@ import '../models/ip_details.dart';
 import '../models/network_data.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
+import '../widgets/desktop_content_bound.dart';
 import '../widgets/network_card.dart';
 
 class NetworkTestScreen extends StatefulWidget {
@@ -52,7 +53,8 @@ class _NetworkTestScreenState extends State<NetworkTestScreen> {
                 _buildAppBar(),
                 Expanded(
                   child: Obx(
-                    () => ListView(
+                    () => DesktopContentBound(
+                      child: ListView(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 22),
                       children: [
@@ -147,6 +149,7 @@ class _NetworkTestScreenState extends State<NetworkTestScreen> {
                         ),
                         const SizedBox(height: 40),
                       ],
+                      ),
                     ),
                   ),
                 ),

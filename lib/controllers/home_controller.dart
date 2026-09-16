@@ -66,6 +66,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   bool _sawConnectingStageThisAttempt = false;
   /// Avoids spamming "connection failed" during VPN reconnect/disconnect cycles.
   bool _connectFailureNotified = false;
+  int _connectRetryCount = 0;
+  static const int _maxConnectRetries = 2;
   /// True while [_syncVpnStateFromEngine] is polling native state.
   bool _syncingVpnState = false;
   /// True while the user tapped Disconnect and we await native confirmation.
@@ -523,9 +525,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       _disconnectTimeout = null;
       _disconnecting = false;
     }
-    _stopConnectElapsedTimer(reset: true);
     final wasConnecting = _isConnectingState(vpnState.value);
     final wasConnected = vpnState.value == VpnEngine.vpnConnected;
+    if (isGone || userDisconnecting) {
+      _stopConnectElapsedTimer(reset: true);
+    }
     if (!isGone && !userDisconnecting) {
       _sawConnectingStageThisAttempt = true;
     }
@@ -537,6 +541,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
 
     if (event == VpnEngine.vpnConnected && !userDisconnecting) {
+      _connectRetryCount = 0;
       if (!wasConnected) {
         showSecuredOverlay.value = true;
         _beginConnectionSession();
@@ -560,9 +565,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
           !_userCancelledConnect &&
           _sawConnectingStageThisAttempt &&
           !_connectFailureNotified) {
+        if (selectedProtocol.value == 'openvpn' &&
+            _connectRetryCount < _maxConnectRetries &&
+            _retryWithAlternateServer()) {
+          return;
+        }
         _connectFailureNotified = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!Pref.hasActiveSubscription) {
+          if (selectedProtocol.value == 'wireguard' && !Pref.hasActiveSubscription) {
             _showSubscriptionExpired();
           } else {
             MyDialogs.info(
@@ -637,7 +647,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       } else {
         VpnEngine.stopVpn();
       }
-      if (!Pref.hasActiveSubscription) {
+      if (selectedProtocol.value == 'wireguard' && !Pref.hasActiveSubscription) {
         _showSubscriptionExpired();
       } else {
         MyDialogs.info(
@@ -742,6 +752,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   /// currently active first, then starts connecting to [newVpn]. Safe to
   /// call while connected, connecting, or disconnected.
   Future<void> switchToServer(Vpn newVpn) async {
+    if (Platform.isWindows) {
+      MyDialogs.info(
+        msg: 'OpenVPN servers aren\'t available on Windows yet. '
+            'Please choose a Premium (WireGuard) server from the Premium tab instead.',
+      );
+      return;
+    }
     await _disconnectActiveIfNeeded();
     Pref.selectedProtocol = 'openvpn';
     selectedProtocol.value = 'openvpn';
@@ -766,6 +783,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   /// Intended for a "Fastest Free Server" one-tap UX. Works for non-subscribers
   /// too — connectToVpn() below applies the usual daily free-session gate.
   Future<void> connectToFastestFreeServer() async {
+    if (Platform.isWindows) {
+      MyDialogs.info(
+        msg: 'Free OpenVPN servers aren\'t available on Windows yet. '
+            'Please choose a Premium (WireGuard) server from the Premium tab instead.',
+      );
+      return;
+    }
     if (_pickingFastestFree) return;
     _pickingFastestFree = true;
     try {
@@ -800,25 +824,33 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  void connectToVpn() async {
+  void connectToVpn({bool isAutoRetry = false}) async {
     debugPrint('[TronVPN] connectToVpn() called. state=${vpnState.value}');
+    if (!isAutoRetry) _connectRetryCount = 0;
     if (selectedProtocol.value != 'wireguard' && !VpnEngine.isVpnSupported) {
       debugPrint('[TronVPN] connectToVpn: VPN not supported on this device');
-      MyDialogs.info(msg: 'VPN is not supported on this device.');
+      MyDialogs.info(
+        msg: Platform.isWindows
+            ? 'OpenVPN servers aren\'t available on Windows yet. '
+                'Please choose a Premium (WireGuard) server from the Premium tab instead.'
+            : 'VPN is not supported on this device.',
+      );
       return;
     }
     if (vpnState.value == VpnEngine.vpnDisconnected) {
-      // Only worth a backend round trip when the local cache currently says
-      // "active" — that's the only case where a stale cache could let an
-      // actually-expired user through. Already-blocked/free users skip it.
-      if (Pref.hasActiveSubscription) {
-        await _revalidateSubscriptionBestEffort();
-      }
-      if (!Pref.hasActiveSubscription) {
-        debugPrint(
-            '[TronVPN] connectToVpn: Active subscription required — opening Premium.');
-        Get.to(() => const PremiumScreen());
-        return;
+      if (selectedProtocol.value == 'wireguard') {
+        // Only worth a backend round trip when the local cache currently says
+        // "active" — that's the only case where a stale cache could let an
+        // actually-expired user through. Already-blocked users skip it.
+        if (Pref.hasActiveSubscription) {
+          await _revalidateSubscriptionBestEffort();
+        }
+        if (!Pref.hasActiveSubscription) {
+          debugPrint(
+              '[TronVPN] connectToVpn: Active subscription required for Premium (WireGuard) — opening Premium.');
+          Get.to(() => const PremiumScreen());
+          return;
+        }
       }
 
       if (selectedProtocol.value == 'openvpn' &&
@@ -879,7 +911,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         _connectTimeout = null;
         debugPrint('[TronVPN] connectToVpn: Error: $e');
         vpnState.value = VpnEngine.vpnDisconnected;
-        if (!Pref.hasActiveSubscription) {
+        if (selectedProtocol.value == 'wireguard' && !Pref.hasActiveSubscription) {
           _showSubscriptionExpired();
         } else {
           final message = VpnEngine.getFriendlyError(e);
@@ -904,6 +936,34 @@ class HomeController extends GetxController with WidgetsBindingObserver {
           '[TronVPN] connectToVpn: Cancelling connection (state "${vpnState.value}")');
       await cancelConnecting();
     }
+  }
+
+  /// Tries another free OpenVPN server after a failed connect attempt.
+  bool _retryWithAlternateServer() {
+    final current = vpn.value;
+    var servers = Pref.vpnListFree
+        .where((v) =>
+            !v.premiumOnly && v.openVPNConfigDataBase64.trim().isNotEmpty)
+        .toList();
+    if (servers.isEmpty) servers = Pref.vpnList;
+    servers.removeWhere((v) {
+      final sameHost = v.hostname.isNotEmpty &&
+          v.hostname == current.hostname;
+      final sameIp = v.ip.isNotEmpty && v.ip == current.ip;
+      return sameHost || sameIp;
+    });
+    if (servers.isEmpty) return false;
+
+    final next = servers[_connectRetryCount % servers.length];
+    vpn.value = next;
+    Pref.vpn = next;
+    _connectRetryCount++;
+    _connectFailureNotified = false;
+    _sawConnectingStageThisAttempt = false;
+    debugPrint(
+        '[TronVPN] Retrying connect with ${next.countryLong} (${next.hostname})');
+    connectToVpn(isAutoRetry: true);
+    return true;
   }
 
   /// Auto-picks the lowest-latency server when the user taps Connect without

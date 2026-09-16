@@ -26,8 +26,14 @@ Future<void> main() async {
     await InAppPurchaseStoreKitPlatform.enableStoreKit1();
   }
 
+  // Immersive system UI / orientation lock are Android & iOS phone concepts;
+  // meaningless (and on Windows, actively wrong) for a resizable desktop window.
+  final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
   //enter full-screen
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+  if (isMobile) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+  }
 
   // iOS may auto-configure from GoogleService-Info.plist before Dart sees any apps.
   if (Firebase.apps.isEmpty) {
@@ -40,8 +46,12 @@ Future<void> main() async {
     }
   }
 
-  // Remote config (app update checks, etc.)
-  await Config.initConfig();
+  // Remote config (app update checks, etc.) — firebase_remote_config has no
+  // Windows implementation; calling it there throws MissingPluginException
+  // before runApp(), which leaves the native window created but never shown.
+  if (!Platform.isWindows) {
+    await Config.initConfig();
+  }
 
   await Pref.initializeHive();
 
@@ -50,10 +60,11 @@ Future<void> main() async {
   // Early init on Android caused IPC/context issues and VPN not working.
 
   //for setting orientation to portrait only
-  await SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]).then((v) {
-    runApp(const MyApp());
-  });
+  if (isMobile) {
+    await SystemChrome.setPreferredOrientations(
+        [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  }
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
