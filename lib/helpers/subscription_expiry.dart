@@ -39,7 +39,19 @@ DateTime? _bestHistoryExpiry(User user, PremiumPlan plan) {
 }
 
 /// Resolve the effective subscription expiry for [user] and [plan].
-DateTime? resolveSubscriptionExpiresAt(User user, PremiumPlan? plan) {
+///
+/// [fallbackAnchor] is only used when neither a backend expiry nor a matching
+/// purchase-history entry is available. It should be a fixed point in time
+/// (e.g. the first moment this ambiguous state was observed), not the current
+/// time — otherwise every call would push the resolved expiry further into
+/// the future and the subscription could never be seen as expired. Defaults
+/// to `DateTime.now()` for callers that don't have a persisted anchor (e.g.
+/// tests), which reproduces the previous "full plan period from now" behavior.
+DateTime? resolveSubscriptionExpiresAt(
+  User user,
+  PremiumPlan? plan, {
+  DateTime? fallbackAnchor,
+}) {
   if (plan == null) return null;
 
   final historyBest = _bestHistoryExpiry(user, plan);
@@ -51,9 +63,10 @@ DateTime? resolveSubscriptionExpiresAt(User user, PremiumPlan? plan) {
   if (backend != null) return backend;
   if (historyBest != null) return historyBest;
 
-  // Active subscriber without stored expiry — use full plan period from now.
+  // Active subscriber without stored expiry — use full plan period from the anchor.
   if (user.activePlan == plan) {
-    return DateTime.now().add(Duration(days: plan.daysInPlan));
+    final anchor = fallbackAnchor ?? DateTime.now();
+    return anchor.add(Duration(days: plan.daysInPlan));
   }
   return null;
 }
@@ -72,8 +85,14 @@ String formatSubscriptionDaysLeft(int days) {
 }
 
 /// Whether [user]'s [plan] is past the subscription period.
-bool isUserSubscriptionExpired(User user, PremiumPlan plan, [DateTime? now]) {
-  final expiresAt = resolveSubscriptionExpiresAt(user, plan);
+bool isUserSubscriptionExpired(
+  User user,
+  PremiumPlan plan, [
+  DateTime? now,
+  DateTime? fallbackAnchor,
+]) {
+  final expiresAt =
+      resolveSubscriptionExpiresAt(user, plan, fallbackAnchor: fallbackAnchor);
   if (expiresAt == null) return false;
   return isSubscriptionDateExpired(expiresAt, now);
 }

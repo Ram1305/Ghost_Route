@@ -251,7 +251,7 @@ class _IncognitoBrowserScreenState extends State<IncognitoBrowserScreen> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: NexusTheme.border),
           ),
-          child: const Icon(Icons.add_rounded, size: 18, color: NexusTheme.teal),
+          child: Icon(Icons.add_rounded, size: 18, color: NexusTheme.teal),
         ),
       ),
     );
@@ -318,7 +318,7 @@ class _IncognitoBrowserScreenState extends State<IncognitoBrowserScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.visibility_off_rounded,
                       size: 13,
                       color: NexusTheme.teal,
@@ -347,7 +347,7 @@ class _IncognitoBrowserScreenState extends State<IncognitoBrowserScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                const Icon(Icons.search_rounded, size: 18, color: NexusTheme.text3),
+                Icon(Icons.search_rounded, size: 18, color: NexusTheme.text3),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(

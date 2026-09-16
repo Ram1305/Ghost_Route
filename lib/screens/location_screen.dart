@@ -163,7 +163,7 @@ class _ServerTab extends StatelessWidget {
                           color: NexusTheme.teal.withOpacity(0.25),
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.flash_on_rounded,
                         color: NexusTheme.teal,
                         size: 22,
@@ -195,7 +195,7 @@ class _ServerTab extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Icon(
+                    Icon(
                       Icons.arrow_forward_rounded,
                       color: NexusTheme.text2,
                       size: 18,

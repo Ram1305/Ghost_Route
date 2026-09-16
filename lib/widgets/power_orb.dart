@@ -127,7 +127,7 @@ class _PowerOrbState extends State<PowerOrb>
                 size: const Size(size, size),
                 painter: _RingFillPainter(
                   progress: Curves.easeInOutCubic.transform(_ringController.value),
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [NexusTheme.teal, NexusTheme.blue],
@@ -350,8 +350,8 @@ class _PowerCore extends StatelessWidget {
                             : null,
                       ),
                       child: isConnecting
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
+                          ? Padding(
+                              padding: const EdgeInsets.all(12),
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: NexusTheme.teal,

@@ -18,6 +18,7 @@ import '../widgets/purchase_invoice_sheet.dart';
 import 'login_screen.dart';
 import 'main_shell_screen.dart';
 import 'premium_screen.dart';
+import 'settings_screen.dart';
 import 'signup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -402,7 +403,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const Spacer(),
-          const SizedBox(width: 48),
+          IconButton(
+            onPressed: () => Get.to(() => const SettingsScreen()),
+            icon: const Icon(Icons.settings_outlined, size: 22),
+            color: NexusTheme.text2,
+          ),
         ],
       ),
     );
@@ -498,7 +503,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(10),
                 color: NexusTheme.gold.withOpacity(0.2),
               ),
-              child: const Icon(Icons.workspace_premium_rounded, size: 20, color: NexusTheme.gold),
+              child: Icon(Icons.workspace_premium_rounded, size: 20, color: NexusTheme.gold),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -548,7 +553,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(10),
               color: NexusTheme.red.withOpacity(0.15),
             ),
-            child: const Icon(Icons.event_busy_rounded, size: 20, color: NexusTheme.red),
+            child: Icon(Icons.event_busy_rounded, size: 20, color: NexusTheme.red),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -824,7 +829,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(10),
                   color: NexusTheme.gold.withOpacity(0.2),
                 ),
-                child: const Icon(Icons.receipt_long_rounded, size: 20, color: NexusTheme.gold),
+                child: Icon(Icons.receipt_long_rounded, size: 20, color: NexusTheme.gold),
               ),
               const SizedBox(width: 14),
               Expanded(

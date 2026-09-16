@@ -141,7 +141,7 @@ class HomeScreen extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [NexusTheme.teal, NexusTheme.blue],
@@ -175,11 +175,11 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(width: 9),
               ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
+                shaderCallback: (bounds) => LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [Colors.white, NexusTheme.teal],
-                  stops: [0, 0.5],
+                  stops: const [0, 0.5],
                 ).createShader(bounds),
                 blendMode: BlendMode.srcIn,
                 child: Text(
@@ -270,7 +270,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text('★', style: TextStyle(fontSize: 15, color: NexusTheme.gold)),
                   ),
                 ),
@@ -344,7 +344,7 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.hourglass_bottom_rounded,
                         size: 18,
                         color: NexusTheme.gold,
@@ -393,7 +393,7 @@ class HomeScreen extends StatelessWidget {
                           Get.dialog(
                             AlertDialog(
                               backgroundColor: NexusTheme.bg2,
-                              title: const Text(
+                              title: Text(
                                 'Connection is slow',
                                 style: TextStyle(color: NexusTheme.text),
                               ),
@@ -404,12 +404,12 @@ class HomeScreen extends StatelessWidget {
                                 '3) Disable Data Saver / Battery Saver\n'
                                 '4) Change to another free location\n'
                                 '5) If it still fails, try again later (servers can be congested).',
-                                style: const TextStyle(color: NexusTheme.text2),
+                                style: TextStyle(color: NexusTheme.text2),
                               ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Get.back(),
-                                  child: const Text(
+                                  child: Text(
                                     'Close',
                                     style: TextStyle(color: NexusTheme.text2),
                                   ),

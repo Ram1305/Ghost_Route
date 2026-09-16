@@ -143,14 +143,14 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                           ),
                           const SizedBox(height: 32),
                           ShaderMask(
-                            shaderCallback: (bounds) => const LinearGradient(
+                            shaderCallback: (bounds) => LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
                                 Colors.white,
                                 NexusTheme.teal,
                               ],
-                              stops: [0.3, 1],
+                              stops: const [0.3, 1],
                             ).createShader(bounds),
                             blendMode: BlendMode.srcIn,
                             child: Text(
@@ -211,7 +211,7 @@ class _SecuredOverlayState extends State<SecuredOverlay>
                                   vertical: 14,
                                 ),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
+                                  gradient: LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [NexusTheme.teal, NexusTheme.blue],

@@ -66,9 +66,11 @@ class MyApp extends StatelessWidget {
       scaffoldMessengerKey: MyDialogs.rootScaffoldMessengerKey,
       home: const SplashScreen(),
 
-      // Tron VPN dark theme
-      theme: NexusTheme.darkTheme,
-      themeMode: ThemeMode.dark,
+      // Tron VPN theme — dark by default; Settings > Appearance can switch to
+      // light (Pref.isDarkMode), applied via Get.changeThemeMode + forceAppUpdate.
+      theme: NexusTheme.lightTheme,
+      darkTheme: NexusTheme.darkTheme,
+      themeMode: Pref.isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
       debugShowCheckedModeBanner: false,
     );

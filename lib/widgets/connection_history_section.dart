@@ -161,7 +161,7 @@ class _DayGroup extends StatelessWidget {
             children: [
               for (var i = 0; i < rows.length; i++) ...[
                 if (i > 0)
-                  const Divider(
+                  Divider(
                     height: 1,
                     thickness: 1,
                     color: NexusTheme.border,

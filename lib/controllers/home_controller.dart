@@ -8,8 +8,10 @@ import 'package:get/get.dart';
 
 import '../apis/apis.dart';
 import '../config/app_config.dart';
+import '../controllers/auth_controller.dart';
 import '../helpers/connection_history.dart';
 import '../helpers/my_dialogs.dart';
+import '../helpers/openvpn_config.dart';
 import '../helpers/pref.dart';
 import '../models/vpn.dart';
 import '../models/vpn_config.dart';
@@ -76,7 +78,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    _reloadConnectionHistory();
+    reloadConnectionHistory();
     _syncActiveSessionUi();
     _attachStageListener();
     _protocolWorker = ever<String>(selectedProtocol, (_) {
@@ -87,7 +89,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     _syncVpnStateFromEngine();
   }
 
-  void _reloadConnectionHistory() {
+  void reloadConnectionHistory() {
     connectionHistory.assignAll(Pref.connectionHistory);
     connectionHistoryRevision.value++;
   }
@@ -319,7 +321,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       return;
     }
     finalizeActiveConnectionSession();
-    _reloadConnectionHistory();
+    reloadConnectionHistory();
     _syncActiveSessionUi();
   }
 
@@ -560,10 +562,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
           !_connectFailureNotified) {
         _connectFailureNotified = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          MyDialogs.info(
-            msg:
-                'Connection failed. Check your Internet and then try another location.',
-          );
+          if (!Pref.hasActiveSubscription) {
+            _showSubscriptionExpired();
+          } else {
+            MyDialogs.info(
+              msg:
+                  'Connection failed. Check your Internet and then try another location.',
+            );
+          }
         });
       }
       _sawConnectingStageThisAttempt = false;
@@ -631,10 +637,43 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       } else {
         VpnEngine.stopVpn();
       }
-      MyDialogs.info(
-          msg:
-              'Connection timed out. Please try again or choose another location.');
+      if (!Pref.hasActiveSubscription) {
+        _showSubscriptionExpired();
+      } else {
+        MyDialogs.info(
+            msg:
+                'Connection timed out. Please try again or choose another location.');
+      }
     });
+  }
+
+  /// Tells the user their premium access lapsed (instead of a generic
+  /// connection-failed message) and sends them to renew.
+  void _showSubscriptionExpired() {
+    MyDialogs.info(
+      msg: 'Your subscription has expired. Renew to keep using premium servers.',
+    );
+    Get.to(() => const PremiumScreen());
+  }
+
+  /// Best-effort refresh of subscription state from backend before gating a
+  /// connect attempt, so a stale local cache doesn't let an actually-expired
+  /// user start (and then fail) a premium connection. Never blocks the
+  /// connect flow for long or throws — the existing local check remains the
+  /// fallback either way.
+  Future<void> _revalidateSubscriptionBestEffort() async {
+    final user = Pref.currentUser;
+    final backendUserId = user?.backendUserId;
+    if (user == null || backendUserId == null || backendUserId.isEmpty) {
+      return;
+    }
+    try {
+      await Get.find<AuthController>()
+          .refreshCurrentUserFromBackend()
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Ignore — fall back to the local (anchor-bounded) subscription check.
+    }
   }
 
   /// Brief grace period after an optimistic disconnect so a stale "connected"
@@ -769,6 +808,12 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       return;
     }
     if (vpnState.value == VpnEngine.vpnDisconnected) {
+      // Only worth a backend round trip when the local cache currently says
+      // "active" — that's the only case where a stale cache could let an
+      // actually-expired user through. Already-blocked/free users skip it.
+      if (Pref.hasActiveSubscription) {
+        await _revalidateSubscriptionBestEffort();
+      }
       if (!Pref.hasActiveSubscription) {
         debugPrint(
             '[TronVPN] connectToVpn: Active subscription required — opening Premium.');
@@ -805,7 +850,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
             );
             return;
           }
-          final cfg = WireguardService.buildConfig(s);
+          final cfg = WireguardService.buildConfig(s, dnsOverride: Pref.customDnsServer);
           await WireguardEngine.startVpn(
             serverAddress: '${s.host}:${s.port}',
             wgQuickConfig: cfg,
@@ -816,7 +861,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         } else {
           final data =
               Base64Decoder().convert(vpn.value.openVPNConfigDataBase64);
-          final config = Utf8Decoder().convert(data);
+          final config = applyCustomDnsToOpenVpnConfig(
+            Utf8Decoder().convert(data),
+            Pref.customDnsServer,
+          );
           final vpnConfig = VpnConfig(
               country: vpn.value.countryLong,
               username: 'vpn',
@@ -831,9 +879,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         _connectTimeout = null;
         debugPrint('[TronVPN] connectToVpn: Error: $e');
         vpnState.value = VpnEngine.vpnDisconnected;
-        final message = VpnEngine.getFriendlyError(e);
-        final clean = message.replaceFirst(RegExp(r'^Exception: '), '');
-        MyDialogs.error(msg: 'Failed to connect: $clean');
+        if (!Pref.hasActiveSubscription) {
+          _showSubscriptionExpired();
+        } else {
+          final message = VpnEngine.getFriendlyError(e);
+          final clean = message.replaceFirst(RegExp(r'^Exception: '), '');
+          MyDialogs.error(msg: 'Failed to connect: $clean');
+        }
       }
     } else if (vpnState.value == VpnEngine.vpnConnected) {
       debugPrint('[TronVPN] connectToVpn: Disconnecting (stopVpn)');

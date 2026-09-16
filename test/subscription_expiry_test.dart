@@ -143,6 +143,38 @@ void main() {
       );
     });
 
+    test('anchors the no-data fallback instead of recomputing from now', () {
+      final user = User(
+        username: 'u',
+        email: 'u@test.com',
+        phone: '',
+        password: 'p',
+        activePlan: PremiumPlan.platinumMonthly,
+      );
+      final anchor = DateTime(2026, 1, 1);
+      expect(
+        resolveSubscriptionExpiresAt(
+          user,
+          PremiumPlan.platinumMonthly,
+          fallbackAnchor: anchor,
+        ),
+        anchor.add(const Duration(days: 30)),
+      );
+
+      // A second call, made "later", must resolve to the same fixed expiry —
+      // not push it further into the future — otherwise the plan would
+      // never appear expired no matter how much time actually passes.
+      expect(
+        isUserSubscriptionExpired(
+          user,
+          PremiumPlan.platinumMonthly,
+          anchor.add(const Duration(days: 31)),
+          anchor,
+        ),
+        isTrue,
+      );
+    });
+
     test('prefers newer history expiry over stale backend expiry', () {
       final purchaseDate = DateTime(2026, 6, 22);
       final user = User(

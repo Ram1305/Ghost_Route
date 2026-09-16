@@ -208,7 +208,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 width: 72,
                 height: 72,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(
+                errorBuilder: (_, __, ___) => Icon(
                   Icons.shield_rounded,
                   size: 48,
                   color: NexusTheme.teal,
@@ -265,9 +265,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   Widget _buildPricingRow(BuildContext context) {
     if (_loadingPlans) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: SizedBox(
             width: 28,
             height: 28,
@@ -341,7 +341,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SubscriptionDisclaimerBanner(
+        SubscriptionDisclaimerBanner(
           text: AppConfig.disclaimerPlatinumBenefits,
           accentColor: NexusTheme.teal,
         ),
@@ -379,7 +379,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     ],
                   ),
                 ),
-                child: const Icon(Icons.block_rounded, color: NexusTheme.teal, size: 22),
+                child: Icon(Icons.block_rounded, color: NexusTheme.teal, size: 22),
               ),
               const SizedBox(width: 14),
               Text(
@@ -423,7 +423,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [NexusTheme.teal, NexusTheme.teal2],
@@ -872,7 +872,7 @@ class _PlanSheetState extends State<PlanSheet> {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(18),
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           colors: [NexusTheme.teal, NexusTheme.teal2],
                         ),
                         boxShadow: [

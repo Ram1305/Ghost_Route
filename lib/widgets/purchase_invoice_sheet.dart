@@ -87,7 +87,7 @@ class PurchaseInvoiceSheet extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: NexusTheme.text2),
+                  icon: Icon(Icons.close_rounded, color: NexusTheme.text2),
                 ),
               ],
             ),
@@ -168,7 +168,7 @@ class PurchaseInvoiceSheet extends StatelessWidget {
               shape: BoxShape.circle,
               color: NexusTheme.teal.withOpacity(0.2),
             ),
-            child: const Icon(Icons.check_circle_rounded, color: NexusTheme.teal, size: 22),
+            child: Icon(Icons.check_circle_rounded, color: NexusTheme.teal, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -229,7 +229,7 @@ class PurchaseInvoiceSheet extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) const Divider(height: 20, color: NexusTheme.border),
+                if (i > 0) Divider(height: 20, color: NexusTheme.border),
                 _buildRow(rows[i].label, rows[i].value),
               ],
             ],

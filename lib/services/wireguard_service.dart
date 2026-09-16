@@ -8,9 +8,12 @@ import 'package:share_plus/share_plus.dart';
 import '../models/wireguard_server.dart';
 
 class WireguardService {
-  static String buildConfig(WireguardServer s) {
+  /// Builds the wg-quick config for [s]. Pass [dnsOverride] (e.g. from a
+  /// user-set custom DNS in Settings) to replace the server-provided DNS.
+  static String buildConfig(WireguardServer s, {String? dnsOverride}) {
     final address = s.address.trim();
-    final dns = s.dns.trim();
+    final override = dnsOverride?.trim() ?? '';
+    final dns = override.isNotEmpty ? override : s.dns.trim();
     final allowed = s.allowedIPs.trim().isEmpty ? '0.0.0.0/0, ::/0' : s.allowedIPs.trim();
     final keepalive = s.persistentKeepalive > 0 ? s.persistentKeepalive : 25;
 

@@ -106,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
         children: [
           // Dark gradient background
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -139,7 +139,7 @@ class _SplashScreenState extends State<SplashScreen>
                         _ShieldWithRipples(controller: _rippleController),
                         const SizedBox(height: 20),
                         ShaderMask(
-                          shaderCallback: (bounds) => const LinearGradient(
+                          shaderCallback: (bounds) => LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
@@ -147,7 +147,7 @@ class _SplashScreenState extends State<SplashScreen>
                               Colors.white70,
                               NexusTheme.teal,
                             ],
-                            stops: [0, 0.5, 1],
+                            stops: const [0, 0.5, 1],
                           ).createShader(bounds),
                           blendMode: BlendMode.srcIn,
                           child: Text(

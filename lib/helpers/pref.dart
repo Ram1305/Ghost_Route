@@ -45,8 +45,9 @@ class Pref {
     _box.delete('subscriptionHistory');
   }
 
-  //for storing theme data
-  static bool get isDarkMode => _box.get('isDarkMode') ?? false;
+  /// Appearance: true = dark theme, false = light theme. Defaults to dark so
+  /// existing installs keep today's look until the user opts into light mode.
+  static bool get isDarkMode => _box.get('isDarkMode') ?? true;
   static set isDarkMode(bool v) => _box.put('isDarkMode', v);
 
   //for storing single selected vpn details
@@ -59,9 +60,15 @@ class Pref {
   static set wireguardServer(WireguardServer v) =>
       _box.put('wireguardServer', jsonEncode(v));
 
-  /// Selected protocol: 'openvpn' (default) or 'wireguard'.
-  static String get selectedProtocol => _box.get('selectedProtocol') ?? 'openvpn';
+  /// Selected protocol: 'wireguard' (default) or 'openvpn'.
+  static String get selectedProtocol => _box.get('selectedProtocol') ?? 'wireguard';
   static set selectedProtocol(String v) => _box.put('selectedProtocol', v);
+
+  /// User-supplied custom DNS server IP; null/empty means "use server default".
+  static String? get customDnsServer => _box.get('customDnsServer') as String?;
+  static set customDnsServer(String? v) => (v == null || v.trim().isEmpty)
+      ? _box.delete('customDnsServer')
+      : _box.put('customDnsServer', v.trim());
 
   //for storing vpn servers details
   static List<Vpn> _readVpnList(String key) {
@@ -195,8 +202,41 @@ class Pref {
       : _box.put('dismissedOptionalUpdateVersion', v);
 
   /// True when the resolved expiry calendar day is before today.
+  ///
+  /// When neither a backend expiry nor a matching purchase-history entry is
+  /// available for [plan] (e.g. a backend profile that carries `activePlan`
+  /// without `subscriptionExpiresAt`), anchor the local "full plan period"
+  /// fallback to the first moment this ambiguous state was observed rather
+  /// than recomputing it from "now" on every call — otherwise the plan would
+  /// never resolve as expired, no matter how much time actually passes.
   static bool isSubscriptionExpired(User user, PremiumPlan plan) {
-    return isUserSubscriptionExpired(user, plan);
+    final hasRealExpiryData = user.subscriptionExpiresAt != null ||
+        user.subscriptionHistory.any((s) => s.plan == plan);
+    if (hasRealExpiryData) {
+      _clearLocalFallbackAnchor(user, plan);
+      return isUserSubscriptionExpired(user, plan);
+    }
+    final anchor = _localFallbackAnchorFor(user, plan);
+    return isUserSubscriptionExpired(user, plan, null, anchor);
+  }
+
+  static String _fallbackAnchorKey(User user, PremiumPlan plan) =>
+      'localFallbackAnchor:${user.id}:${plan.index}';
+
+  /// First-seen timestamp for the "no stored expiry" fallback, persisted so
+  /// it stays fixed across app restarts and repeated checks.
+  static DateTime _localFallbackAnchorFor(User user, PremiumPlan plan) {
+    final key = _fallbackAnchorKey(user, plan);
+    final ms = _box.get(key) as int?;
+    if (ms != null) return DateTime.fromMillisecondsSinceEpoch(ms);
+    final anchor = DateTime.now();
+    _box.put(key, anchor.millisecondsSinceEpoch);
+    return anchor;
+  }
+
+  static void _clearLocalFallbackAnchor(User user, PremiumPlan plan) {
+    final key = _fallbackAnchorKey(user, plan);
+    if (_box.containsKey(key)) _box.delete(key);
   }
 
   // --- VPN connection history ---
@@ -217,6 +257,8 @@ class Pref {
       return [];
     }
   }
+
+  static void clearConnectionHistory() => _box.delete('connectionHistory');
 
   static set connectionHistory(List<VpnConnectionSession> v) => _box.put(
         'connectionHistory',

@@ -56,7 +56,7 @@ class AppUpdateDialog extends StatelessWidget {
         backgroundColor: NexusTheme.bg2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: NexusTheme.border),
+          side: BorderSide(color: NexusTheme.border),
         ),
         title: Row(
           children: [
@@ -67,7 +67,7 @@ class AppUpdateDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 color: NexusTheme.teal.withOpacity(0.15),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.system_update_rounded,
                 color: NexusTheme.teal,
                 size: 22,
