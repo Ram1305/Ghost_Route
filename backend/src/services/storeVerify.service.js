@@ -86,13 +86,54 @@ function isGooglePaymentAccepted(paymentState) {
   return paymentState === 1 || paymentState === 2;
 }
 
+function unescapePrivateKey(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/\\n/g, '\n');
+}
+
+function getGooglePlayCredentials() {
+  const rawJson = (process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON || '').trim();
+  if (rawJson) {
+    try {
+      const parsed = JSON.parse(rawJson);
+      if (parsed.client_email && parsed.private_key) {
+        return {
+          ...parsed,
+          private_key: unescapePrivateKey(parsed.private_key),
+        };
+      }
+    } catch (err) {
+      console.warn('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is not valid JSON:', err.message);
+    }
+  }
+
+  const clientEmail = (process.env.GOOGLE_PLAY_CLIENT_EMAIL || '').trim();
+  const privateKey = unescapePrivateKey(process.env.GOOGLE_PLAY_PRIVATE_KEY);
+  if (clientEmail && privateKey.includes('BEGIN PRIVATE KEY')) {
+    return {
+      type: 'service_account',
+      project_id: process.env.GOOGLE_PLAY_PROJECT_ID || '',
+      client_email: clientEmail,
+      private_key: privateKey,
+    };
+  }
+
+  const keyPath = (process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH || '').trim();
+  if (keyPath && fs.existsSync(keyPath)) {
+    return { keyFile: keyPath };
+  }
+  return null;
+}
+
 /**
  * Call Play Developer API for a subscription purchase token.
  * Exported for RTDN webhook re-verification.
  */
 export async function verifyGoogleSubscription({ packageName, productId, purchaseToken }) {
-  const keyPath = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH;
-  if (!keyPath || !fs.existsSync(keyPath)) {
+  const creds = getGooglePlayCredentials();
+  if (!creds) {
     return { valid: false, skipped: true, error: 'Google Play service account not configured' };
   }
   if (!purchaseToken) {
@@ -100,7 +141,7 @@ export async function verifyGoogleSubscription({ packageName, productId, purchas
   }
   const google = await loadGoogleApis();
   const auth = new google.auth.GoogleAuth({
-    keyFile: keyPath,
+    ...(creds.keyFile ? { keyFile: creds.keyFile } : { credentials: creds }),
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
   });
   const androidPublisher = google.androidpublisher({ version: 'v3', auth });
@@ -242,8 +283,12 @@ export async function verifyStorePurchase({
 
   if (platform === 'android') {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.yencode.ghostroute';
-    const keyPath = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH;
-    if (purchaseToken && keyPath) {
+    const playConfigured = !!(
+      process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON ||
+      process.env.GOOGLE_PLAY_CLIENT_EMAIL ||
+      process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PATH
+    );
+    if (purchaseToken && playConfigured) {
       try {
         const result = await verifyGoogleSubscription({
           packageName,

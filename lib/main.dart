@@ -16,6 +16,15 @@ import 'helpers/pref.dart';
 import 'screens/splash_screen.dart';
 import 'services/push_notification_service.dart';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
+}
+
 //global object for accessing device screen size
 late Size mq;
 
@@ -46,6 +55,10 @@ Future<void> main() async {
     } on FirebaseException catch (e) {
       if (e.code != 'duplicate-app') rethrow;
     }
+  }
+
+  if (isMobile) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
   // Remote config (app update checks, etc.) — firebase_remote_config has no

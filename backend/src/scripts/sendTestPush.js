@@ -2,7 +2,6 @@ import dns from 'dns';
 import dotenv from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 import mongoose from 'mongoose';
 import { sendPushToTokens } from '../services/push.service.js';
 import User from '../models/user.model.js';
@@ -21,13 +20,12 @@ function previewToken(token) {
 }
 
 async function main() {
-  const keyPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-  console.log('[test-push] FIREBASE_SERVICE_ACCOUNT_PATH=', keyPath || '(unset)');
-  if (!keyPath || !fs.existsSync(keyPath)) {
-    console.error(
-      '[test-push] Cannot send: drop a Firebase service-account JSON in backend/secrets/ and set FIREBASE_SERVICE_ACCOUNT_PATH in backend/.env',
-    );
-  }
+  console.log('[test-push] FIREBASE_PROJECT_ID=', process.env.FIREBASE_PROJECT_ID || '(unset)');
+  console.log('[test-push] FIREBASE_CLIENT_EMAIL=', process.env.FIREBASE_CLIENT_EMAIL || '(unset)');
+  console.log(
+    '[test-push] FIREBASE_PRIVATE_KEY=',
+    process.env.FIREBASE_PRIVATE_KEY ? 'set' : '(unset)',
+  );
 
   await connectDB();
   const admin = await User.findOne({

@@ -92,4 +92,29 @@ class AdminApi {
       throw Exception(err?['error'] ?? 'Failed to update notifications');
     }
   }
+
+  /// Sends a test push to this admin's registered devices and records it
+  /// in the in-app notification inbox.
+  static Future<String> sendTestNotification() async {
+    final res = await http.post(
+      Uri.parse('$_base/api/admin/notifications/test'),
+      headers: _authHeaders,
+    );
+    Map<String, dynamic>? data;
+    try {
+      data = jsonDecode(res.body) as Map<String, dynamic>?;
+    } catch (_) {}
+    if (res.statusCode != 200) {
+      throw Exception(data?['error'] ?? 'Failed to send test notification');
+    }
+    if (data?['success'] == true) {
+      return 'Test notification sent';
+    }
+    throw Exception(
+      data?['error'] as String? ??
+          (data?['errors'] is List && (data!['errors'] as List).isNotEmpty
+              ? (data['errors'] as List).first.toString()
+              : 'Push did not reach a device'),
+    );
+  }
 }

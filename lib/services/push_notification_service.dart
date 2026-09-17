@@ -31,7 +31,25 @@ class PushNotificationService {
       _observeLifecycle();
       if (!_permissionRequested) {
         _permissionRequested = true;
-        final settings = await FirebaseMessaging.instance.requestPermission();
+        final settings = await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        await FirebaseMessaging.instance
+            .setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        FirebaseMessaging.onMessage.listen((message) {
+          if (kDebugMode) {
+            debugPrint(
+              '[Push] Foreground message: ${message.notification?.title} '
+              '${message.notification?.body}',
+            );
+          }
+        });
         if (kDebugMode) {
           debugPrint('[Push] Permission status: ${settings.authorizationStatus}');
         }

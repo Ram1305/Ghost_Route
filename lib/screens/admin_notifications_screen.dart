@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../apis/admin_api.dart';
+import '../helpers/my_dialogs.dart';
 import '../models/admin_stats.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
@@ -17,6 +18,7 @@ class AdminNotificationsScreen extends StatefulWidget {
 class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   List<AdminNotification>? _notifications;
   bool _loading = true;
+  bool _sendingTest = false;
   String? _error;
 
   @override
@@ -70,6 +72,23 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     try {
       await AdminApi.markAllNotificationsRead();
     } catch (_) {}
+  }
+
+  Future<void> _sendTest() async {
+    if (_sendingTest) return;
+    setState(() => _sendingTest = true);
+    try {
+      final msg = await AdminApi.sendTestNotification();
+      if (!mounted) return;
+      MyDialogs.success(msg: msg);
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      MyDialogs.error(msg: e.toString().replaceFirst('Exception: ', ''));
+      await _load();
+    } finally {
+      if (mounted) setState(() => _sendingTest = false);
+    }
   }
 
   @override
@@ -180,6 +199,18 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
             ),
           ),
           const Spacer(),
+          IconButton(
+            onPressed: _sendingTest ? null : _sendTest,
+            tooltip: 'Send test notification',
+            icon: _sendingTest
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: NexusTheme.teal),
+                  )
+                : const Icon(Icons.send_rounded, size: 20),
+            color: NexusTheme.teal,
+          ),
           if (hasUnread)
             TextButton(
               onPressed: _markAllRead,
@@ -189,7 +220,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
               ),
             )
           else
-            const SizedBox(width: 48),
+            const SizedBox(width: 8),
         ],
       ),
     );

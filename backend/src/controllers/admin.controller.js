@@ -1,6 +1,37 @@
 import User from '../models/user.model.js';
 import Plan from '../models/plan.model.js';
 import Notification from '../models/notification.model.js';
+import { sendPushToTokens } from '../services/push.service.js';
+
+/** POST /api/admin/notifications/test — push a test alert to the caller's devices. */
+export async function sendTestNotification(req, res) {
+  try {
+    const title = 'Ghost Route test';
+    const body = 'Test notification to admin';
+    const data = { type: 'test_push' };
+
+    await Notification.create({ type: 'test_push', title, body, data });
+
+    const tokens = (req.user.fcmTokens || []).filter(Boolean);
+    if (tokens.length === 0) {
+      return res.status(200).json({
+        success: false,
+        tokenCount: 0,
+        error:
+          'Saved in Notifications, but this admin has no FCM token yet. Open the app while logged in, allow notifications, then retry.',
+      });
+    }
+    const result = await sendPushToTokens(tokens, { title, body, data });
+    res.json({
+      success: result.successCount > 0,
+      tokenCount: tokens.length,
+      ...result,
+    });
+  } catch (err) {
+    console.error('Admin test push error:', err);
+    res.status(500).json({ error: err.message || 'Failed to send test push' });
+  }
+}
 
 /** GET /api/admin/stats */
 export async function getStats(req, res) {

@@ -36,10 +36,14 @@ async function notifyAdminsOfNewSubscription(subscriber, planDoc) {
 
   await Notification.create({ type: 'new_subscription', title, body, data });
 
+  const adminEmails = String(process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
   const admins = await User.find({
-    role: 'admin',
-    pushEnabled: true,
+    pushEnabled: { $ne: false },
     fcmTokens: { $exists: true, $ne: [] },
+    $or: [{ role: 'admin' }, ...(adminEmails.length ? [{ email: { $in: adminEmails } }] : [])],
   });
   const tokens = admins.flatMap((a) => a.fcmTokens);
   if (tokens.length === 0) return;
