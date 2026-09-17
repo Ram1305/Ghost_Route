@@ -6,6 +6,8 @@ import '../controllers/admin_controller.dart';
 import '../models/admin_stats.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
+import 'admin_notifications_screen.dart';
+import 'admin_user_list_screen.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -96,6 +98,44 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
           ),
           const Spacer(),
+          Obx(() {
+            final unread = _admin.stats.value?.unreadNotifications ?? 0;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    await Get.to(() => const AdminNotificationsScreen());
+                    _admin.reload();
+                  },
+                  icon: const Icon(Icons.notifications_none_rounded, size: 22),
+                  color: NexusTheme.text2,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: NexusTheme.red,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16),
+                      child: Text(
+                        unread > 99 ? '99+' : '$unread',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
           Obx(
             () => IconButton(
               onPressed: _admin.isLoading.value ? null : _admin.reload,
@@ -158,6 +198,9 @@ class _AdminScreenState extends State<AdminScreen> {
             color: NexusTheme.blue,
             label: 'Total users',
             value: stats?.totalUsers.toString() ?? '—',
+            onTap: () => Get.to(
+              () => const AdminUserListScreen(activeOnly: false, title: 'All users'),
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -167,6 +210,9 @@ class _AdminScreenState extends State<AdminScreen> {
             color: NexusTheme.gold,
             label: 'Active subscribers',
             value: stats?.activeSubscribers.toString() ?? '—',
+            onTap: () => Get.to(
+              () => const AdminUserListScreen(activeOnly: true, title: 'Active subscribers'),
+            ),
           ),
         ),
       ],
@@ -178,41 +224,55 @@ class _AdminScreenState extends State<AdminScreen> {
     required Color color,
     required String label,
     required String value,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: NexusTheme.surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: NexusTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: color.withOpacity(0.15),
-            ),
-            child: Icon(icon, size: 18, color: color),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: NexusTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: NexusTheme.border),
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: NexusTheme.text,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: color.withOpacity(0.15),
+                    ),
+                    child: Icon(icon, size: 18, color: color),
+                  ),
+                  Icon(Icons.chevron_right_rounded, size: 18, color: NexusTheme.text3),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                value,
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: NexusTheme.text,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.outfit(fontSize: 12, color: NexusTheme.text3),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.outfit(fontSize: 12, color: NexusTheme.text3),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -5,8 +5,9 @@ import { requireAdmin } from '../middleware/admin.middleware.js';
 
 const router = Router();
 
-// Self-service: register this device's FCM token for push notifications.
+// Self-service: register this device's FCM token / toggle push on-off.
 router.post('/me/fcm-token', authenticate, userController.registerFcmToken);
+router.post('/me/push-preference', authenticate, userController.setPushPreference);
 
 // Listing/creating/updating arbitrary users is admin-only; a user may still
 // fetch their own record. All of this previously had no auth check at all.

@@ -43,4 +43,53 @@ class AdminApi {
         .map((e) => AdminSubscriptionEvent.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  /// [activeOnly] filters to users with a currently active subscription.
+  static Future<List<AdminUserSummary>> getUsers({bool activeOnly = false}) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/users/?activeOnly=$activeOnly'),
+      headers: _authHeaders,
+    );
+    if (res.statusCode != 200) {
+      final err = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(err?['error'] ?? 'Failed to load users');
+    }
+    final list = jsonDecode(res.body) as List<dynamic>;
+    return list.map((e) => AdminUserSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<List<AdminNotification>> getNotifications({int limit = 50}) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/admin/notifications?limit=$limit'),
+      headers: _authHeaders,
+    );
+    if (res.statusCode != 200) {
+      final err = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(err?['error'] ?? 'Failed to load notifications');
+    }
+    final list = jsonDecode(res.body) as List<dynamic>;
+    return list.map((e) => AdminNotification.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<void> markNotificationRead(String id) async {
+    final res = await http.post(
+      Uri.parse('$_base/api/admin/notifications/$id/read'),
+      headers: _authHeaders,
+    );
+    if (res.statusCode != 200) {
+      final err = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(err?['error'] ?? 'Failed to update notification');
+    }
+  }
+
+  static Future<void> markAllNotificationsRead() async {
+    final res = await http.post(
+      Uri.parse('$_base/api/admin/notifications/read-all'),
+      headers: _authHeaders,
+    );
+    if (res.statusCode != 200) {
+      final err = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(err?['error'] ?? 'Failed to update notifications');
+    }
+  }
 }

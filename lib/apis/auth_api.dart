@@ -82,6 +82,7 @@ class AuthApi {
     final DateTime? expiresAt = parseSubscriptionDate(expiresAtRaw);
     final roleRaw = json['role'];
     final role = roleRaw == 'admin' ? 'admin' : 'user';
+    final pushEnabled = json['pushEnabled'] as bool? ?? true;
     return User(
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
@@ -92,6 +93,7 @@ class AuthApi {
       subscriptionExpiresAt: expiresAt,
       backendUserId: id,
       role: role,
+      pushEnabled: pushEnabled,
     );
   }
 
@@ -210,6 +212,27 @@ class AuthApi {
     if (res.statusCode != 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>?;
       throw Exception(data?['error'] as String? ?? 'Failed to register device for push');
+    }
+  }
+
+  /// Persists the Settings > Push notifications on/off preference. Requires
+  /// [Pref.authToken]; throws if not logged in so the caller can revert the UI.
+  static Future<void> setPushEnabled(bool enabled) async {
+    final authToken = Pref.authToken;
+    if (authToken == null) {
+      throw Exception('Log in to change notification settings');
+    }
+    final res = await http.post(
+      Uri.parse('$_base/api/users/me/push-preference'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+      },
+      body: jsonEncode({'enabled': enabled}),
+    );
+    if (res.statusCode != 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(data?['error'] as String? ?? 'Failed to update notification settings');
     }
   }
 }

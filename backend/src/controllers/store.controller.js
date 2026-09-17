@@ -1,5 +1,6 @@
 import User from '../models/user.model.js';
 import Plan from '../models/plan.model.js';
+import Notification from '../models/notification.model.js';
 import * as emailService from '../services/email.service.js';
 import { sendPushToTokens } from '../services/push.service.js';
 import {
@@ -25,18 +26,25 @@ const GOOGLE_NOTIF = {
   SUBSCRIPTION_EXPIRED: 13,
 };
 
-/** Pushes a "new subscription" alert to every admin's registered device(s),
- * pruning any tokens FCM reports as invalid/unregistered along the way. */
+/** Records a "new subscription" alert (visible in the admin notification
+ * list even without a device registered) and pushes it to every admin's
+ * registered device(s), pruning any tokens FCM reports as invalid along the way. */
 async function notifyAdminsOfNewSubscription(subscriber, planDoc) {
-  const admins = await User.find({ role: 'admin', fcmTokens: { $exists: true, $ne: [] } });
+  const title = 'New subscription';
+  const body = `${subscriber.username || subscriber.email} subscribed to ${planDoc.displayName}`;
+  const data = { type: 'new_subscription', userId: String(subscriber._id) };
+
+  await Notification.create({ type: 'new_subscription', title, body, data });
+
+  const admins = await User.find({
+    role: 'admin',
+    pushEnabled: true,
+    fcmTokens: { $exists: true, $ne: [] },
+  });
   const tokens = admins.flatMap((a) => a.fcmTokens);
   if (tokens.length === 0) return;
 
-  const { invalidTokens } = await sendPushToTokens(tokens, {
-    title: 'New subscription',
-    body: `${subscriber.username || subscriber.email} subscribed to ${planDoc.displayName}`,
-    data: { type: 'new_subscription', userId: String(subscriber._id) },
-  });
+  const { invalidTokens } = await sendPushToTokens(tokens, { title, body, data });
 
   if (invalidTokens.length > 0) {
     await User.updateMany(

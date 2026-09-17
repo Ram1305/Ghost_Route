@@ -15,6 +15,9 @@ class User {
   /// trust this for access control, it's for UI gating only; the backend
   /// re-verifies the real role from the database on every admin API call.
   final String role;
+  /// Settings > Push notifications toggle. Source of truth is the backend
+  /// (POST /api/users/me/push-preference) — it decides whether to send.
+  final bool pushEnabled;
 
   User({
     required this.username,
@@ -26,6 +29,7 @@ class User {
     this.subscriptionExpiresAt,
     this.backendUserId,
     this.role = 'user',
+    this.pushEnabled = true,
   });
 
   bool get isAdmin => role == 'admin';
@@ -45,6 +49,7 @@ class User {
           'subscriptionExpiresAt': subscriptionExpiresAt!.toIso8601String(),
         if (backendUserId != null) 'backendUserId': backendUserId,
         'role': role,
+        'pushEnabled': pushEnabled,
       };
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -64,6 +69,7 @@ class User {
     final backendId = json['backendUserId'] as String?;
     final roleRaw = json['role'];
     final role = roleRaw == 'admin' ? 'admin' : 'user';
+    final pushEnabled = json['pushEnabled'] as bool? ?? true;
     return User(
       username: json['username'] ?? '',
       email: json['email'] ?? '',
@@ -74,6 +80,7 @@ class User {
       subscriptionExpiresAt: expiresAt,
       backendUserId: backendId,
       role: role,
+      pushEnabled: pushEnabled,
     );
   }
 
@@ -88,6 +95,7 @@ class User {
     DateTime? subscriptionExpiresAt,
     String? backendUserId,
     String? role,
+    bool? pushEnabled,
   }) {
     return User(
       username: username ?? this.username,
@@ -97,6 +105,7 @@ class User {
       subscriptionHistory: subscriptionHistory ?? this.subscriptionHistory,
       activePlan: activePlan ?? this.activePlan,
       role: role ?? this.role,
+      pushEnabled: pushEnabled ?? this.pushEnabled,
       subscriptionExpiresAt: subscriptionExpiresAt ?? this.subscriptionExpiresAt,
       backendUserId: backendUserId ?? this.backendUserId,
     );

@@ -57,29 +57,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(height: 20),
                           _buildSectionTitle('Connection'),
                           const SizedBox(height: 12),
-                          _buildProtocolCard(),
-                          const SizedBox(height: 10),
                           _buildDnsCard(context),
-                          const SizedBox(height: 10),
-                          _buildComingSoonRow(
-                            icon: Icons.shield_outlined,
-                            title: 'Kill switch',
-                            subtitle:
-                                'Block all traffic if the VPN connection drops.',
-                          ),
                           const SizedBox(height: 10),
                           _buildComingSoonRow(
                             icon: Icons.wifi_tethering_error_rounded,
                             title: 'Auto-connect on untrusted Wi-Fi',
                             subtitle:
                                 'Connect automatically on unrecognized networks.',
-                          ),
-                          const SizedBox(height: 10),
-                          _buildComingSoonRow(
-                            icon: Icons.call_split_rounded,
-                            title: 'Split tunneling',
-                            subtitle:
-                                'Choose which apps bypass the VPN (Android).',
                           ),
                           const SizedBox(height: 28),
                           _buildSectionTitle('Privacy & diagnostics'),
@@ -103,11 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(height: 28),
                           _buildSectionTitle('Notifications'),
                           const SizedBox(height: 12),
-                          _buildComingSoonRow(
-                            icon: Icons.notifications_none_rounded,
-                            title: 'Push notifications',
-                            subtitle: 'Get alerted about your connection status.',
-                          ),
+                          _buildPushNotificationsCard(),
                           const SizedBox(height: 28),
                           _buildSectionTitle('Appearance'),
                           const SizedBox(height: 12),
@@ -172,65 +152,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: color.withOpacity(0.15),
       ),
       child: Icon(icon, size: 20, color: color),
-    );
-  }
-
-  Widget _buildProtocolCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: NexusTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: NexusTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Protocol',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 10,
-              letterSpacing: 1.5,
-              color: NexusTheme.text3,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _protocolOption('wireguard', 'WireGuard')),
-              const SizedBox(width: 10),
-              Expanded(child: _protocolOption('openvpn', 'OpenVPN')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _protocolOption(String value, String label) {
-    final selected = _settings.protocol.value == value;
-    return GestureDetector(
-      onTap: () => _settings.setProtocol(value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? NexusTheme.teal.withOpacity(0.15) : NexusTheme.bg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? NexusTheme.teal : NexusTheme.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.outfit(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: selected ? NexusTheme.teal : NexusTheme.text2,
-          ),
-        ),
-      ),
     );
   }
 
@@ -506,6 +427,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _settings.clearConnectionHistory();
       MyDialogs.success(msg: 'Connection history cleared');
     }
+  }
+
+  Widget _buildPushNotificationsCard() {
+    final enabled = _settings.pushEnabled.value;
+    final updating = _settings.pushUpdating.value;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NexusTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: NexusTheme.border),
+      ),
+      child: Row(
+        children: [
+          _iconBadge(
+            enabled ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
+            NexusTheme.gold,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Push notifications',
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: NexusTheme.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  enabled ? 'On' : 'Off',
+                  style: GoogleFonts.outfit(fontSize: 12, color: NexusTheme.text3),
+                ),
+              ],
+            ),
+          ),
+          if (updating)
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: NexusTheme.teal),
+            )
+          else
+            Switch(
+              value: enabled,
+              activeThumbColor: NexusTheme.teal,
+              onChanged: _settings.setPushEnabled,
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildAppearanceCard() {
