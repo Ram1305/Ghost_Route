@@ -15,6 +15,7 @@ import '../services/app_update_service.dart';
 import '../theme/nexus_theme.dart';
 import '../widgets/canvas_background.dart';
 import '../widgets/purchase_invoice_sheet.dart';
+import 'admin_screen.dart';
 import 'login_screen.dart';
 import 'main_shell_screen.dart';
 import 'premium_screen.dart';
@@ -403,6 +404,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const Spacer(),
+          if (isLoggedIn && Pref.isAdmin)
+            IconButton(
+              onPressed: () => Get.to(() => const AdminScreen()),
+              icon: const Icon(Icons.admin_panel_settings_outlined, size: 22),
+              color: NexusTheme.text2,
+            ),
           IconButton(
             onPressed: () => Get.to(() => const SettingsScreen()),
             icon: const Icon(Icons.settings_outlined, size: 22),

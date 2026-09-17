@@ -53,6 +53,9 @@ dependencies:
   # For Remote Config
   firebase_remote_config: ^5.4.2
 
+  # Push notifications (admin new-subscription alerts)
+  firebase_messaging: ^15.2.5
+
   # App version + in-app updates (Play Store on Android)
   package_info_plus: ^8.3.0
   in_app_update: ^4.2.5

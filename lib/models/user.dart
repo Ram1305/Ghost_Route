@@ -11,6 +11,10 @@ class User {
   final DateTime? subscriptionExpiresAt;
   /// Backend MongoDB user id; when set, payment flow will call activate-subscription API.
   final String? backendUserId;
+  /// 'user' (default) or 'admin'. Server-assigned only (ADMIN_EMAILS) — never
+  /// trust this for access control, it's for UI gating only; the backend
+  /// re-verifies the real role from the database on every admin API call.
+  final String role;
 
   User({
     required this.username,
@@ -21,7 +25,10 @@ class User {
     this.activePlan,
     this.subscriptionExpiresAt,
     this.backendUserId,
+    this.role = 'user',
   });
+
+  bool get isAdmin => role == 'admin';
 
   /// Stable id for keying; email is unique per user.
   String get id => email;
@@ -37,6 +44,7 @@ class User {
         if (subscriptionExpiresAt != null)
           'subscriptionExpiresAt': subscriptionExpiresAt!.toIso8601String(),
         if (backendUserId != null) 'backendUserId': backendUserId,
+        'role': role,
       };
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -54,6 +62,8 @@ class User {
     final expiresAtRaw = json['subscriptionExpiresAt'];
     final DateTime? expiresAt = parseSubscriptionDate(expiresAtRaw);
     final backendId = json['backendUserId'] as String?;
+    final roleRaw = json['role'];
+    final role = roleRaw == 'admin' ? 'admin' : 'user';
     return User(
       username: json['username'] ?? '',
       email: json['email'] ?? '',
@@ -63,6 +73,7 @@ class User {
       activePlan: active,
       subscriptionExpiresAt: expiresAt,
       backendUserId: backendId,
+      role: role,
     );
   }
 
@@ -76,6 +87,7 @@ class User {
     PremiumPlan? activePlan,
     DateTime? subscriptionExpiresAt,
     String? backendUserId,
+    String? role,
   }) {
     return User(
       username: username ?? this.username,
@@ -84,6 +96,7 @@ class User {
       password: password ?? this.password,
       subscriptionHistory: subscriptionHistory ?? this.subscriptionHistory,
       activePlan: activePlan ?? this.activePlan,
+      role: role ?? this.role,
       subscriptionExpiresAt: subscriptionExpiresAt ?? this.subscriptionExpiresAt,
       backendUserId: backendUserId ?? this.backendUserId,
     );

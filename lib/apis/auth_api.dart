@@ -3,9 +3,18 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../helpers/pref.dart';
 import '../helpers/subscription_expiry.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
+
+/// Result of a register/login call: the user plus the bearer token to send
+/// on subsequent authenticated requests (e.g. admin endpoints).
+class AuthResult {
+  final User user;
+  final String? token;
+  AuthResult(this.user, this.token);
+}
 
 /// Auth API – OTP, register, login, forgot password (backend).
 class AuthApi {
@@ -71,6 +80,8 @@ class AuthApi {
     }
     final expiresAtRaw = json['subscriptionExpiresAt'];
     final DateTime? expiresAt = parseSubscriptionDate(expiresAtRaw);
+    final roleRaw = json['role'];
+    final role = roleRaw == 'admin' ? 'admin' : 'user';
     return User(
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
@@ -80,11 +91,12 @@ class AuthApi {
       activePlan: active,
       subscriptionExpiresAt: expiresAt,
       backendUserId: id,
+      role: role,
     );
   }
 
-  /// Register after OTP verified. Returns created user and backendUserId.
-  static Future<User> register({
+  /// Register after OTP verified. Returns created user, backendUserId and auth token.
+  static Future<AuthResult> register({
     required String email,
     required String password,
     required String username,
@@ -106,11 +118,12 @@ class AuthApi {
     }
     final userJson = data['user'] as Map<String, dynamic>? ?? data;
     final backendUserId = data['backendUserId'] as String?;
-    return userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
+    final user = userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
+    return AuthResult(user, data['token'] as String?);
   }
 
-  /// Login. Returns user with backendUserId.
-  static Future<User> login(String email, String password) async {
+  /// Login. Returns user with backendUserId and auth token.
+  static Future<AuthResult> login(String email, String password) async {
     final res = await http.post(
       Uri.parse('$_base/api/auth/login'),
       headers: {'Content-Type': 'application/json'},
@@ -125,7 +138,8 @@ class AuthApi {
     }
     final userJson = data['user'] as Map<String, dynamic>? ?? data;
     final backendUserId = data['backendUserId'] as String?;
-    return userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
+    final user = userFromBackendJson(Map<String, dynamic>.from(userJson), backendUserId: backendUserId);
+    return AuthResult(user, data['token'] as String?);
   }
 
   static Future<bool> forgotPasswordSendOtp(String email) async {
@@ -178,5 +192,24 @@ class AuthApi {
     if (res.statusCode == 204) return;
     final data = jsonDecode(res.body) as Map<String, dynamic>?;
     throw Exception(data?['error'] as String? ?? 'Failed to delete account');
+  }
+
+  /// Registers this device's FCM token for push notifications. Requires
+  /// [Pref.authToken] (set after login/register); no-ops silently if absent.
+  static Future<void> registerFcmToken(String token) async {
+    final authToken = Pref.authToken;
+    if (authToken == null) return;
+    final res = await http.post(
+      Uri.parse('$_base/api/users/me/fcm-token'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+      },
+      body: jsonEncode({'token': token}),
+    );
+    if (res.statusCode != 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>?;
+      throw Exception(data?['error'] as String? ?? 'Failed to register device for push');
+    }
   }
 }

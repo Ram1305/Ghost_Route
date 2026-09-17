@@ -2,8 +2,30 @@ import bcrypt from 'bcrypt';
 import User from '../models/user.model.js';
 import * as otpStore from '../services/otp.store.js';
 import * as emailService from '../services/email.service.js';
+import { signAuthToken } from '../utils/jwt.util.js';
 
 const PURPOSES = ['signup', 'forgot_password'];
+
+/** Admin status is granted purely from server config (ADMIN_EMAILS), never
+ * from anything client-supplied — keeps role assignment out of reach of any
+ * API request. Comma-separated list of emails in the environment. */
+const ADMIN_EMAILS = new Set(
+  String(process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+/** Syncs `user.role` with ADMIN_EMAILS and persists it if it changed. */
+async function syncAdminRole(user) {
+  const shouldBeAdmin = ADMIN_EMAILS.has(user.email.toLowerCase());
+  const nextRole = shouldBeAdmin ? 'admin' : 'user';
+  if (user.role !== nextRole) {
+    user.role = nextRole;
+    await user.save();
+  }
+  return user;
+}
 
 export async function sendOtp(req, res) {
   try {
@@ -65,6 +87,7 @@ export async function register(req, res) {
       username: String(username).trim(),
       phone: phone ? String(phone).trim() : '',
     });
+    await syncAdminRole(user);
     const obj = user.toObject();
     delete obj.password;
     try {
@@ -72,7 +95,8 @@ export async function register(req, res) {
     } catch (e) {
       console.error('Welcome email failed:', e);
     }
-    res.status(201).json({ user: obj, backendUserId: obj._id.toString() });
+    const token = signAuthToken(user._id);
+    res.status(201).json({ user: obj, backendUserId: obj._id.toString(), token });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(409).json({ error: 'Email already registered' });
@@ -97,9 +121,11 @@ export async function login(req, res) {
     if (!match) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+    await syncAdminRole(user);
     const obj = user.toObject();
     delete obj.password;
-    res.status(200).json({ user: obj, backendUserId: obj._id.toString() });
+    const token = signAuthToken(user._id);
+    res.status(200).json({ user: obj, backendUserId: obj._id.toString(), token });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: err.message || 'Login failed' });

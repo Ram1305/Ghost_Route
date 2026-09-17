@@ -6,6 +6,13 @@ import '../helpers/my_dialogs.dart';
 import '../helpers/pref.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
+import '../services/push_notification_service.dart';
+
+/// Push is only meaningful for admins today (new-subscription alerts) — skip
+/// the permission prompt/registration entirely for everyone else.
+void _registerPushIfAdmin(User user) {
+  if (user.isAdmin) PushNotificationService.initialize();
+}
 
 class AuthController extends GetxController {
   final Rx<User?> currentUser = (Pref.currentUser).obs;
@@ -78,12 +85,13 @@ class AuthController extends GetxController {
       return false;
     }
     try {
-      final user = await AuthApi.register(
+      final result = await AuthApi.register(
         email: email,
         password: password,
         username: username,
         phone: phone,
       );
+      final user = result.user;
       final users = Pref.users;
       final existing = users.where((u) => u.email.toLowerCase() == user.email.toLowerCase());
       if (existing.isEmpty) {
@@ -95,6 +103,8 @@ class AuthController extends GetxController {
       Pref.users = users;
       Pref.currentUser = user;
       currentUser.value = user;
+      Pref.authToken = result.token;
+      _registerPushIfAdmin(user);
       MyDialogs.success(msg: 'Account created');
       return true;
     } catch (e) {
@@ -109,7 +119,8 @@ class AuthController extends GetxController {
     final u = Pref.currentUser;
     if (u == null || u.email.isEmpty || u.password.isEmpty) return false;
     try {
-      final user = await AuthApi.login(u.email, u.password);
+      final result = await AuthApi.login(u.email, u.password);
+      final user = result.user;
       var toStore = user.copyWith(password: u.password);
       // Keep locally verified subscription if backend profile is stale.
       final localPlan = u.activePlan ?? Pref.currentUserActivePlan;
@@ -144,6 +155,8 @@ class AuthController extends GetxController {
       Pref.users = users;
       Pref.currentUser = toStore;
       currentUser.value = toStore;
+      if (result.token != null) Pref.authToken = result.token;
+      _registerPushIfAdmin(toStore);
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -164,7 +177,8 @@ class AuthController extends GetxController {
       return false;
     }
     try {
-      final user = await AuthApi.login(email, password);
+      final result = await AuthApi.login(email, password);
+      final user = result.user;
       final users = Pref.users;
       final idx = users.indexWhere((u) => u.email.toLowerCase() == user.email.toLowerCase());
       final toStore = user.copyWith(password: password);
@@ -176,6 +190,8 @@ class AuthController extends GetxController {
       Pref.users = users;
       Pref.currentUser = toStore;
       currentUser.value = toStore;
+      Pref.authToken = result.token;
+      _registerPushIfAdmin(toStore);
       MyDialogs.success(msg: 'Logged in');
       return true;
     } catch (e) {
@@ -322,5 +338,7 @@ class AuthController extends GetxController {
   void logout() {
     Pref.currentUser = null;
     currentUser.value = null;
+    Pref.authToken = null;
+    Pref.registeredFcmToken = null;
   }
 }

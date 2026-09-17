@@ -2,6 +2,7 @@ import { Router } from 'express';
 import userRoutes from './user.routes.js';
 import paymentRoutes from './payment.routes.js';
 import authRoutes from './auth.routes.js';
+import adminRoutes from './admin.routes.js';
 import serverRoutes from './server.routes.js';
 import freeVpnRoutes from './freeVpn.routes.js';
 import wireguardServersRoutes from './wireguardServers.routes.js';
@@ -10,6 +11,7 @@ const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/admin', adminRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/servers', serverRoutes);
 router.use('/free-vpn', freeVpnRoutes);

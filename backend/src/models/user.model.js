@@ -20,6 +20,9 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     phone: { type: String, trim: true },
     password: { type: String, required: true },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    // FCM registration tokens for this user's device(s) — used to push notifications.
+    fcmTokens: { type: [String], default: [] },
     subscriptionHistory: { type: [subscriptionSchema], default: [] },
     activePlan: { type: Number, default: null }, // PremiumPlan index or null
     subscriptionExpiresAt: { type: Date, default: null },

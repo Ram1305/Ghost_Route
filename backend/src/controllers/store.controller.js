@@ -1,6 +1,7 @@
 import User from '../models/user.model.js';
 import Plan from '../models/plan.model.js';
 import * as emailService from '../services/email.service.js';
+import { sendPushToTokens } from '../services/push.service.js';
 import {
   verifyStorePurchase,
   verifyGoogleSubscription,
@@ -23,6 +24,27 @@ const GOOGLE_NOTIF = {
   SUBSCRIPTION_REVOKED: 12,
   SUBSCRIPTION_EXPIRED: 13,
 };
+
+/** Pushes a "new subscription" alert to every admin's registered device(s),
+ * pruning any tokens FCM reports as invalid/unregistered along the way. */
+async function notifyAdminsOfNewSubscription(subscriber, planDoc) {
+  const admins = await User.find({ role: 'admin', fcmTokens: { $exists: true, $ne: [] } });
+  const tokens = admins.flatMap((a) => a.fcmTokens);
+  if (tokens.length === 0) return;
+
+  const { invalidTokens } = await sendPushToTokens(tokens, {
+    title: 'New subscription',
+    body: `${subscriber.username || subscriber.email} subscribed to ${planDoc.displayName}`,
+    data: { type: 'new_subscription', userId: String(subscriber._id) },
+  });
+
+  if (invalidTokens.length > 0) {
+    await User.updateMany(
+      { role: 'admin' },
+      { $pull: { fcmTokens: { $in: invalidTokens } } },
+    );
+  }
+}
 
 async function activatePlanForUser(
   user,
@@ -134,6 +156,25 @@ async function activatePlanForUser(
     });
   } catch (e) {
     console.error('Invoice email failed:', e);
+  }
+
+  try {
+    await emailService.sendAdminNewSubscriptionEmail({
+      email: user.email,
+      username: user.username,
+      planName: planDoc.displayName,
+      amount: planDoc.price,
+      currency: planDoc.currency,
+      platform,
+    });
+  } catch (e) {
+    console.error('Admin new-subscription email failed:', e);
+  }
+
+  try {
+    await notifyAdminsOfNewSubscription(user, planDoc);
+  } catch (e) {
+    console.error('Admin new-subscription push failed:', e);
   }
 
   return user;

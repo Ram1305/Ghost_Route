@@ -130,6 +130,22 @@ class Pref {
 
   static bool get isLoggedIn => currentUser != null;
 
+  /// Bearer token for authenticated backend requests (admin endpoints etc.).
+  static String? get authToken => _box.get('authToken') as String?;
+  static set authToken(String? v) =>
+      v == null ? _box.delete('authToken') : _box.put('authToken', v);
+
+  /// UI-gating convenience only — the backend independently re-verifies the
+  /// real role from the database on every admin API call.
+  static bool get isAdmin => currentUser?.isAdmin ?? false;
+
+  /// Last FCM token successfully registered with the backend, to avoid
+  /// re-sending the same token on every app start.
+  static String? get registeredFcmToken => _box.get('registeredFcmToken') as String?;
+  static set registeredFcmToken(String? v) => v == null
+      ? _box.delete('registeredFcmToken')
+      : _box.put('registeredFcmToken', v);
+
   /// Current user's subscription history (per-user packs).
   static List<Subscription> get currentUserSubscriptionHistory =>
       currentUser?.subscriptionHistory ?? [];

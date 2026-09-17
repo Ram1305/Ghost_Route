@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -13,6 +14,7 @@ import 'helpers/config.dart';
 import 'helpers/my_dialogs.dart';
 import 'helpers/pref.dart';
 import 'screens/splash_screen.dart';
+import 'services/push_notification_service.dart';
 
 //global object for accessing device screen size
 late Size mq;
@@ -54,6 +56,13 @@ Future<void> main() async {
   }
 
   await Pref.initializeHive();
+
+  // Push is only meaningful for admins today (new-subscription alerts) — skip
+  // the permission prompt entirely for everyone else. Fire-and-forget so a
+  // slow permission dialog never blocks first paint.
+  if (isMobile && Pref.isAdmin) {
+    unawaited(PushNotificationService.initialize());
+  }
 
   // VPN engine init is deferred until first connect on both platforms so the
   // Activity (Android) is ready for VpnService.prepare() and permission dialog.

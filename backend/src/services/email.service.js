@@ -87,6 +87,28 @@ export async function sendInvoiceEmail(to, { orderId, paymentId, planName, amoun
   await sendMail({ to, subject, html, text });
 }
 
+const ADMIN_NOTIFICATION_EMAILS = String(process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map((e) => e.trim())
+  .filter(Boolean);
+
+/** Notifies configured admins (ADMIN_EMAILS) of a brand-new subscription. */
+export async function sendAdminNewSubscriptionEmail({ email, username, planName, amount, currency, platform }) {
+  if (ADMIN_NOTIFICATION_EMAILS.length === 0) return;
+  const subject = `New subscription: ${planName || 'Unknown plan'}`;
+  const text = `${username || email} (${email}) just subscribed to ${planName || 'a plan'} — ${amount} ${currency || 'USD'} via ${platform || 'unknown platform'}.`;
+  const html = `
+    <h2>New subscription</h2>
+    <table style="border-collapse: collapse;">
+      <tr><td><strong>User</strong></td><td>${username || ''} (${email})</td></tr>
+      <tr><td><strong>Plan</strong></td><td>${planName || 'N/A'}</td></tr>
+      <tr><td><strong>Amount</strong></td><td>${amount} ${currency || 'USD'}</td></tr>
+      <tr><td><strong>Platform</strong></td><td>${platform || 'N/A'}</td></tr>
+    </table>
+  `;
+  await sendMail({ to: ADMIN_NOTIFICATION_EMAILS.join(','), subject, html, text });
+}
+
 export async function sendPasswordResetConfirmation(to) {
   const subject = 'Your Ghost Route password was changed';
   const text = 'Your Ghost Route account password has been changed successfully. If you did not make this change, please contact support.';
