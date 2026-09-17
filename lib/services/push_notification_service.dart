@@ -21,7 +21,13 @@ class PushNotificationService {
       if (!_permissionRequested) {
         _permissionRequested = true;
         final settings = await FirebaseMessaging.instance.requestPermission();
-        if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+        if (kDebugMode) {
+          debugPrint('[Push] Permission status: ${settings.authorizationStatus}');
+        }
+        // Still attempt token registration even if denied — a denied
+        // *display* permission doesn't always block FCM token delivery
+        // (Android in particular), and bailing here silently prevented the
+        // backend from ever learning about this device at all.
       }
       await _registerCurrentToken();
       FirebaseMessaging.instance.onTokenRefresh.listen(_sendTokenToBackend);
@@ -36,6 +42,23 @@ class PushNotificationService {
 
   static Future<void> _registerCurrentToken() async {
     try {
+      // On iOS, FCM's getToken() needs the APNs token to already be set on
+      // the native side — right after requestPermission() that registration
+      // is often still in flight, so getToken() throws apns-token-not-set.
+      // Poll briefly for it before asking FCM for its own token.
+      if (!kIsWeb && Platform.isIOS) {
+        String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        var attempts = 0;
+        while (apnsToken == null && attempts < 10) {
+          await Future.delayed(const Duration(seconds: 1));
+          apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+          attempts++;
+        }
+        if (apnsToken == null) {
+          if (kDebugMode) debugPrint('[Push] APNs token never arrived, skipping getToken()');
+          return;
+        }
+      }
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null) await _sendTokenToBackend(token);
     } catch (e) {
@@ -44,11 +67,23 @@ class PushNotificationService {
   }
 
   static Future<void> _sendTokenToBackend(String token) async {
-    if (!Pref.isLoggedIn || Pref.authToken == null) return;
-    if (Pref.registeredFcmToken == token) return;
+    if (!Pref.isLoggedIn || Pref.authToken == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Push] Got FCM token but not sending — isLoggedIn=${Pref.isLoggedIn} '
+          'authToken=${Pref.authToken != null}. Will retry on next login.',
+        );
+      }
+      return;
+    }
+    if (Pref.registeredFcmToken == token) {
+      if (kDebugMode) debugPrint('[Push] Token unchanged, skipping re-registration.');
+      return;
+    }
     try {
       await AuthApi.registerFcmToken(token);
       Pref.registeredFcmToken = token;
+      if (kDebugMode) debugPrint('[Push] Registered FCM token with backend.');
     } catch (e) {
       if (kDebugMode) debugPrint('[Push] registerFcmToken failed: $e');
     }
