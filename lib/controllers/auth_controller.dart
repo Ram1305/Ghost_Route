@@ -8,12 +8,6 @@ import '../models/subscription.dart';
 import '../models/user.dart';
 import '../services/push_notification_service.dart';
 
-/// Push is only meaningful for admins today (new-subscription alerts) — skip
-/// the permission prompt/registration entirely for everyone else.
-void _registerPushIfAdmin(User user) {
-  if (user.isAdmin) PushNotificationService.initialize();
-}
-
 class AuthController extends GetxController {
   final Rx<User?> currentUser = (Pref.currentUser).obs;
 
@@ -104,7 +98,7 @@ class AuthController extends GetxController {
       Pref.currentUser = user;
       currentUser.value = user;
       Pref.authToken = result.token;
-      _registerPushIfAdmin(user);
+      PushNotificationService.registerAfterLogin();
       MyDialogs.success(msg: 'Account created');
       return true;
     } catch (e) {
@@ -156,7 +150,7 @@ class AuthController extends GetxController {
       Pref.currentUser = toStore;
       currentUser.value = toStore;
       if (result.token != null) Pref.authToken = result.token;
-      _registerPushIfAdmin(toStore);
+      PushNotificationService.registerAfterLogin();
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -191,7 +185,7 @@ class AuthController extends GetxController {
       Pref.currentUser = toStore;
       currentUser.value = toStore;
       Pref.authToken = result.token;
-      _registerPushIfAdmin(toStore);
+      PushNotificationService.registerAfterLogin();
       MyDialogs.success(msg: 'Logged in');
       return true;
     } catch (e) {

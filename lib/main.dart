@@ -57,10 +57,11 @@ Future<void> main() async {
 
   await Pref.initializeHive();
 
-  // Push is only meaningful for admins today (new-subscription alerts) — skip
-  // the permission prompt entirely for everyone else. Fire-and-forget so a
-  // slow permission dialog never blocks first paint.
-  if (isMobile && Pref.isAdmin) {
+  // Ask for notification permission on every app open (Android 13+ and iOS
+  // both require it). Only admins receive anything today (new-subscription
+  // alerts), but the OS prompt itself isn't gated by role. Fire-and-forget
+  // so a slow permission dialog never blocks first paint.
+  if (isMobile) {
     unawaited(PushNotificationService.initialize());
   }
 

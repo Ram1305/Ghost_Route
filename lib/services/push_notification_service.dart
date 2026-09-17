@@ -6,10 +6,11 @@ import 'package:flutter/foundation.dart';
 import '../apis/auth_api.dart';
 import '../helpers/pref.dart';
 
-/// Registers this device for push notifications and keeps the backend's copy
-/// of the FCM token in sync. Currently used only for admin "new subscription"
-/// alerts — safe to call for any logged-in user; only admins will actually
-/// receive anything given today's single notification trigger.
+/// Requests notification permission (Android 13+ and iOS both require it) and
+/// keeps the backend's copy of this device's FCM token in sync for any
+/// logged-in user. Only admins actually receive anything today (new-
+/// subscription alerts) — the backend only ever pushes to admin accounts —
+/// but the OS permission prompt itself isn't gated by role.
 class PushNotificationService {
   static bool _permissionRequested = false;
 
