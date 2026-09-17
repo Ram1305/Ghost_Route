@@ -1,3 +1,5 @@
+import FirebaseCore
+import FirebaseMessaging
 import Flutter
 import NetworkExtension
 import UIKit
@@ -8,7 +10,32 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    // Configure before APNs registration so Messaging.apnsToken can be set
+    // even if the device-token callback arrives before Dart runs.
+    if FirebaseApp.app() == nil {
+      FirebaseApp.configure()
+    }
+    let ok = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    // Scene-based lifecycle + disabled AppDelegate proxy means Firebase
+    // will not swizzle this; register and forward the APNs token ourselves.
+    application.registerForRemoteNotifications()
+    return ok
+  }
+
+  override func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    Messaging.messaging().apnsToken = deviceToken
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+  }
+
+  override func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    print("[Push] APNs registration failed: \(error.localizedDescription)")
+    super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {

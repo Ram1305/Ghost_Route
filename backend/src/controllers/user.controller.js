@@ -61,10 +61,11 @@ export async function registerFcmToken(req, res) {
     if (!token) {
       return res.status(400).json({ error: 'token is required' });
     }
-    if (!req.user.fcmTokens.includes(token)) {
-      req.user.fcmTokens.push(token);
-      await req.user.save();
-    }
+    await User.updateOne(
+      { _id: req.user._id },
+      { $addToSet: { fcmTokens: token } },
+    );
+    console.log(`[Push] registered FCM token for ${req.user._id} (len=${token.length})`);
     res.status(200).json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

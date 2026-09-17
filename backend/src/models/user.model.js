@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     // FCM registration tokens for this user's device(s) — used to push notifications.
-    fcmTokens: { type: [String], default: [] },
+    fcmTokens: { type: [String], default: () => [] },
     // User-controlled opt-out (Settings > Push notifications). Tokens stay
     // registered when off — the backend just skips sending to this user.
     pushEnabled: { type: Boolean, default: true },
